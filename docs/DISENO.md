@@ -410,10 +410,36 @@ su rampa de densidad.
 hojarasca `v u`, charco `- = ~`, helecho `f F`, zarza `x X`, hongos `n m`,
 juncos `! j`, flores `*`.
 
-### Color
+### Color y profundidad
 
-Cuatro familias —verde, corteza, piedra, arena, agua— con **cuatro escalones de luz
-cada una**. Nada de degradado continuo: el degradado ensucia y confunde.
+Diecinueve familias —verde, corteza, piedra, arena, agua, hueso, nieve, abismo…—
+con cuatro escalones de luz cada una, moduladas después por la luz del cielo.
+
+**Cada celda lleva dos colores, no uno.** Detrás de la letra hay un fondo: la
+misma materia, apagada. Ese fondo es lo que llena los huecos y convierte un
+puñado de signos sueltos en una superficie continua. Antes de tenerlo, el 18% de
+la pantalla era negro puro y la imagen se leía como dibujo sobre fondo; ahora no
+queda ni una celda vacía.
+
+Medido sobre un cuadro de mediodía:
+
+| | |
+|---|---|
+| forma de la letra | 3,7 bits · 29 glifos |
+| color de la letra | 7,5 bits · unos 1.000 colores |
+| color del fondo | 6,5 bits · unos 365 colores |
+| **total** | **17,7 bits por celda** |
+
+**La sombra no es oscuridad: es luz azul.** Lo que ilumina una sombra no es el
+sol sino el cielo, y el cielo es azul. Todo lo que está en sombra se corre hacia
+el azul además de oscurecerse; es el cambio que más hace que la imagen deje de
+verse plana. Medido: a pleno sol la tendencia al azul es de −8, en sombra de +3.
+
+**Cómo se pinta sin que cueste.** El fondo del suelo va por bloques de un metro,
+que son de un solo color; el de los objetos, en tiradas horizontales del mismo
+color, con el color redondeado a saltos de doce para que las tiradas sean largas.
+Resultado: unos **1.800 rectángulos** para 61.000 celdas, en vez de los 20.000 que
+costaría pintarlas de a una.
 
 ### Viento
 

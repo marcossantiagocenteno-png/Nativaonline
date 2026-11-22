@@ -46,7 +46,8 @@ function layout(){
   if(cols*rowsN>150000){ const k=Math.sqrt(150000/(cols*rowsN)); cols=Math.floor(cols*k); rowsN=Math.floor(rowsN*k); }
   /* el zoom llama acá en cada cuadro: no reservar memoria si el tamaño no cambió */
   if(!fbG || fbG.length!==cols*rowsN){
-    fbG=new Uint16Array(cols*rowsN); fbC=new Int32Array(cols*rowsN); fbL=new Uint8Array(cols*rowsN);
+    fbG=new Uint16Array(cols*rowsN); fbC=new Int32Array(cols*rowsN);
+    fbL=new Uint8Array(cols*rowsN);  fbB=new Int32Array(cols*rowsN);
   }
   animMsBase = cols*rowsN>90000?340:cols*rowsN>45000?240:160;
   if(animMs!==animMsBase && !(NV.cielo&&NV.cielo.clima&&NV.cielo.clima.tormenta)){
@@ -61,10 +62,39 @@ function put(c,r,code,col){
   if(fbG[i]&&fbL[i]>layer) return;
   fbG[i]=code; fbC[i]=col; fbL[i]=layer;
 }
+/* El fondo del suelo se pinta por bloques de un metro, no celda por celda: un
+   metro entero es del mismo color, así que un solo rectángulo alcanza y el
+   volcado pasa de dieciséis mil rectángulos a unos pocos miles. */
+let bloques=[], nBloques=0;
+function fondoBloque(c,r,anchoCeldas,altoCeldas,col){
+  bloques[nBloques++]=[c,r,anchoCeldas,altoCeldas,col];
+}
+
+/* El fondo de la celda: lo que hay detrás de la letra. Es la mitad de la
+   información de cada celda y lo que convierte un dibujo de signos sueltos en
+   una materia continua. Se guarda como color+1 para que el cero signifique
+   "sin fondo". */
+function fondo(c,r,col){
+  if(c<0||r<0||c>=cols||r>=rowsN) return;
+  const i=r*cols+c;
+  if(fbB[i]&&fbL[i]>layer) return;
+  /* El fondo se redondea a saltos de 12 por canal. No se nota —son colores
+     apagados y detrás de una letra— y hace que celdas vecinas compartan color,
+     con lo que el volcado los pinta de a tiradas largas en vez de uno por uno.
+     Sin esto son veinte mil rectángulos por cuadro; con esto, la cuarta parte. */
+  fbB[i]=1+((((col>>16)&255)/12|0)*12<<16 | (((col>>8)&255)/12|0)*12<<8 | ((col&255)/12|0)*12);
+}
 const packc=(r,g,b)=>(clamp(r|0,0,255)<<16)|(clamp(g|0,0,255)<<8)|clamp(b|0,0,255);
-const packs=(fam,s,calor)=>{
+/* frio: cuánta de esta celda está en sombra. Una sombra no es sólo oscuridad;
+   lo que la llena es la luz del cielo, que es azul. Esto es lo que más hace que
+   una imagen deje de verse plana. */
+const packs=(fam,s,calor,frio)=>{
   const c=step(fam,s), m=0.72+s*0.5, L=NV.luz;
   let r=c[0]*m*L.r, g=c[1]*m*L.g, b=c[2]*m*L.b;
+  if(frio){
+    const l=(r+g+b)/3, k=Math.min(0.85,frio);
+    r+=(l*0.58-r)*k; g+=(l*0.84-g)*k; b+=(l*1.30-b)*k;
+  }
   if(calor){ const k=Math.min(1.2,calor); r+=168*k; g+=84*k; b+=22*k; }
   return packc(r,g,b);
 };
@@ -77,6 +107,31 @@ function flush(){
   ctx.font=fontSize+'px '+MONO;
   ctx.save();
   ctx.translate(NV.desplaceX||0, NV.desplaceY||0);
+
+  /* primero los bloques de suelo, de un metro cada uno */
+  for(let i=0;i<nBloques;i++){
+    const b=bloques[i], k=b[4];
+    ctx.fillStyle='rgb('+((k>>16)&255)+','+((k>>8)&255)+','+(k&255)+')';
+    ctx.fillRect(b[0]*cw, b[1]*chh, b[2]*cw+0.6, b[3]*chh+0.6);
+  }
+
+  /* después los fondos de lo que se levanta, en tiradas horizontales */
+  for(let r=0;r<rowsN;r++){
+    let ini=-1, col=0;
+    const y=r*chh;
+    for(let c=0;c<=cols;c++){
+      const v=c<cols?fbB[r*cols+c]:0;
+      if(v&&(ini<0||v===col)){ if(ini<0){ ini=c; col=v; } continue; }
+      if(ini>=0){
+        const k=col-1;
+        ctx.fillStyle='rgb('+((k>>16)&255)+','+((k>>8)&255)+','+(k&255)+')';
+        ctx.fillRect(ini*cw, y, (c-ini)*cw+0.6, chh+0.6);
+        ini=-1;
+      }
+      if(v){ ini=c; col=v; }
+    }
+  }
+
   const adv=ctx.measureText('W').width;
   const canRun = ('letterSpacing' in ctx);
   if(canRun){ ctx.textAlign='left'; ctx.letterSpacing=(cw-adv).toFixed(2)+'px'; }
@@ -123,5 +178,5 @@ NV.acercarZoom=function(){
   metrosVista += (metrosDestino-metrosVista)*0.24;
   layout();
   return true;
-}; NV.put=put; NV.flush=flush;
+}; NV.put=put; NV.fondo=fondo; NV.fondoBloque=fondoBloque; NV.flush=flush;
 NV.packc=packc; NV.packs=packs;
