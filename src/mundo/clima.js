@@ -84,10 +84,13 @@ function nieblaEn(mx,my,t){
   const c = NV.cielo && NV.cielo.clima;
   const hora = t-Math.floor(t);
   /* de madrugada espesa, al mediodía casi nada */
-  let ciclo = hora<0.22?1 : hora<0.34?1-(hora-0.22)/0.12 : hora<0.68?0.06
-            : hora<0.82?(hora-0.68)/0.14 : 1;
+  /* Nunca se va del todo: de día se adelgaza, de madrugada espesa. Lo que
+     hace que aparezca y desaparezca en un lugar son los bancos que pasan,
+     no un interruptor horario. */
+  let ciclo = hora<0.22?1 : hora<0.36?1-(hora-0.22)/0.14*0.62 : hora<0.66?0.38
+            : hora<0.84?0.38+(hora-0.66)/0.18*0.62 : 1;
   const hum = c?Math.max(0,c.humedad-0.3)/0.7:0.35;
-  const base = NIEBLA.piso + ciclo*(0.30+hum*0.70);
+  const base = NIEBLA.piso + ciclo*(0.34+hum*0.66);
   if(base<=0.02) return 0;
   /* más al oeste, y arrastrándose hacia allá con el tiempo */
   const oeste = NIEBLA.oeste * Math.max(0, 1 - mx/(NV.ASTRO?70:70));

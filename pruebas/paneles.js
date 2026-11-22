@@ -83,6 +83,31 @@ const surS  =S.trees.filter(t=>t.k==='arbol'&&t.y>65).length;
 console.log('  pinos en la mitad norte:', norteS, '· en la mitad sur:', surS);
 probar('hacia el sur quedan menos pinos', surS<norteS);
 
+console.log('\n=== los senderos cruzan las costuras ===');
+let filas=0, desajustes=0;
+for(let y=5;y<95;y++){
+  const a=NV.sueloEn(-1,y)==='d', b=NV.sueloEn(0,y)==='d';
+  if(a||b){ filas++; if(a!==b) desajustes++; }
+}
+console.log('  costura oeste: filas con sendero', filas, '· desajustes', desajustes);
+probar('el sendero no se corta en la costura', filas>0 && desajustes===0);
+/* En el claro el sendero cruza el arroyo por un vado. En el acantilado no:
+   allá el río ya es ancho y hondo, y cortar el paso es lo que corresponde. */
+let hondoEnCamino=0;
+{ const p=NV.panel(0,0);
+  for(let y=0;y<L;y++) for(let x=0;x<L;x++)
+    if(p.ground[y][x]==='A' && NV.sendero(x,y)) hondoEnCamino++; }
+console.log('  agua honda sobre el sendero del claro:', hondoEnCamino);
+probar('en el claro el sendero cruza por vado', hondoEnCamino===0);
+
+console.log('\n=== el acantilado tiene filo, vacío y mar ===');
+const E2=NV.panel(1,0);
+const perfil=E2.ground[50].slice(58,95).replace(/(.)\1+/g,'$1');
+console.log('  perfil de la fila 50:', perfil);
+const tieneV=(()=>{ for(let y=0;y<L;y++) if(E2.ground[y].includes('V')) return true; return false; })();
+probar('hay un vacío entre la roca y el mar', tieneV);
+probar('el vacío no se puede pisar', NV.MAT.V.solido===true);
+
 console.log('\n'+ok.length+' comprobaciones pasaron'+(mal.length?', '+mal.length+' FALLARON:':''));
 mal.forEach(m=>console.log('  ✗',m));
 process.exit(mal.length?1:0);

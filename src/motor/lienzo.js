@@ -20,7 +20,8 @@ function layout(){
   cols=Math.max(20,Math.floor(w/cw)); rowsN=Math.max(12,Math.floor(h/chh));
   if(cols*rowsN>150000){ const k=Math.sqrt(150000/(cols*rowsN)); cols=Math.floor(cols*k); rowsN=Math.floor(rowsN*k); }
   fbG=new Uint16Array(cols*rowsN); fbC=new Int32Array(cols*rowsN); fbL=new Uint8Array(cols*rowsN);
-  animMs = cols*rowsN>90000?340:cols*rowsN>45000?240:160;
+  animMsBase = cols*rowsN>90000?340:cols*rowsN>45000?240:160;
+  animMs = animMsBase;
   restartAnim();
   draw();
 }

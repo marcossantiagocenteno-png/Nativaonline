@@ -23,10 +23,10 @@ const entre=(a,b,t)=>a+(b-a)*t;
    calculado sobre el reloj real para que tenga el ritmo nervioso que le toca. */
 function relampago(ms, tormenta){
   if(!tormenta) return 0;
-  const ranura=Math.floor(ms/260);
-  if(NV_.hash3(ranura,7,3)%1000 > 46) return 0;
-  const sub=(ms%260)/260;
-  return Math.max(0, 1-sub*1.5);
+  const ranura=Math.floor(ms/85);                 // ranuras tres veces más cortas
+  if(NV_.hash3(ranura,7,3)%1000 > 15) return 0;   // y proporcionalmente más raras
+  const sub=(ms%85)/85;
+  return Math.max(0, 1-sub*1.35);                 // golpe seco y vuelta enseguida
 }
 
 const cielo = {

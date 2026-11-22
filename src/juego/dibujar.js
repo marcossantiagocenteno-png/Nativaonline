@@ -59,7 +59,7 @@ function draw_(){
 function dibujarNiebla(t){
   if(!NV.nieblaEn) return;
   const L=NV.luz;
-  const fr=170*L.r+22, fg=182*L.g+24, fb=196*L.b+28;
+  const fr=168*L.r+24, fg=178*L.g+26, fb=190*L.b+30;
   const colsM=Math.ceil(cols/CPM), rowsM=Math.ceil(rowsN/RPM);
   let densa=0;
   for(let my=camY;my<camY+rowsM;my++){
@@ -67,22 +67,20 @@ function dibujarNiebla(t){
       const d=NV.nieblaEn(mx,my,t);
       if(d<0.04) continue;
       if(Math.abs(mx-me.x)<3&&Math.abs(my-me.y)<3) densa=Math.max(densa,d);
-      const k=Math.min(0.88,d*0.95);
+      /* La niebla es una nube a ras del suelo: lava el color de lo que hay
+         abajo pero NO borra ningún glifo, y las copas quedan por encima. */
+      const k=Math.min(0.72,d*0.80);
       const c0=(mx-camX)*CPM, r0=(my-camY)*RPM;
       for(let r=0;r<RPM;r++){
         const fila=r0+r; if(fila<0||fila>=rowsN) continue;
         for(let c=0;c<CPM;c++){
           const col=c0+c; if(col<0||col>=cols) continue;
           const i=fila*cols+col;
-          if(fbG[i]){
-            const v=fbC[i];
-            fbC[i]=packc(((v>>16)&255)+(fr-((v>>16)&255))*k,
-                         ((v>>8)&255)+(fg-((v>>8)&255))*k,
-                         (v&255)+(fb-(v&255))*k);
-            if(d>0.55 && (hash3(col,fila,Math.floor(t*3))%100)<d*40) fbG[i]=d>0.78?61:58;
-          } else if(d>0.42 && (hash3(col,fila,Math.floor(t*3)+1)%100)<d*26){
-            fbG[i]=46; fbC[i]=packc(fr*0.8,fg*0.8,fb*0.8); fbL[i]=0;
-          }
+          if(!fbG[i] || fbL[i]>1) continue;          // nada que teñir, o es copa
+          const v=fbC[i];
+          fbC[i]=packc(((v>>16)&255)+(fr-((v>>16)&255))*k,
+                       ((v>>8)&255)+(fg-((v>>8)&255))*k,
+                       (v&255)+(fb-(v&255))*k);
         }
       }
     }
@@ -135,7 +133,19 @@ function drawGroundRow(my,rBase,haze,t){
     if(!type) continue;                         // más allá del mundo conocido
     const mt=MAT[type]||MAT.g;
     const sh=NV.sombraEn(mx,my);
-    const lp=0.84+patch(mx,my,3,0.08)*0.40;
+    let lp=0.84+patch(mx,my,3,0.08)*0.40;
+    let fam=mt.fam, grieta=0;
+    if(mt.textura==='roca'){
+      /* estratos: bandas horizontales de distinta dureza, como la roca de
+         verdad, y dos tonos de piedra que se alternan en manchas grandes */
+      lp *= 0.58 + patch(mx*0.7, my*2.6, 3, 0.30)*0.95;
+      fam = patch(mx*0.25, my*0.25, 2, 0.09)>0.5 ? 'roca2' : 'piedra';
+      grieta = patch(mx*1.4+50, my*1.4, 2, 0.5);
+    } else if(mt.textura==='tierra'){
+      lp *= 0.76 + patch(mx*0.9, my*1.3, 3, 0.22)*0.62;
+    } else if(mt.textura==='caida'){
+      lp *= 0.30;
+    }
     let light=clamp(sh*lp*haze,0,1.3);
     /* resplandor de la hoguera: más fuerte cuanto más oscuro esté todo */
     const fg0=NV.fuegoEn(mx,my);
@@ -143,7 +153,7 @@ function drawGroundRow(my,rBase,haze,t){
     if(calor) light=clamp(light+calor*0.85,0,2.0);
     const w=windAt(mx,my,t); wsum+=w; wn++;
     const bend = w>1.02?2 : w>0.66?1 : 0;
-    const colG=packs(mt.fam,light*(mt.agua||1),calor*0.75);
+    const colG=packs(fam,light*(mt.agua||1),calor*0.75);
     const base=(mx-camX)*CPM;
     const grass=(type==='G'||type==='g'||type==='f');
 

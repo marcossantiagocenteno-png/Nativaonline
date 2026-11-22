@@ -19,8 +19,10 @@ const MAT={                                   // capa SUELO, en uso
   A:{n:'corriente',   fam:'agua',   ramp:['-','~','~','=','~'], agua:1.00},
   P:{n:'agua honda',  fam:'honda',  ramp:['~','=','_','_','_'], agua:0.62, solido:true},
   E:{n:'espuma',      fam:'espuma', ramp:['-','~','=','*','#'], agua:1.25},
-  M:{n:'roca madre',  fam:'piedra', ramp:['.','^','A','M','M'], solido:true},
-  R:{n:'ruina',       fam:'piedra', ramp:['.',':','#','%','#'], solido:true},
+  M:{n:'roca madre',  fam:'piedra', ramp:['.',':','^','A','M'], solido:true, textura:'roca'},
+  V:{n:'el vacío',    fam:'abismo', ramp:[' ',' ','.',':','.'], solido:true, textura:'caida'},
+  d:{n:'tierra',      fam:'tierra', ramp:['.',',','-','_','='], textura:'tierra'},
+  R:{n:'ruina',       fam:'piedra', ramp:['.',':','#','%','#'], solido:true, textura:'roca'},
   N:{n:'nieve',       fam:'nieve',  ramp:[' ','.','\u00b0','*','*']},
   D:{n:'duna',        fam:'arena',  ramp:['.','.',':',';',':']}
 };

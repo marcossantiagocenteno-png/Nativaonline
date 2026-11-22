@@ -18,6 +18,32 @@ const anchoArroyo = gy => 1.4 + ruidoA(0,gy*5,2,0.03)*1.9;
 const BIFY = 46;                                   // altura del brazo al este
 const ejeBrazo = gx => BIFY + ruidoA(gx*4,900,3,0.022)*18-9;
 
+/* ---------- senderos ----------
+   Dos caminos cruzan el mundo entero, uno de este a oeste y otro de norte a
+   sur, y se cortan en el claro. Como se definen en coordenadas del mundo, pasan
+   de un panel al siguiente sin juntura. Son de tierra pisada en el medio y de
+   hierba corta en los bordes, que es como se hace un sendero de verdad: no lo
+   dibuja nadie, lo gasta el que pasa. */
+const SENDERO={ ancho:1.6, orilla:1.5 };
+function sendero(gx,gy){
+  /* el que va al este serpentea en y; el que va al sur, en x */
+  const ey = 52 + ruidoC(gx*2.5, 400, 3, 0.016)*22-11;
+  const ex = 50 + ruidoC(600, gy*2.5, 3, 0.016)*22-11;
+  const d = Math.min(Math.abs(gy-ey), Math.abs(gx-ex));
+  if(d < SENDERO.ancho) return 2;            // tierra pisada
+  if(d < SENDERO.ancho+SENDERO.orilla) return 1;  // hierba gastada
+  return 0;
+}
+function marcarSenderos(p,L,ox,oy){
+  for(let y=0;y<L;y++) for(let x=0;x<L;x++){
+    const g=p.ground[y][x];
+    if(g!=='g'&&g!=='G'&&g!=='N'&&g!=='D') continue;   // no pisa el agua ni la roca
+    const v=sendero(ox+x, oy+y);
+    if(v===2) poner(p,L,x,y,'d');
+    else if(v===1) poner(p,L,x,y,'g');
+  }
+}
+
 function nuevoPanel(L){
   return {ground:[], occ:new Uint8Array(L*L), trees:[],
           flow:new Uint8Array(L*L), fuego:new Float32Array(L*L),
@@ -106,8 +132,14 @@ function bioEste(p,L,ox,oy,rnd){
     let fila='';
     for(let x=0;x<L;x++){
       const gx=ox+x, gy=oy+y;
-      if(x>borde+3){ fila += x>borde+6?'P':'E'; continue; }   // mar y rompiente
-      if(x>borde)  { fila += 'M'; continue; }                 // el filo del acantilado
+      /* De tierra adentro hacia el mar: tierra pelada, el filo de roca,
+         el vacío de la caída, la rompiente y el mar abierto. */
+      const filo = borde + Math.round(ruidoC(gy*5,0,3,0.05)*5-2.5);
+      if(x>filo+11){ fila += 'P'; continue; }
+      if(x>filo+7) { fila += 'E'; continue; }
+      if(x>filo+2) { fila += 'V'; continue; }
+      if(x>filo-1) { fila += 'M'; continue; }
+      if(x>filo-5) { fila += 'd'; continue; }
       /* el río, que viene del brazo del claro y se ensancha hacia el mar */
       const eje=ejeBrazo(gx);
       const ancho=2.2 + (x/borde)*7.5 + ruidoA(gx*6,300,2,0.035)*2;
@@ -121,7 +153,7 @@ function bioEste(p,L,ox,oy,rnd){
     }
     p.ground.push(fila);
   }
-  arboles(p,L,ox,oy,rnd,{densidad:0.007, hasta:borde-6});
+  arboles(p,L,ox,oy,rnd,{densidad:0.007, hasta:borde-9});
   piedrasYtroncos(p,L,ox,oy,rnd,30,8);
 }
 
@@ -172,7 +204,10 @@ function arroyo(p,L,ox,oy,conBrazo){
       if(d2<w2+3.4 && 1-d2/(w2+3.4)>pr){ pr=1-d2/(w2+3.4); este=true; }
     }
     if(pr<=0) continue;
-    poner(p,L,x,y, pr>0.58?'A' : pr>0.34?'a' : pr>0.12?'s' : 'k');
+    /* donde el sendero cruza el agua, el fondo sube: eso es un vado, y es
+       por donde se pasa */
+    const vado = sendero(gx,gy)>0;
+    poner(p,L,x,y, (pr>0.58&&!vado)?'A' : pr>0.34?(vado?'a':'a') : pr>0.12?'s' : 'k');
     if(pr>0.34) p.flow[y*L+x]=este?1:0;
   }
 }
@@ -188,6 +223,7 @@ function arboles(p,L,ox,oy,rnd,op){
     const g=p.ground[y][x];
     if(g!=='g'&&g!=='G'&&!(op.soloPino&&g==='N')) continue;
     if(cercaDelAgua(p,L,x,y,2)) continue;          // ni dentro del agua ni en la orilla
+    if(sendero(gx,gy)) continue;                   // ni en medio del camino
     if(rnd()>op.densidad*(0.5+f)*6) continue;
     let cerca=false;
     for(let j=-1;j<=1&&!cerca;j++) for(let i=-1;i<=1;i++) if(p.occ[(y+j)*L+(x+i)]){ cerca=true; break; }
@@ -228,6 +264,7 @@ function generarPanel(pi,pj,def,L){
   const p=nuevoPanel(L);
   const ox=pi*L, oy=pj*L;
   ({claro:bioClaro, oeste:bioOeste, este:bioEste, norte:bioNorte, sur:bioSur}[def.bioma])(p,L,ox,oy,rnd);
+  marcarSenderos(p,L,ox,oy);
 
   /* la hoguera, solo en el claro */
   if(def.bioma==='claro'){
@@ -307,5 +344,6 @@ function buscarClaro(p,L){
   return {x:cx,y:cy};
 }
 
+NVg.sendero=sendero;
 NVg.generarPanel=generarPanel; NVg.calcularSombras=calcularSombras;
 NVg.buscarClaro=buscarClaro; NVg.ejeArroyo=ejeArroyo;

@@ -5,7 +5,7 @@
 /* ---------- estado ---------- */
 let world=null, me={x:50,y:62}, facing='norte';
 let cv,ctx,dpr=1,cw=6,chh=9,cols=0,rowsN=0,camX=0,camY=0;
-let fontSize=11, animOn=true, frame=0, animTimer=null, animMs=120;
+let fontSize=11, animOn=true, frame=0, animTimer=null, animMs=120, animMsBase=120;
 let fbG=null,fbC=null,fbL=null, db=null,userNs=null,docRef=null;
 let layer=0, calidad=1, pend=false, lastMs=16;
 const patch=makeNoise(mulberry(41099));
@@ -94,7 +94,7 @@ function dejarDeCaminar(dx,dy){
   if(pasoTimer){ clearInterval(pasoTimer); pasoTimer=null; }
 }
 
-let ultSol=-9;
+let ultSol=-9, ultTormenta=false;
 function tictac(){
   const c=NV.actualizarCielo(Date.now());
   const m=$('relojM');
@@ -104,6 +104,14 @@ function tictac(){
   if(world && Math.abs(c.fase-ultSol)>0.004){      // cada ~30 s reales
     ultSol=c.fase;
     NV.recalcularSombras();
+  }
+  /* Con tormenta el dibujo se acelera: un relámpago dura menos de un décimo
+     de segundo y con el ritmo normal se perdería la mitad de los fogonazos. */
+  const tor=!!(c.clima&&c.clima.tormenta);
+  if(tor!==ultTormenta){
+    ultTormenta=tor;
+    animMs = tor ? Math.min(70, animMsBase) : animMsBase;
+    restartAnim();
   }
   if(guardadoPendiente) guardar(true);            // nada se pierde por el freno
   const p=NV.panelDe(me.x,me.y);

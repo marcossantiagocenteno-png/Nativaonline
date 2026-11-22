@@ -171,9 +171,11 @@ directa: medido sobre un año, con Calavera llena hay tormenta solo el 3,6% de l
 veces. Así el que mira el cielo puede anticiparla —ve la marea trepando y el aire
 pesado— sin que sea una regla mecánica.
 
-Los **relámpagos** son un golpe de luz blanca en el mundo entero, de un cuarto de
-segundo, calculados sobre el reloj real para que tengan ritmo nervioso. En plena
-noche cerrada el fogonazo muestra el bosque completo por un instante.
+Los **relámpagos** son un golpe de luz blanca en el mundo entero que dura menos de
+una décima de segundo: alumbra todo y vuelve enseguida. Mientras hay tormenta el
+dibujo se acelera a 70 milisegundos por cuadro, porque si no la mitad de los
+fogonazos caerían entre cuadro y cuadro y no se verían. En plena noche cerrada el
+fogonazo muestra el bosque completo por un instante.
 
 Las nubes apagan la luz y le quitan color. La lluvia, además, **cierra la vista**:
 la cortina tapa la distancia aunque sea mediodía.
@@ -196,12 +198,18 @@ día entero del planeta, con los tramos de noche oscuros y el amanecer y el ocas
 en naranja, y un sol o una luna recorriéndola.
 
 **Niebla.** `src/mundo/clima.js`. Un campo que ocupa la grilla, se arrastra hacia
-el oeste a unos seis metros por minuto real y reacciona a la humedad. Espesa de
-madrugada, se levanta con el sol —al mediodía es casi nada— y vuelve al caer la
-tarde. Carga sobre el tercio oeste del claro. Al dibujarse lava el color de todo
-lo que tapa, come el detalle y cierra la vista; donde es muy densa aparecen sus
-propios glifos `: =`. Es la misma maquinaria que va a usar el fuego cuando se
-propague: algo que ocupa la grilla, se mueve y reacciona al aire.
+el oeste a unos seis metros por minuto real y reacciona a la humedad. Carga sobre
+el tercio oeste del claro.
+
+**No se prende y se apaga**: de madrugada espesa y de día adelgaza, pero nunca se
+va del todo. Lo que la hace aparecer y desaparecer en un lugar son los bancos que
+pasan, no un interruptor horario.
+
+Al dibujarse se comporta como una nube a ras del suelo: **lava el color de lo que
+hay abajo pero no borra ningún glifo**, así que las piedritas y las briznas siguen
+ahí, grises. Y **no toca las copas de los árboles**, que quedan por encima de ella.
+
+Es la misma maquinaria que va a usar el fuego cuando se propague.
 
 **La hoguera.** Un objeto en el claro, a cinco metros del punto de partida. Los
 leños se dibujan cruzados y la llama se levanta con glifos que cambian cuadro a
@@ -266,9 +274,18 @@ Los cinco paneles de prueba:
 |---|---|---|
 | **0:0** | El claro | pasto, arroyo con brazo al este, la hoguera |
 | **-1:0** | El bosque viejo | árboles un 55% más altos, un lago, cuatro ruinas de muro, el árbol místico, y una pared de roca viva en el borde oeste que cierra el mundo |
-| **1:0** | El acantilado | el brazo del arroyo se ensancha y ahonda hasta el filo; abajo el mar, con rompiente que late al ritmo de la marea |
+| **1:0** | El acantilado | el brazo del arroyo se ensancha y ahonda hasta el filo. De tierra adentro al mar: tierra pelada, el filo de roca, **el vacío de la caída**, la rompiente y el mar abierto |
 | **0:1** | El filo del desierto | bosque frondoso y un corte abrupto, serpenteante, a dunas |
 | **0:-1** | Los pinos fríos | pinos que ralean hacia el sur —148 en la mitad norte contra 3 en la sur— y nieve que gana terreno |
+
+**Dos senderos cruzan el mundo entero**, uno de este a oeste y otro de norte a
+sur, y se cortan en el claro. Están definidos en coordenadas del mundo, así que
+pasan de un panel al siguiente sin juntura: medido, cero desajustes en la costura.
+Son de tierra pisada en el medio y de hierba gastada en los bordes, que es como se
+hace un sendero de verdad: no lo dibuja nadie, lo gasta el que pasa. Ningún árbol
+nace encima. **Donde el sendero cruza el arroyo del claro, el fondo sube y hay un
+vado**; en el acantilado no, porque allá el río ya es ancho y hondo y cortar el
+paso es lo que corresponde.
 
 Cada panel se genera de su propia semilla derivada de la del mundo, y queda en
 memoria. Todavía no guarda lo que cambia: eso llega cuando haya algo que cambiar.
@@ -354,6 +371,9 @@ su rampa de densidad.
 | material | glifos | nota |
 |---|---|---|
 | piedra grande | `# % 8 0` al sol, `c o :` en sombra, `/ \ _` cantos | perfil escalonado |
+| roca madre | `. : ^ A M` más `# %` y vetas `/ \` | estratos horizontales y dos tonos de piedra en manchas |
+| tierra | `. , - _ =` con terrones `o` y guijas `°` | grano grueso |
+| el vacío | casi nada: `.` y `:` sueltos sobre negro | la caída del acantilado |
 | tronco en pie | `t h H` | `H` grueso, `h` medio, `t` fino |
 | ramas | `y Y` | |
 | tronco caído | `h H` | tendido de este a oeste |
