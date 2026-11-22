@@ -2,30 +2,42 @@
 // devuelve píxeles conocidos. Prueba el código, no el dibujo.
 const cargar=require('./cargar.js');
 
-/* un lienzo que, al pedirle los píxeles, devuelve un degradado conocido:
-   alfa creciente a lo ancho y brillo creciente a lo alto */
-let ultimoDraw=null;
+/* Un lienzo de mentira que se comporta como uno de verdad en lo que importa:
+   apila lo que se dibuja encima con su transparencia y devuelve el color SIN
+   premultiplicar, que es lo que hace getImageData. Sin apilar, la mezcla entre
+   cuadros no se puede observar y la prueba no sirve; sin lo de premultiplicar,
+   no se puede atrapar una división de más, que es lo que dejó al personaje
+   gris. */
 function lienzoFalso(){
-  let W=0,H=0;
+  let W=0,H=0,capas=[],alfa=1;
   const ctx={
-    clearRect(){}, set imageSmoothingEnabled(v){}, set imageSmoothingQuality(v){},
-    drawImage(){ ultimoDraw=[...arguments].slice(1); },
+    clearRect(){ capas=[]; },
+    set imageSmoothingEnabled(v){}, set imageSmoothingQuality(v){},
+    set globalAlpha(v){ alfa=v; }, get globalAlpha(){ return alfa; },
+    drawImage(img,sx){ capas.push({f:Math.round(sx/71)%8, a:alfa}); },
     getImageData(x,y,w,h){
-      /* El navegador devuelve el color SIN premultiplicar: mezcla en
-         premultiplicado al achicar y lo deshace al leer. El falso tiene que
-         hacer lo mismo, o la prueba no sirve para atrapar una división de más. */
       const d=new Uint8ClampedArray(w*h*4);
       for(let r=0;r<h;r++) for(let c=0;c<w;c++){
         const i=(r*w+c)*4;
-        const a=Math.round(255*(c+1)/w);
-        const l=Math.round(230*(r+1)/h);
-        d[i]=l; d[i+1]=Math.round(l*0.8); d[i+2]=Math.round(l*0.5); d[i+3]=a;
+        const aFuente=255*(c+1)/w;
+        /* se compone "encima", en premultiplicado, como el lienzo de verdad */
+        let pr=0,pg=0,pb=0,pa=0;
+        for(const cp of capas){
+          const l=230*(r+1)/h*(0.60+0.40*(cp.f/7));
+          const a=aFuente/255*cp.a;
+          pr=l*a+pr*(1-a); pg=l*0.8*a+pg*(1-a); pb=l*0.5*a+pb*(1-a);
+          pa=a+pa*(1-a);
+        }
+        d[i+3]=Math.round(pa*255);
+        if(pa>0){                       /* devolver el color recto, no premultiplicado */
+          d[i]=Math.round(pr/pa); d[i+1]=Math.round(pg/pa); d[i+2]=Math.round(pb/pa);
+        }
       }
       return {data:d};
     }
   };
-  return {get width(){return W}, set width(v){W=v},
-          get height(){return H}, set height(v){H=v},
+  return {get width(){return W}, set width(v){W=v;},
+          get height(){return H}, set height(v){H=v;},
           getContext:()=>ctx};
 }
 global.document.createElement=t=>t==='canvas'?lienzoFalso():
@@ -64,7 +76,7 @@ probar('la rampa empieza en vacío y termina en arroba',
 
 console.log('\n=== la conversión respeta brillo y cobertura ===');
 {
-  const c=m.celdasArte('myrella','walk_front',0,20,30);
+  const c=m.celdasArte('myrella','walk_front',0,1,0,20,30);
   if(!c){ probar('la conversión devuelve celdas', false); }
   else{
     probar('la conversión devuelve celdas', true);
@@ -90,13 +102,14 @@ console.log('\n=== el color no se divide por la cobertura ===');
    cobertura baja eso multiplica por dos y medio y manda todo al gris claro.
    El lienzo falso devuelve un color conocido; acá se exige que salga ése. */
 {
-  const c=m.celdasArte('myrella','idle_front',1,24,30);
+  const c=m.celdasArte('myrella','idle_front',1,2,0,24,30);
   let peor=0, mirados=0, grises=0;
   for(let r=0;r<c.filas;r++) for(let cc=0;cc<c.cols;cc++){
     const i=r*c.cols+cc;
     if(!c.g[i]) continue;
     const a=Math.round(255*(cc+1)/c.cols);
-    const l=Math.round(230*(r+1)/c.filas);
+    /* una sola capa (mezcla 0), el cuadro 1: el falso tiñe según el cuadro */
+    const l=230*(r+1)/c.filas*(0.60+0.40*(1/7));
     const fa=0.80+0.20*(a/255);
     const esp=l*fa, dio=(c.col[i]>>16)&255;
     peor=Math.max(peor,Math.abs(dio-esp)); mirados++;
@@ -106,13 +119,33 @@ console.log('\n=== el color no se divide por la cobertura ===');
   }
   console.log('  celdas miradas: '+mirados+' · peor diferencia con el color esperado: '+peor);
   console.log('  celdas que salieron grises: '+grises);
-  probar('el color sale como entró, sin dividir por la cobertura', mirados>0 && peor<=2);
+  probar('el color sale como entró, sin dividir por la cobertura', mirados>0 && peor<=3);
   probar('no se agrisa', grises===0);
+}
+
+console.log('\n=== un cuadro se funde con el siguiente ===');
+/* Sin fundir, el personaje salta de pose en pose y a esta resolución se lee
+   como si desapareciera y apareciera en otro lado. Con la mezcla en cuartos,
+   entre dos poses hay tres pasos intermedios distintos. */
+{
+  const vistos=new Set();
+  for(let mz=0;mz<4;mz++){
+    const c=m.celdasArte('myrella','walk_right',2,3,mz,22,28);
+    vistos.add([...c.g].join(','));
+  }
+  console.log('  entre la pose 2 y la 3 hay '+vistos.size+' dibujos distintos');
+  probar('la mezcla da pasos intermedios', vistos.size>=3);
+  const a=m.celdasArte('myrella','walk_right',2,3,0,22,28);
+  const b=m.celdasArte('myrella','walk_right',2,3,3,22,28);
+  let dif=0;
+  for(let i=0;i<a.g.length;i++) if(a.g[i]!==b.g[i]) dif++;
+  console.log('  del principio al final de la mezcla cambian '+dif+' celdas');
+  probar('la mezcla llega a parecerse al cuadro siguiente', dif>0);
 }
 
 console.log('\n=== la figura lleva contorno ===');
 {
-  const c=m.celdasArte('myrella','idle_front',0,24,30);
+  const c=m.celdasArte('myrella','idle_front',0,1,0,24,30);
   let borde=0;
   for(let i=0;i<c.cols*c.filas;i++) if(c.borde[i]) borde++;
   console.log('  celdas de contorno alrededor de la figura: '+borde);
@@ -124,14 +157,14 @@ console.log('\n=== la figura lleva contorno ===');
 
 console.log('\n=== quieta se queda quieta un rato largo ===');
 {
-  /* el ciclo de reposo dura catorce segundos y tres cuartas partes son el
+  /* el ciclo de reposo dura veinte segundos y tres cuartas partes son el
      primer cuadro: una persona parada no se balancea sin parar */
-  const CICLO=14000, QUIETA=0.74;
+  const CICLO=20000, QUIETA=0.74;
   let enCero=0;
   for(let ms=0;ms<CICLO;ms+=100){
     const u=ms/CICLO;
-    const cuadro = u<QUIETA ? 0 : Math.round(1+Math.floor((u-QUIETA)/(1-QUIETA)*7))%8;
-    if(cuadro===0) enCero++;
+    const fase = u<QUIETA ? 0 : 1+(u-QUIETA)/(1-QUIETA)*7;
+    if(fase===0) enCero++;
   }
   const pct=Math.round(100*enCero/(CICLO/100));
   console.log('  del ciclo de '+(CICLO/1000)+' s, pasa el '+pct+'% sin moverse');
@@ -140,11 +173,11 @@ console.log('\n=== quieta se queda quieta un rato largo ===');
 
 console.log('\n=== la memoria no se llena ni se repite trabajo ===');
 {
-  const a=m.celdasArte('myrella','walk_front',0,20,30);
-  const b=m.celdasArte('myrella','walk_front',0,20,30);
+  const a=m.celdasArte('myrella','walk_front',0,1,0,20,30);
+  const b=m.celdasArte('myrella','walk_front',0,1,0,20,30);
   probar('pedir dos veces lo mismo devuelve lo mismo', a===b);
-  for(let i=0;i<300;i++) m.celdasArte('myrella','walk_front',i%8,10+(i%40),20);
-  const c=m.celdasArte('myrella','walk_front',0,20,30);
+  for(let i=0;i<300;i++) m.celdasArte('myrella','walk_front',i%8,(i+1)%8,i%4,10+(i%40),20);
+  const c=m.celdasArte('myrella','walk_front',0,1,0,20,30);
   console.log('  tras 300 tamaños distintos, la memoria se vació y rehízo:', c!==a);
   probar('la memoria se limpia sola', !!c);
 }

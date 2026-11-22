@@ -43,10 +43,13 @@ function cargarArte(){
 
 /* Convierte un cuadro del arte a celdas, al tamaño pedido, y lo guarda.
    Devuelve {cols,filas,g:Uint16Array,col:Int32Array} o null. */
-function celdasArte(nombre,anim,cuadro,cols,filas){
+let _tamCache='';
+function celdasArte(nombre,anim,cuadro,cuadro2,mez,cols,filas){
   const e=_arte[nombre];
   if(!e||!e.listo||cols<2||filas<2) return null;
-  const clave=nombre+'|'+anim+'|'+cuadro+'|'+cols+'|'+filas;
+  const tam=cols+'x'+filas;
+  if(tam!==_tamCache){ _cacheArte.clear(); _tamCache=tam; }  // el zoom cambió
+  const clave=nombre+'|'+anim+'|'+cuadro+'|'+cuadro2+'|'+mez;
   let c=_cacheArte.get(clave);
   if(c) return c;
   const man=e.man, A=man.anims[anim];
@@ -64,8 +67,20 @@ function celdasArte(nombre,anim,cuadro,cols,filas){
   _ctxArte.clearRect(0,0,cols,filas);
   _ctxArte.imageSmoothingEnabled=true;
   _ctxArte.imageSmoothingQuality='high';
+  /* Dos cuadros encimados: el de ahora entero y el siguiente con transparencia.
+     Un sprite salta de pose en pose y a esta resolución eso se lee como si el
+     personaje desapareciera y apareciera en otro lado. Fundiendo uno con el
+     otro, las celdas se encienden y se apagan de a poco y el paso se ve como
+     movimiento y no como un corte. */
+  _ctxArte.globalAlpha=1;
   _ctxArte.drawImage(e.img, (cuadro%A.n)*man.ancho, A.fila*man.alto, man.ancho, man.alto,
                      0,0,cols,filas);
+  if(mez>0){
+    _ctxArte.globalAlpha=mez/4;
+    _ctxArte.drawImage(e.img, (cuadro2%A.n)*man.ancho, A.fila*man.alto, man.ancho, man.alto,
+                       0,0,cols,filas);
+    _ctxArte.globalAlpha=1;
+  }
   const d=_ctxArte.getImageData(0,0,cols,filas).data;
   const g=new Uint16Array(cols*filas), col=new Int32Array(cols*filas);
   const borde=new Uint8Array(cols*filas);
@@ -99,8 +114,7 @@ function celdasArte(nombre,anim,cuadro,cols,filas){
       borde[i]=1;
   }
   c={cols:cols,filas:filas,g:g,col:col,borde:borde};
-  /* el zoom cambia el tamaño pedido y llena la memoria de tamaños viejos */
-  if(_cacheArte.size>220) _cacheArte.clear();
+  if(_cacheArte.size>400) _cacheArte.clear();
   _cacheArte.set(clave,c);
   return c;
 }
@@ -108,7 +122,7 @@ function celdasArte(nombre,anim,cuadro,cols,filas){
 /* Dibuja un cuadro con los pies en (bc, br), de altoM metros de alto.
    Devuelve false si el arte todavía no está listo: ahí el que llama dibuja su
    figura de respaldo. */
-NV.dibujarArte=function(nombre,anim,cuadro,bc,br,altoM,luz){
+NV.dibujarArte=function(nombre,anim,fase,bc,br,altoM,luz){
   const e=_arte[nombre];
   if(!e||!e.listo) return false;
   const man=e.man;
@@ -117,7 +131,12 @@ NV.dibujarArte=function(nombre,anim,cuadro,bc,br,altoM,luz){
   const anchoM=altoM*man.ancho/(2*man.alto);
   const filas=Math.max(3,Math.round(altoM*NV.HPM()));
   const cols=Math.max(3,Math.round(anchoM*NV.CPM()));
-  const cel=celdasArte(nombre,anim,cuadro,cols,filas);
+  /* la fase es continua: de ahí salen el cuadro, el siguiente y cuánto se
+     funden. La mezcla va en cuartos para que la memoria no se dispare. */
+  const A=man.anims[anim]||{n:8};
+  const f0=Math.floor(fase), mez=Math.round((fase-f0)*4);
+  const cel=celdasArte(nombre,anim,((f0%A.n)+A.n)%A.n,
+                       ((f0+1)%A.n+A.n)%A.n, mez===4?0:mez, cols, filas);
   if(!cel) return false;
   /* Dónde caen los pies, en la rejilla ya achicada. Se mide al CENTRO de la
      celda: tomando el borde, el redondeo se va una fila y la figura queda

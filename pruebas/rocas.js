@@ -117,8 +117,12 @@ for(let mod=0;mod<3;mod++){
   }
   let peor=0;
   for(let i=1;i<alturas.length;i++) peor=Math.max(peor,Math.abs(alturas[i]-alturas[i-1]));
-  console.log('  '+NV.ROCAS.acantilado[mod].id+' salto mayor entre tajadas vecinas: '+peor+' filas');
-  probar('el muro '+NV.ROCAS.acantilado[mod].id+' no sale como una sierra', peor<=6);
+  /* Se mide en METROS y no en filas: las filas por metro cambian con el zoom,
+     así que un umbral en filas mide el zoom y no el muro. */
+  const metros=peor/m.estado().HPM;
+  console.log('  '+NV.ROCAS.acantilado[mod].id+' salto mayor entre tajadas vecinas: '
+              +peor+' filas = '+metros.toFixed(2)+' m');
+  probar('el muro '+NV.ROCAS.acantilado[mod].id+' no sale como una sierra', metros<=1.1);
 }
 
 console.log('\n=== las gigantes ocupan lo que miden ===');

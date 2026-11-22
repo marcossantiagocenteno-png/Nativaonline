@@ -91,9 +91,15 @@ console.log('\n=== el pasto crece a parches ===');
   }
   const med=porMetro.reduce((a,b)=>a+b,0)/porMetro.length;
   const desv=Math.sqrt(porMetro.reduce((a,b)=>a+(b-med)*(b-med),0)/porMetro.length);
+  /* Se compara el metro más tupido con el más ralo, y no el desvío contra la
+     media: cuantas más briznas hay por metro —y hay más cuanto más cerca está
+     la cámara— más chico sale el desvío relativo aunque el pasto varíe igual.
+     El cociente entre extremos no depende del zoom. */
+  const razon=Math.max(...porMetro)/Math.max(1,Math.min(...porMetro));
   console.log('  briznas por metro: '+med.toFixed(0)+' de media, desvío '+desv.toFixed(0)
-              +' ('+Math.round(100*desv/med)+'%)');
-  probar('el pasto no sale parejo como una cancha', desv/med>0.10);
+              +' ('+Math.round(100*desv/med)+'%) · el metro más tupido tiene '
+              +razon.toFixed(2)+' veces las del más ralo');
+  probar('el pasto no sale parejo como una cancha', razon>1.30);
 }
 
 console.log('\n=== el borde no es una escalera de un metro ===');

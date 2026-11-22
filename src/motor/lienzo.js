@@ -12,7 +12,11 @@ const METROS_MIN=9, METROS_MAX=72;    // cuánto mundo entra a lo ancho
    vertical, pedir 72 metros dejaría cada metro en cinco píxeles y las letras en
    dos. El tope se calcula para que el carácter nunca baje de ~2,7 px de ancho. */
 function metrosMaximos(anchoPx){ return clamp(anchoPx/(4*2.7), 18, METROS_MAX); }
-let metrosVista=28, metrosDestino=28;
+/* Cuánto mundo entra a lo ancho al empezar. El detalle de cualquier cosa son
+   las celdas que ocupa, y las celdas son su tamaño en pantalla: a 28 metros el
+   personaje medía doce filas de las cuarenta y cinco que tiene dibujadas. A 21
+   mide diecisiete, que es un 40% más de celdas en cada eje. */
+let metrosVista=21, metrosDestino=21;
 
 /* El zoom no cambia el tamaño de la letra: cambia cuántas letras entran en un
    metro. Así se puede parar en cualquier punto entre el mínimo y el máximo sin

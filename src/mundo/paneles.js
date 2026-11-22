@@ -23,7 +23,12 @@ const BIOMAS={
   '-1,0': {bioma:'oeste',    nombre:'El bosque viejo'},
   '1,0':  {bioma:'este',     nombre:'El acantilado'},
   '0,-1': {bioma:'norte',    nombre:'El filo del desierto'},
-  '0,1':  {bioma:'sur',      nombre:'Los pinos fríos'}
+  '0,1':  {bioma:'sur',      nombre:'Los pinos fríos'},
+  /* las esquinas: sin ellas, caminar en diagonal daba pantalla negra */
+  '-1,-1':{bioma:'esquina', nombre:'El arenal del oeste', esq:{ns:'norte'}},
+  '1,-1': {bioma:'esquina', nombre:'La costa seca',       esq:{ns:'norte',costa:1}},
+  '-1,1': {bioma:'esquina', nombre:'Los pinos del oeste', esq:{ns:'sur'}},
+  '1,1':  {bioma:'esquina', nombre:'La costa helada',     esq:{ns:'sur',costa:1}}
 };
 
 const cache=new Map();

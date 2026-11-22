@@ -126,6 +126,51 @@ function bioOeste(p,L,ox,oy,rnd){
   gigantes(p,L,ox,oy,rnd,2);
 }
 
+/* ---------- las cuatro esquinas ----------
+   El mundo eran cinco paneles en cruz, pero la cámara se mueve dentro del
+   rectángulo que los contiene: caminando en diagonal se llegaba a donde no hay
+   panel y la pantalla quedaba negra. Las esquinas continúan lo que tienen al
+   lado, y cada cosa sigue por donde corresponde: el corte del desierto y la
+   nieve corren de este a oeste, así que vienen del norte y del sur; la costa
+   corre de norte a sur, así que viene del este. Las dos esquinas de la derecha
+   llevan las dos cosas. */
+function bioEsquina(p,L,ox,oy,rnd,op){
+  const borde=62;
+  for(let y=0;y<L;y++){
+    let fila='';
+    for(let x=0;x<L;x++){
+      const gx=ox+x, gy=oy+y;
+      /* primero la costa, que manda sobre todo lo demás */
+      if(op.costa){
+        const filo = borde + Math.round(ruidoC(gy*5,0,3,0.05)*5-2.5);
+        if(x>filo+11){ fila+='O'; continue; }
+        if(x>filo+7) { fila+='E'; continue; }
+        if(x>filo+2) { fila+='V'; continue; }
+        if(x>filo-1) { fila+='M'; continue; }
+        if(x>filo-5) { fila+='d'; continue; }
+      }
+      if(op.ns==='norte'){
+        const corte = 44 + ruidoC(gx,0,3,0.03)*26-13;
+        if(y < corte){ fila += ruidoB(gx+9,gy,2,0.10)>0.72?'k':'D'; continue; }
+        if(y < corte+2){ fila += 's'; continue; }
+        const seco=(corte+16-y)/18 + ruidoB(gx+400,gy,3,0.06)*0.7-0.35;
+        if(seco>0.30){ fila += seco>0.62?'h':(ruidoA(gx,gy,3,0.07)>0.5?'h':'g'); continue; }
+      } else {
+        const nieve = (y-30)/70 + ruidoC(gx,gy,3,0.04)*0.45-0.22;
+        if(nieve>0.52){ fila+='N'; continue; }
+        if(nieve>0.34){ fila+= ruidoB(gx,gy,2,0.09)>0.5?'N':'n'; continue; }
+        if(nieve>0.20){ fila+= 'n'; continue; }
+      }
+      fila += ruidoA(gx,gy,4,0.05)>0.46?'G':'g';
+    }
+    p.ground.push(fila);
+  }
+  arboles(p,L,ox,oy,rnd,op.ns==='sur'?{densidad:0.014,soloPino:true}
+                                     :{densidad:0.016,hasta:op.costa?borde-9:L});
+  piedrasYtroncos(p,L,ox,oy,rnd,24,9);
+  gigantes(p,L,ox,oy,rnd,3);
+}
+
 /* ---------- este, 1:0 — el río ancho, el acantilado y el mar ---------- */
 function bioEste(p,L,ox,oy,rnd){
   const borde=62;                                   // dónde empieza el acantilado
@@ -314,7 +359,8 @@ function generarPanel(pi,pj,def,L){
   const rnd=NVg.mulberry(NVg.hashStr(NVg.CONFIG.seed+':'+pi+','+pj));
   const p=nuevoPanel(L);
   const ox=pi*L, oy=pj*L;
-  ({claro:bioClaro, oeste:bioOeste, este:bioEste, norte:bioNorte, sur:bioSur}[def.bioma])(p,L,ox,oy,rnd);
+  if(def.bioma==='esquina') bioEsquina(p,L,ox,oy,rnd,def.esq);
+  else ({claro:bioClaro, oeste:bioOeste, este:bioEste, norte:bioNorte, sur:bioSur}[def.bioma])(p,L,ox,oy,rnd);
   marcarSenderos(p,L,ox,oy);
 
   /* la hoguera, solo en el claro */
@@ -395,6 +441,7 @@ function buscarClaro(p,L){
   return {x:cx,y:cy};
 }
 
+NVg.bioEsquina=bioEsquina;
 NVg.gigantes=gigantes;
 NVg.sendero=sendero;
 NVg.generarPanel=generarPanel; NVg.calcularSombras=calcularSombras;

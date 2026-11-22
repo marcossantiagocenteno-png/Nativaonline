@@ -1113,29 +1113,30 @@ function drawPlayer(haze){
      Si el arte está cargado, se dibuja ella; si no, la figura de respaldo de
      más abajo. La dirección sale de hacia dónde mira, y el cuadro de caminar
      avanza por distancia: una zancada entera cada 2,4 metros. */
-  const ALTO_M=1.75;
+  const ALTO_M=1.85;                                 // una mujer alta
   const dir = facing==='norte'?'back' : facing==='sur'?'front'
             : facing==='este'?'right' : 'left';
   const andando = Date.now()-(NV.ultimoPaso||0) < 260;
   /* a poca altura no se muestran los ocho cuadros: ver cuadrosUtiles */
   const nf = NV.cuadrosUtiles ? NV.cuadrosUtiles('myrella',NV.filasDe(ALTO_M),!andando) : 8;
   const salto = 8/nf;
-  let cuadro;
+  /* La fase es CONTINUA, no un número de cuadro: con ella el motor funde un
+     cuadro con el siguiente y el movimiento deja de ser un salto. */
+  let fase;
   if(andando){
-    /* una zancada entera cada 3,6 metros */
-    cuadro = Math.round(salto*(Math.floor((NV.andado||0)/(0.45*salto))%nf))%8;
+    /* una zancada entera cada 5,1 metros: un 30% más lento que antes */
+    fase = salto*(((NV.andado||0)/(0.64*salto))%nf);
   } else {
     /* EN REPOSO SE ESTÁ QUIETA, y cada tanto se mueve. Una persona parada no
        se balancea sin parar: se queda quieta un rato largo y de golpe cambia el
-       peso de pie o mira a un costado. El ciclo dura catorce segundos y las
-       tres cuartas partes son el primer cuadro, sin moverse. */
-    const CICLO=14000, QUIETA=0.74;
+       peso de pie o mira a un costado. El ciclo dura veinte segundos y las tres
+       cuartas partes son el primer cuadro, sin moverse. */
+    const CICLO=20000, QUIETA=0.74;
     const u=(Date.now()%CICLO)/CICLO;
-    cuadro = u<QUIETA ? 0
-           : Math.round(salto*(1+Math.floor((u-QUIETA)/(1-QUIETA)*(nf-1))))%8;
+    fase = u<QUIETA ? 0 : salto*(1+(u-QUIETA)/(1-QUIETA)*(nf-1));
   }
   const puesta = NV.dibujarArte
-    && NV.dibujarArte('myrella',(andando?'walk_':'idle_')+dir,cuadro,bc,br,ALTO_M,haze);
+    && NV.dibujarArte('myrella',(andando?'walk_':'idle_')+dir,fase,bc,br,ALTO_M,haze);
   /* el nombre, en blanco, arriba de la cabeza */
   const NOM='Myrella';
   const rn=br-Math.round(ALTO_M*HPM)-2;

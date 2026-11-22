@@ -100,7 +100,10 @@ function olvidarGuardado(){ try{ localStorage.removeItem(CLAVE); }catch(e){} }
    Mantener la flecha apretada camina sin parar, con un paso por cada 130 ms.
    El teclado repite solo, pero con una pausa larga al principio y a un ritmo
    que no controlamos; así el paso es parejo y el pulgar también sirve. */
-const PASO_MS=130;
+/* Un metro cada 186 ms: antes eran 130, que son 7,7 metros por segundo y es
+   velocidad de carrera. A esa velocidad las piernas nunca alcanzan al cuerpo y
+   el personaje parece patinar. */
+const PASO_MS=186;
 let rumbo=null, pasoTimer=null;
 function empezarACaminar(dx,dy){
   detenerRuta();                       // el mando manual manda sobre el toque

@@ -328,6 +328,12 @@ cuesta más que alejarse.
 | 48 m | 8 | 3 | 59 m |
 | 72 m | 6 | 2 | 99 m |
 
+El juego **empieza en 21 metros de ancho**, no en 28. El detalle de cualquier
+cosa son las celdas que ocupa, y las celdas son su tamaño en pantalla: a 28
+metros el personaje medía doce filas de las cuarenta y cinco que tiene
+dibujadas, y a 21 mide diecinueve. Es un 40% más de celdas en cada eje, que es
+de donde sale el detalle; no hay otro lugar de donde sacarlo.
+
 **Los caracteres por metro son enteros; los píxeles por metro no.** Esa es la
 distinción que hace que el zoom se sienta continuo y no a escalones. Cuántas
 letras se escriben por metro tiene que ser un número entero —media letra no se
@@ -387,6 +393,20 @@ degradado suave convierte cualquier cosa en una bolita.
 
 Las sombras no solo oscurecen: **ralean**. Lo que está en sombra baja un escalón en
 su rampa de densidad.
+
+### Las esquinas del mundo
+
+El mundo eran cinco paneles en cruz, pero la cámara se mueve dentro del
+rectángulo que los contiene: caminando en diagonal se llegaba a donde no hay
+panel y la pantalla quedaba negra. Las cuatro esquinas continúan lo que tienen
+al lado, y cada cosa sigue por donde corresponde: **el corte del desierto y la
+nieve corren de este a oeste**, así que vienen del norte y del sur; **la costa
+corre de norte a sur**, así que viene del este. Las dos esquinas de la derecha
+llevan las dos cosas.
+
+El arenal del oeste, la costa seca, los pinos del oeste y la costa helada.
+Medido: 1.849 puntos repartidos dentro de los límites de la cámara, ninguno sin
+suelo.
 
 ### Las cuatro reglas del diccionario
 
@@ -693,6 +713,13 @@ un personaje y no los sesenta mil de la pantalla.
 **La animación avanza por distancia caminada, no por reloj**: una zancada entera
 cada 2,4 metros. Atada al reloj, las piernas van a su ritmo mientras el
 personaje patina por el pasto.
+
+**Un cuadro se funde con el siguiente.** La fase es continua, no un número de
+cuadro: el motor dibuja la pose de ahora entera y la siguiente con
+transparencia. Un sprite salta de pose en pose, y a esta resolución eso se lee
+como si el personaje desapareciera y apareciera en otro lado. Fundidos, las
+celdas se encienden y se apagan de a poco. La mezcla va en cuartos para que la
+memoria no se dispare, y la memoria se limpia cuando cambia el tamaño pedido.
 
 **El color NO se divide por la cobertura al leerlo.** `getImageData` ya devuelve
 el color sin premultiplicar: el navegador mezcla en premultiplicado al achicar y
