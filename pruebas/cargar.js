@@ -6,13 +6,18 @@ const ORDEN=['src/motor/base.js','src/mundo/diccionario.js','src/mundo/generar.j
 const ctx={font:'',textBaseline:'',textAlign:'',fillStyle:'',letterSpacing:'0px',
   measureText:t=>({width:6*(t?t.length:1)}),setTransform(){},fillRect(){},fillText(){},
   createRadialGradient(){return{addColorStop(){}}}};
+/* Solo existen los elementos que el marcado de interfaz.js declara de verdad.
+   Para cualquier otro id se devuelve null, igual que el navegador: así los
+   descuidos aparecen acá y no en la pantalla de Marcos. */
+const marcado=fs.readFileSync(R+'src/juego/interfaz.js','utf8');
+const IDS=new Set([...marcado.matchAll(/id="([^"]+)"/g)].map(m=>m[1]));
 const els={};
-const el=id=>els[id]||(els[id]={id,textContent:'',innerHTML:'',value:'',dataset:{},style:{},
+const el=id=>IDS.has(id) ? (els[id]||(els[id]={id,textContent:'',innerHTML:'',value:'',dataset:{},style:{},
   clientWidth:1200,clientHeight:700,width:1200,height:700,
   classList:{toggle(){},add(){},remove(){},contains(){return false}},
-  addEventListener(){},querySelectorAll:()=>[],getContext:()=>ctx});
-global.window={claude:{use:async()=>null}};
-global.document={getElementById:el,querySelector:()=>null,querySelectorAll:()=>[],hidden:false,body:{classList:{add(){}},insertAdjacentHTML(){}}};
+  addEventListener(){},querySelectorAll:()=>[],getContext:()=>ctx})) : null;
+global.window={claude:{use:async()=>null}, addEventListener(){}, removeEventListener(){}};
+global.document={getElementById:el,createElement:()=>({style:{},textContent:'',appendChild(){}}),querySelector:()=>null,querySelectorAll:()=>[],hidden:false,body:{classList:{add(){}},insertAdjacentHTML(){},appendChild(){}}};
 global.matchMedia=()=>({matches:false});
 global.addEventListener=()=>{};
 global.requestAnimationFrame=cb=>cb();

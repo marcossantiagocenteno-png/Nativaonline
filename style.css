@@ -24,3 +24,6 @@
 #mapCab .mh{margin-left:auto;font-size:9px;color:var(--dim);letter-spacing:.3px}
 #mapCab .mh{font-family:inherit;letter-spacing:0}
 #mapCab .mcoord{width:100%;font-size:9px;color:#5f8f6c;letter-spacing:.3px;padding-top:2px}
+#fallo{position:fixed;left:0;right:0;top:0;z-index:99;margin:0;padding:10px 12px;
+  background:#2a0d0d;color:#ffb4a0;font-size:11px;line-height:1.5;white-space:pre-wrap;
+  border-bottom:2px solid #d9534f;max-height:40%;overflow:auto;display:none}

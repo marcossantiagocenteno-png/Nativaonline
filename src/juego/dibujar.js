@@ -8,9 +8,11 @@ function draw(){
     const Wp=cv.width/dpr,Hp=cv.height/dpr;
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.fillStyle='#05070a'; ctx.fillRect(0,0,Wp,Hp);
-    ctx.fillStyle='#d9a24a'; ctx.textAlign='left'; ctx.font='12px '+MONO;
-    ctx.fillText('Error al dibujar: '+err.message,14,22);
+    ctx.fillStyle='#d9a24a'; ctx.textAlign='left'; ctx.font='13px '+MONO;
+    ctx.fillText('Error al dibujar: '+err.message,14,24);
     ctx.textAlign='center';
+    if(NV.avisarError) NV.avisarError('✗ al dibujar: '+err.message+
+      (err.stack?'\n   '+err.stack.split('\n')[1].trim():''));
     if(animTimer){ clearInterval(animTimer); animTimer=null; }
   }
 }

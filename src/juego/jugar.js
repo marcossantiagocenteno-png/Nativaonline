@@ -29,11 +29,12 @@ function move(dx,dy){
 }
 function look(){
   let n=0,near=null;
-  for(const tr of world.trees){
+  for(const tr of NV.objetosEn(me.x-8,me.y-8,me.x+8,me.y+8)){
+    if(tr.k!=='arbol') continue;
     const d=Math.abs(tr.x-me.x)+Math.abs(tr.y-me.y);
     if(d<=6){ n++; if(!near||d<near.d) near={t:tr,d}; }
   }
-  const g=groundAt(me.x,me.y);
+  const g=NV.sueloEn(me.x,me.y)||'g';
   const suelo='Pisás '+((MAT[g]||MAT.g).n)+'.';
   const arb = n? ('Hay '+n+' '+(n===1?'árbol':'árboles')+' a menos de seis metros'+
                  (near&&near.t.k==='arbol'?'; el más cercano es un '+((SPECIES[near.t.sp]||SPECIES.encino).n)+' de unos '+Math.round(near.t.h)+' metros.':'.'))
@@ -114,7 +115,7 @@ async function connect(){
       if(!d) return;
       const cfg=Object.assign({},CONFIG,d);
       world=build(cfg);
-      me=NV.findSpawn(world);
+      const c0=NV.panel(0,0); me={x:c0.inicio.x,y:c0.inicio.y};
       $('wname').textContent=world.name;
       draw();
     };

@@ -54,3 +54,20 @@ NVi.MARCADO = `<header>
 /* Se inserta al principio del cuerpo, no se reemplaza: la página todavía se está
    leyendo y reemplazarla se llevaría puestos los módulos que faltan cargar. */
 document.body.insertAdjacentHTML('afterbegin', NVi.MARCADO);
+
+/* Red de seguridad: si algo revienta, que se lea en la pantalla en vez de
+   dejarla en negro sin explicación. */
+NVi.avisarError=function(d){
+  let c=document.getElementById('fallo');
+  if(!c){
+    c=document.createElement('pre');
+    c.id='fallo';
+    document.body.appendChild(c);
+  }
+  c.textContent=(c.textContent?c.textContent+'\n':'')+d;
+  c.style.display='block';
+};
+window.addEventListener('error',function(e){
+  NVi.avisarError('✗ '+(e.message||'error')+'\n   '+
+    String(e.filename||'').split('/').slice(-1)[0]+' línea '+e.lineno);
+});
