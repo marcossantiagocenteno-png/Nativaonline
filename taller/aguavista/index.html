@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Taller de agua y orillas — Nativa Online</title>
+<style>
+  :root{ --negro:#000; --ink:#fff; --dim:#8d8d86; --oro:#9a7b2f; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--negro);color:var(--ink);
+       font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;-webkit-text-size-adjust:100%}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--oro)}
+  h1{margin:0 0 4px;font-size:15px;font-weight:600;letter-spacing:.04em}
+  header p{margin:0 0 6px;color:var(--dim);font-size:12px}
+  .cat{padding:18px 16px 4px}
+  .cat h2{margin:0 0 2px;font-size:13px;color:var(--oro);letter-spacing:.08em;
+          text-transform:uppercase}
+  .cat p{margin:0 0 10px;color:var(--dim);font-size:12px}
+  figure{margin:0 0 18px;border:1px solid #2a2a26;background:#000}
+  figure.malo{border-color:#7a2e2e}
+  figure.bueno{border-color:#2e7a45}
+  .lienzo{overflow:auto;-webkit-overflow-scrolling:touch}
+  canvas{display:block}
+  figcaption{padding:7px 10px;border-top:1px solid #2a2a26;font-size:12px}
+  figcaption b{font-weight:600}
+  figcaption span{color:var(--dim)}
+  .mando{position:sticky;top:0;z-index:5;display:flex;gap:8px;align-items:center;
+         padding:8px 16px;background:#000;border-bottom:1px solid #2a2a26}
+  button{font:inherit;color:var(--ink);background:#000;border:1px solid var(--oro);
+         border-radius:3px;padding:5px 11px;cursor:pointer}
+  button:active{background:var(--oro);color:#000}
+  .mando span{color:var(--dim);font-size:12px}
+  footer{padding:16px;color:var(--dim);font-size:12px;border-top:1px solid #2a2a26}
+</style></head><body>
+<header>
+  <h1>Taller de agua y orillas</h1>
+  <p>El agua no es una textura: es una superficie con altura. Todo sale de un
+     campo de olas, y de ah&iacute; la altura elige el glifo, la pendiente decide
+     d&oacute;nde pega el reflejo del sol, y la espuma aparece donde la cresta es
+     alta <i>y</i> empinada a la vez.</p>
+  <p>El reflejo es lo que m&aacute;s vende el agua. Sin &eacute;l, cualquier campo
+     de ondas parece una tela corrugada.</p>
+</header>
+<div class="mando">
+  <button id="menos">&minus;</button><button id="mas">+</button>
+  <button id="anima">andando</button>
+  <span id="esc">letra de 11 px</span>
+</div>
+<div id="todo"></div>
+<footer>El agua se mueve. Con el bot&oacute;n se detiene, para mirar un cuadro
+  quieto y juzgar la forma de la ola.</footer>
+<script>
+const FAM={
+  verde:  ['#17401f','#245a2b','#357f3b','#58a84f'],
+  verdeO: ['#12351a','#1d4a24','#2a6b33','#3f8a42'],   // follaje en sombra propia
+  corteza:['#3a2a19','#4f3a23','#6a4e30','#8a6940'],
+  piedra: ['#3b4042','#565b5e','#767c80','#949b9f'],
+  tierra: ['#4a3f2d','#67583f','#857252','#a08a64'],
+  flor:   ['#6b3a53','#8e4d6d','#b56389','#d07da3'],
+  musgo:  ['#1b3d18','#2a5a22','#3d7a2e','#55993c'],
+  hoja:   ['#4a3a1e','#6b5429','#8e7238','#b0914b'],
+  agua:   ['#1d3c4a','#2f6478','#4a93a8','#6fbdcf'],
+  arena:  ['#5a5140','#7d7158','#a39a7a','#c6bda2'],
+  hongo:  ['#5a4a3a','#7d6a52','#a08c6e','#c4b093'],
+  pino:        ['#10281c','#17402a','#215c3b','#2f7c50'],
+  alamo:       ['#3b5620','#577f31','#7aa743','#a0c660'],
+  cortezaClara:['#4e4e46','#737266','#9c9b8c','#c2c1b1'],
+  abismo: ['#05070b','#0b1016','#141c24','#1e2834'],
+  roca2:  ['#473f36','#6a6054','#8f8475','#b3a897'],
+  honda:  ['#10212b','#1b3a4a','#2a5a6e','#3d7e94'],
+  espuma: ['#5b7b86','#93b0ba','#c6dce2','#eef7fa'],
+  nieve:  ['#6e7b84','#9fadb6','#ccd8de','#f0f6f9'],
+  hueso:  ['#45412f','#6b6450','#968d72','#c6bb9c'],
+  piel:   ['#8d9a93','#b9c6bd','#dfe9e2','#f4faf5']
+};
+function rgbOf(h){ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
+const RGB={}; for(const k in FAM) RGB[k]=FAM[k].map(rgbOf);
+function clamp(v,a,b){ return v<a?a:v>b?b:v; }
+function col(fam,s){
+  const f=RGB[fam]||RGB.agua, c=f[clamp(Math.round(s*3.4-0.2),0,3)];
+  const m=0.72+clamp(s,0,1.4)*0.5;
+  return 'rgb('+Math.min(255,Math.round(c[0]*m))+','+Math.min(255,Math.round(c[1]*m))
+        +','+Math.min(255,Math.round(c[2]*m))+')';
+}
+/* Nativa Online — TALLER de agua. Esto NO entra al juego todavía.
+
+   El agua no es una textura: es una SUPERFICIE CON ALTURA. Todo sale de un
+   campo de olas —la suma de dos o tres sinusoides que viajan, más ruido— y de
+   ahí se deducen las tres cosas que hacen que se lea como agua:
+
+     la ALTURA elige el glifo (cresta tupida, valle liso),
+     la PENDIENTE hacia el este decide dónde pega el reflejo del sol,
+     y la ESPUMA aparece donde la cresta es alta Y empinada a la vez.
+
+   El reflejo es lo que más vende el agua. Sin él, cualquier campo de ondas
+   parece una tela corrugada.
+
+   La función que importa es celda(estado, wx, wy, t): recibe una posición del
+   mundo en METROS FRACCIONARIOS, no en celdas ni en metros enteros. Eso es a
+   propósito: así el mismo código sirve para pintar por metro, como hace el
+   motor hoy, y para pintar celda por celda, que es lo que hace falta para que
+   una orilla curva no salga como una escalera. */
+(function(global){
+const T={};
+function h3(a,b,c){
+  let x=((a|0)*374761393+((b|0)*668265263)+((c|0)*2246822519))>>>0;
+  x=((x^(x>>>13))*1274126177)>>>0;
+  return ((x^(x>>>16))>>>0)&0x7fffffff;
+}
+const r01=(a,b,c)=>(h3(a,b,c)%1000)/1000;
+function clamp(v,a,b){ return v<a?a:v>b?b:v; }
+function ruido(s,x,y){
+  const i=Math.floor(x), j=Math.floor(y), fx=x-i, fy=y-j;
+  const ux=fx*fx*(3-2*fx), uy=fy*fy*(3-2*fy);
+  const a=r01(s+i,j,41), b=r01(s+i+1,j,41);
+  const c=r01(s+i,j+1,41), d=r01(s+i+1,j+1,41);
+  const ab=a+(b-a)*ux, cd=c+(d-c)*ux;
+  return ab+(cd-ab)*uy;
+}
+
+/* ---------- los ocho estados ----------
+   olas  : cada una con su largo en metros, su dirección en radianes (0 = hacia
+           el este), su velocidad en metros por segundo y su amplitud
+   prof   : qué familia de color le toca, de somera a honda
+   espuma: a partir de qué altura de cresta rompe
+   brillo: cuánto reflejo deja; el mar en calma espeja, el revuelto no
+   quiebre: cuánto rompe el ruido la forma de la ola (una piedra, una orilla) */
+const AGUA={
+ 'tranquila':{n:'Agua tranquila', fam:'agua', famH:'honda', hondo:0.30,
+   olas:[{largo:5.0,dir:0.30,vel:0.22,amp:0.55},{largo:2.1,dir:1.40,vel:0.15,amp:0.30}],
+   espuma:9, brillo:1.35, quiebre:0.10, rampa:['_','_','-','-','~']},
+ 'riachuelo':{n:'Riachuelo', fam:'agua', famH:'agua', hondo:0.05,
+   olas:[{largo:0.75,dir:0.08,vel:1.35,amp:0.70},{largo:0.30,dir:-0.30,vel:1.80,amp:0.45}],
+   espuma:0.74, brillo:0.85, quiebre:0.85, rampa:['.','-','~','~','=']},
+ 'rio':{n:'Río', fam:'agua', famH:'agua', hondo:0.35,
+   olas:[{largo:2.2,dir:0.04,vel:0.95,amp:0.60},{largo:0.8,dir:0.30,vel:1.25,amp:0.34}],
+   espuma:0.90, brillo:1.00, quiebre:0.35, rampa:['-','~','~','=','=']},
+ 'rio-profundo':{n:'Río profundo', fam:'honda', famH:'honda', hondo:0.85,
+   olas:[{largo:4.0,dir:0.02,vel:0.55,amp:0.45},{largo:1.5,dir:0.40,vel:0.70,amp:0.22}],
+   espuma:9, brillo:0.70, quiebre:0.12, rampa:['_','_','=','=','~']},
+ 'mar-calma':{n:'Mar en calma', fam:'honda', famH:'honda', hondo:0.70,
+   olas:[{largo:14.0,dir:1.55,vel:1.60,amp:0.70},{largo:3.0,dir:1.20,vel:0.70,amp:0.22}],
+   espuma:9, brillo:1.45, quiebre:0.08, rampa:['_','_','-','-','~']},
+ 'mar-olas':{n:'Mar con olas', fam:'honda', famH:'honda', hondo:0.62,
+   olas:[{largo:9.0,dir:1.57,vel:2.30,amp:1.00},{largo:3.2,dir:1.30,vel:1.30,amp:0.40},
+         {largo:1.1,dir:1.80,vel:1.10,amp:0.18}],
+   espuma:0.82, brillo:1.05, quiebre:0.30, rampa:['-','~','~','=','=']},
+ 'mar-tormenta':{n:'Mar con tormenta', fam:'honda', famH:'honda', hondo:0.55,
+   olas:[{largo:7.0,dir:1.57,vel:3.40,amp:1.25},{largo:2.6,dir:1.05,vel:2.40,amp:0.75},
+         {largo:0.9,dir:2.10,vel:2.00,amp:0.40}],
+   espuma:0.60, brillo:0.55, quiebre:0.80, rampa:['~','=','=','#','#'], rocio:1},
+ 'rompiente':{n:'La rompiente', fam:'espuma', famH:'espuma', hondo:0.10,
+   olas:[{largo:6.0,dir:1.57,vel:2.60,amp:1.10},{largo:1.4,dir:1.40,vel:1.60,amp:0.50}],
+   espuma:0.30, brillo:1.20, quiebre:0.70, rampa:['-','~','=','*','#']}
+};
+
+/* ---------- una celda de agua ----------
+   wx, wy en metros del mundo, fraccionarios. t en segundos. */
+const _out={g:'~',fam:'agua',lz:1};
+T.celda=function(clave,wx,wy,t){
+  const A=AGUA[clave];
+  if(!A) return null;
+  let h=0, dx=0, dy=0, amp=0;
+  for(let i=0;i<A.olas.length;i++){
+    const o=A.olas[i];
+    const kx=Math.cos(o.dir)/o.largo, ky=Math.sin(o.dir)/o.largo;
+    /* el frente se desordena con ruido: una ola perfecta se lee como corrugado */
+    const des=A.quiebre?(ruido(i*31+7,wx/2.4,wy/2.4)-0.5)*A.quiebre*1.7:0;
+    const f=(wx*kx+wy*ky-t*o.vel/o.largo+des)*6.28318;
+    h+=Math.sin(f)*o.amp;
+    /* la pendiente: la derivada de la misma suma */
+    const c=Math.cos(f)*o.amp*6.28318;
+    dx+=c*kx; dy+=c*ky;
+    amp+=o.amp;
+  }
+  h/=amp;                                           // -1 a 1
+  const pend=Math.hypot(dx,dy)/amp;
+  const subida=h*0.5+0.5;                           // 0 valle, 1 cresta
+  let g, fam=A.hondo>0.55?A.famH:A.fam, lz;
+  /* el color: la cresta aclara, el valle oscurece */
+  lz=(0.46+0.70*subida)*(1.12-A.hondo*0.46);
+  /* la espuma: alta y empinada a la vez. Sólo alta da una tela corrugada. */
+  const rompe = subida>A.espuma && dx>0;
+  if(rompe){
+    g=(h3((wx*7)|0,(wy*7)|0,3)%3)?'*':'#';
+    fam='espuma'; lz=1.05+0.30*subida;
+  } else {
+    g=A.rampa[clamp(Math.round(subida*(A.rampa.length-1)),0,A.rampa.length-1)];
+  }
+  /* el reflejo del sol, que entra del este: pega donde la cara mira al este y
+     está parada. Es lo que más vende el agua; sin él es una tela corrugada. */
+  if(!rompe && A.brillo){
+    const cara=dx/(pend+0.001);
+    const esp=clamp(cara,0,1)*clamp(pend*0.9,0,1)*A.brillo;
+    if(esp>0.62 && (h3((wx*11)|0,(wy*11)|0,5)%100)<58){
+      g = esp>0.95?'*':'°';
+      fam='espuma'; lz=1.00+esp*0.42;
+    }
+  }
+  /* rocío: el viento arranca agua de la cresta y la tira por arriba */
+  if(A.rocio && subida>0.80 && (h3((wx*13)|0,(wy*13)|0,7)%100)<16){
+    g='\''; fam='espuma'; lz=1.25;
+  }
+  _out.g=g; _out.fam=fam; _out.lz=lz;
+  return _out;
+};
+T.AGUA=AGUA;
+T.ruido=ruido; T.h3=h3; T.r01=r01;
+global.NVA=T;
+})(typeof window!=='undefined'?window:global);
+
+/* Nativa Online — TALLER de suelos. Esto NO entra al juego todavía.
+   Mismo contrato que el motor: put(c,r,glifo,color) y col(familia,luz).
+
+   El suelo del juego se sortea celda por celda: cada celda saca su densidad de
+   un hash propio. Eso da estática. La arena de verdad tiene ONDAS, la tierra
+   tiene TERRONES y GRIETAS, el pasto crece en MATAS y la nieve se acumula en
+   MANCHONES. Todo eso es coherencia espacial, y un hash por celda no la tiene.
+   Acá la densidad sale de un ruido suave de dos octavas en coordenadas de
+   celda, más lo que cada material tenga de propio. */
+(function(global){
+const T={};
+function h3(a,b,c){
+  let x=((a|0)*374761393+((b|0)*668265263)+((c|0)*2246822519))>>>0;
+  x=((x^(x>>>13))*1274126177)>>>0;
+  return ((x^(x>>>16))>>>0)&0x7fffffff;
+}
+const r01=(a,b,c)=>(h3(a,b,c)%1000)/1000;
+function clamp(v,a,b){ return v<a?a:v>b?b:v; }
+/* ruido suave de dos dimensiones, por interpolación de esquinas */
+function ruido(s,x,y){
+  const i=Math.floor(x), j=Math.floor(y), fx=x-i, fy=y-j;
+  const ux=fx*fx*(3-2*fx), uy=fy*fy*(3-2*fy);
+  const a=r01(s+i,j,41), b=r01(s+i+1,j,41);
+  const c=r01(s+i,j+1,41), d=r01(s+i+1,j+1,41);
+  return (a+(b-a)*ux)+((c+(d-c)*ux)-(a+(b-a)*ux))*uy;
+}
+const ruido2=(s,x,y,e)=>0.66*ruido(s,x/e,y/e)+0.34*ruido(s+7,x/(e*0.42),y/(e*0.42));
+const pick=(ramp,t)=>ramp[clamp(Math.round(t*(ramp.length-1)),0,ramp.length-1)];
+
+/* ---------- los materiales ----------
+   ramp va de ralo a tupido; el extremo ralo ". ," se comparte y la identidad
+   vive en el denso, como manda la regla 3. */
+const SUELO={
+ /* --- pasto --- */
+ 'pasto-ralo':   {n:'Pasto corto ralo, de suelo seco', clase:'pasto', largo:0,
+                  fam:'verde', fam2:'verde', mata:0.42, altoM:[0.10,0.26],
+                  alfombra:0.30, base:'tierra'},
+ 'pasto-parejo': {n:'Pasto corto parejo, del claro', clase:'pasto', largo:0,
+                  fam:'verde', fam2:'verde', mata:0.72, altoM:[0.13,0.34],
+                  alfombra:0.52},
+ 'pasto-vega':   {n:'Pasto corto tupido, de la vega', clase:'pasto', largo:0,
+                  fam:'musgo', fam2:'verde', mata:0.94, altoM:[0.16,0.40],
+                  alfombra:0.74},
+ 'largo-viento': {n:'Pasto largo al viento', clase:'pasto', largo:1,
+                  fam:'verdeO', fam2:'verde', mata:0.70, altoM:[0.45,1.25],
+                  alfombra:0.40, viento:1.3},
+ 'largo-quieto': {n:'Pasto largo quieto', clase:'pasto', largo:1,
+                  fam:'verdeO', fam2:'verde', mata:0.70, altoM:[0.45,1.25],
+                  alfombra:0.40, viento:0},
+ 'largo-vega':   {n:'Pasto largo muy alto, de la vega', clase:'pasto', largo:1,
+                  fam:'verdeO', fam2:'musgo', mata:0.92, altoM:[0.70,1.70],
+                  alfombra:0.52, viento:0.5},
+ /* --- pasto nevado: lo que manda es cuánto manto hay --- */
+ 'nieve-primera':{n:'Primera nevada: las briznas asoman', clase:'nieve',
+                  fam:'nieve', fam2:'verde', manto:0.42, altoM:[0.30,0.80]},
+ 'nieve-manto':  {n:'Manto parejo', clase:'nieve',
+                  fam:'nieve', fam2:'verde', manto:0.86, altoM:[0.30,0.80]},
+ 'nieve-manchon':{n:'Derretido a manchones', clase:'nieve',
+                  fam:'nieve', fam2:'verde', manto:0.55, parche:1, altoM:[0.30,0.80]},
+ /* --- pasto seco --- */
+ 'seco-amarillo':{n:'Pasto seco amarillento', clase:'pasto', largo:1,
+                  fam:'hoja', fam2:'hoja', mata:0.66, altoM:[0.35,0.95],
+                  alfombra:0.42, viento:0.8, tendido:0.5},
+ 'seco-calvas':  {n:'Quemado por el sol, con calvas', clase:'pasto', largo:1,
+                  fam:'hoja', fam2:'arena', mata:0.40, altoM:[0.30,0.80],
+                  alfombra:0.26, viento:0.8, tendido:0.6, base:'tierra'},
+ 'seco-tendido': {n:'Pisado y tendido', clase:'pasto', largo:1,
+                  fam:'hoja', fam2:'hoja', mata:0.58, altoM:[0.20,0.50],
+                  alfombra:0.60, viento:0.4, tendido:1.5},
+ /* --- arena --- */
+ 'arena-rio':    {n:'Arena de río, fina, con ondas cortas', clase:'arena',
+                  fam:'arena', ramp:['.','.',':','\u00b0',';'],
+                  onda:{largo:0.8, angulo:0.0, fuerza:0.62}},
+ 'arena-duna':   {n:'Arena de duna, ondas largas', clase:'arena',
+                  fam:'arena', ramp:['.','.',':',';',';'],
+                  onda:{largo:2.6, angulo:0.42, fuerza:0.74}},
+ 'arena-mar':    {n:'Arena de mar, mojada', clase:'arena',
+                  fam:'roca2', ramp:['.',':','\u00b0','=','='], mojada:1,
+                  onda:{largo:1.6, angulo:0.10, fuerza:0.34}},
+ /* --- tierra --- */
+ 'tierra-suelta':{n:'Tierra suelta', clase:'tierra',
+                  fam:'tierra', ramp:['.',',','-','_','='],
+                  terron:0.48, grieta:0},
+ 'tierra-sendero':{n:'Tierra apisonada del sendero', clase:'tierra',
+                  fam:'tierra', ramp:['.','.',',','-','_'],
+                  terron:0.18, grieta:0, pisada:1},
+ 'tierra-terrones':{n:'Tierra con terrones y grietas', clase:'tierra',
+                  fam:'tierra', ramp:['.',',','-','=','#'],
+                  terron:0.70, grieta:1.0},
+ /* --- barro --- */
+ 'barro-fresco': {n:'Barro fresco, brilloso', clase:'barro',
+                  fam:'tierra', ramp:[':','-','=','~','='],
+                  charco:0.62, brillo:1, costra:0},
+ 'barro-seco':   {n:'Barro seco y agrietado', clase:'barro',
+                  fam:'tierra', ramp:['.',',','-','=','#'],
+                  charco:0.08, brillo:0, costra:1.0},
+ 'barro-pisado': {n:'Barro pisoteado, con charcos', clase:'barro',
+                  fam:'tierra', ramp:[':',',','-','=','~'],
+                  charco:0.40, brillo:1, costra:0.4, pisada:1}
+};
+
+/* ---------- las dos costas ----------
+   Una costa no es un material: es una SECUENCIA. Lo que hay que juzgar es el
+   orden de las bandas y cómo se tocan, no cada banda por separado. */
+const COSTAS={
+ rio:{n:'Costa de río', bandas:[
+   {m:'agua-honda', an:1.6}, {m:'agua-corriente', an:2.0}, {m:'agua-somera', an:1.2},
+   {m:'arena-mar', an:0.9}, {m:'arena-rio', an:1.8}, {m:'guijarral', an:1.6},
+   {m:'pasto-vega', an:1.4}, {m:'largo-vega', an:2.0}]},
+ mar:{n:'Costa de mar', bandas:[
+   {m:'mar-honda', an:2.2}, {m:'espuma', an:2.0}, {m:'arena-mar', an:1.8},
+   {m:'arena-duna', an:2.4}, {m:'guijarral-grueso', an:1.6},
+   {m:'seco-amarillo', an:1.6}, {m:'pasto-parejo', an:1.6}]}
+};
+/* los materiales que sólo viven en las costas */
+const EXTRA={
+ 'agua-honda':     {n:'agua honda', clase:'agua', fam:'honda', ramp:['~','=','_','_','_'], luzMul:0.62, flujo:'y'},
+ 'agua-corriente': {n:'corriente',  clase:'agua', fam:'agua',  ramp:['-','~','~','=','~'], luzMul:1.00, flujo:'y'},
+ 'agua-somera':    {n:'agua somera',clase:'agua', fam:'agua',  ramp:[' ','.','-','~','-'], luzMul:1.22, flujo:'y'},
+ 'mar-honda':      {n:'mar abierto',clase:'agua', fam:'honda', ramp:['~','=','_','_','_'], luzMul:0.58, flujo:'x', ola:1},
+ 'espuma':         {n:'la rompiente',clase:'espuma',fam:'espuma',ramp:['-','~','=','*','#'], luzMul:1.25},
+ 'guijarral':      {n:'guijarral',  clase:'guija', fam:'piedra', ramp:['.',':','\u00b0','o','c'], calibre:0.5},
+ 'guijarral-grueso':{n:'canto rodado de mar', clase:'guija', fam:'piedra', ramp:[':','\u00b0','o','c','O'], calibre:1}
+};
+for(const k in EXTRA) SUELO[k]=EXTRA[k];
+
+/* ---------- una celda de relleno ----------
+   cx, cy en coordenadas de CELDA. Devuelve el glifo, la familia y la luz, o
+   null si el material no se rellena así (pasto y nieve llevan briznas y se
+   dibujan aparte). Está afuera de pintarMetro a propósito: el motor decide el
+   material por metro y entonces una orilla curva sale como una escalera de un
+   metro. Teniendo la celda sola, se puede decidir el material celda por celda
+   y la orilla sigue la curva. */
+const _rel={g:'.',fam:'tierra',lz:1};
+T.celdaRelleno=function(clave,cx,cy,t,luz,CPM,RPM){
+  const m=SUELO[clave];
+  if(!m||m.clase==='pasto'||m.clase==='nieve') return null;
+  const sem=clave.length*613+clave.charCodeAt(0)*7;
+  let d=0.42+0.52*ruido2(sem,cx,cy,7);              // el manchón de fondo
+  let fam=m.fam, lz=luz*(m.luzMul||1), g=null;
+  if(m.clase==='arena'){
+    /* La onda: una sinusoide en la dirección del viento o de la corriente, con
+       la cresta corrida por el ruido para que no salga peinada. El largo va en
+       METROS y hay que pasarlo a celdas: puesto en celdas daba un período de
+       dos caracteres, que no se lee como onda sino como alternancia. Y la
+       coordenada norte-sur se escala, porque un metro a lo alto son RPM filas
+       y a lo ancho CPM columnas. */
+    const O=m.onda, ca=Math.cos(O.angulo), sa=Math.sin(O.angulo);
+    const lc=O.largo*CPM;
+    const u=(cx*ca+cy*(CPM/RPM)*sa)/lc + ruido2(sem+3,cx,cy,11)*0.9;
+    const cr=0.5+0.5*Math.sin(u*6.283);
+    d=clamp(0.30+Math.pow(cr,1.5)*O.fuerza+ruido2(sem+5,cx,cy,4)*0.22,0,1);
+    if(m.mojada){ lz*=0.78; if(cr>0.93&&(h3(cx,cy,9)%7)===0){ g='-'; lz*=1.5; } }
+  } else if(m.clase==='tierra'){
+    const te=ruido2(sem+11,cx,cy,3.2);
+    d=clamp(0.18+te*m.terron*0.92+ruido2(sem+13,cx,cy,9)*0.26,0,1);
+    if(m.pisada) d=clamp(d*0.62+0.14,0,1);
+    if(m.grieta){
+      /* La grieta corre por donde el ruido pasa justo por el medio: ahí es una
+         línea fina. El umbral tiene que ser chico; con 0,06 tomaba una celda de
+         cada diez y la tierra quedaba enrejada. */
+      const gq=Math.abs(ruido2(sem+17,cx,cy,5.0)-0.5);
+      if(gq<0.016*m.grieta && te>0.42){ g='|'; lz*=0.34; }
+    }
+  } else if(m.clase==='barro'){
+    const ch=ruido2(sem+19,cx,cy,4.4);
+    const enCharco=ch<m.charco;
+    d=clamp(enCharco?0.72+ch*0.5:0.28+ch*0.46,0,1);
+    if(enCharco){ lz*=m.brillo?1.34:0.82; if(m.brillo&&(h3(cx,cy,23)%11)===0){ g='~'; lz*=1.5; } }
+    else if(m.costra){
+      const gq=Math.abs(ruido2(sem+29,cx,cy,3.0)-0.5);
+      if(gq<0.020*m.costra){ g='|'; lz*=0.30; }
+    }
+    if(m.pisada&&(h3((cx/3)|0,(cy/2)|0,31)%17)===0){ d=1; lz*=0.70; }
+  } else if(m.clase==='agua'){
+    const este=m.flujo==='x';
+    const fase=este?cx*0.09:cy*0.26;
+    const rip=0.5+0.5*Math.sin(t*2.2-fase+(este?(cy%RPM)*0.3:(cx%CPM)*0.05));
+    d=clamp(0.30+rip*0.65,0,1);
+    if(m.ola){ const ol=0.5+0.5*Math.sin(t*0.9-cy*0.5); d=clamp(d*(0.6+ol*0.7),0,1); }
+  } else if(m.clase==='espuma'){
+    const rip=0.5+0.5*Math.sin(t*2.6-cx*0.20+(cy%RPM)*0.45);
+    d=clamp(0.14+Math.pow(rip,2.4)*1.35,0,1);
+  } else if(m.clase==='guija'){
+    /* el canto se calibra: cerca del agua chico, lejos grueso */
+    const gr=ruido2(sem+37,cx,cy,2.6);
+    d=clamp(0.18+gr*(0.55+m.calibre*0.55),0,1);
+  }
+  if(!g) g=pick(m.ramp,d);
+  _rel.g=g; _rel.fam=fam; _rel.lz=clamp(lz*(0.86+d*0.30),0,1.4);
+  return _rel;
+};
+
+/* ---------- dibujo ---------- */
+/* G = {CPM, RPM, HPM, c0, r0}: c0/r0 es la esquina de arriba a la izquierda.
+   Se dibuja de norte a sur, como el motor: lo de más al sur tapa. */
+T.pintarMetro=function(clave,G,put,col,mx,my,luz,t){
+  const m=SUELO[clave];
+  if(!m) return;
+  const CPM=G.CPM, RPM=G.RPM, HPM=G.HPM;
+  const sem=clave.length*613+clave.charCodeAt(0)*7;
+  const baseC=G.c0+(mx-G.mx0)*CPM, baseR=G.r0+(my-G.my0+1)*RPM-1;
+  const top=baseR-(RPM-1);
+
+  /* --- lo que se rellena celda por celda: arena, tierra, barro, agua, guija --- */
+  if(m.clase!=='pasto'&&m.clase!=='nieve'){
+    for(let sy=0;sy<RPM;sy++) for(let k=0;k<CPM;k++){
+      const o=T.celdaRelleno(clave,mx*CPM+k,my*RPM+sy,t,luz,CPM,RPM);
+      if(o&&o.g!==' ') put(baseC+k,top+sy,o.g,col(o.fam,o.lz),m.clase);
+    }
+    return;
+  }
+  /* --- pasto y nieve: matas, no alfombra pareja --- */
+  const esNieve=m.clase==='nieve';
+  /* cuánta mata hay en este metro: un ruido suave, para que el pasto crezca a
+     parches y no parejo como una cancha */
+  const densMata=esNieve?1:clamp(m.mata*(0.45+1.05*ruido2(sem+41,mx*3,my*3,2.2)),0,1.3);
+  for(let sy=0;sy<RPM;sy++){
+    const rb=top+sy;
+    if(esNieve){
+      /* el manto: cuánto cubre, y por dónde asoma lo de abajo */
+      for(let k=0;k<CPM;k++){
+        const cx=mx*CPM+k, cy=my*RPM+sy;
+        const cu=m.parche ? ruido2(sem+43,cx,cy,5.5) : ruido2(sem+43,cx,cy,12);
+        const cubre=cu<m.manto;
+        const d=clamp(0.3+ruido2(sem+47,cx,cy,3)*0.8,0,1);
+        if(cubre) put(baseC+k,rb,d>0.72?'*':(d>0.4?'\u00b0':'.'),
+                      col('nieve',luz*(0.92+d*0.36)),'nieve');
+        else if((h3(cx,cy,53)%100)<34)
+          put(baseC+k,rb,'\u00b0',col('verdeO',luz*0.72),'asoma');
+      }
+    } else if(m.base&&(h3(mx*7+sy,my*11,57)%100)<28){
+      /* la tierra que se ve entre las matas ralas */
+      for(let k=0;k<CPM;k+=1){
+        const cx=mx*CPM+k, cy=my*RPM+sy;
+        if(ruido2(sem+59,cx,cy,4)>0.52) continue;
+        put(baseC+k,rb,pick(['.',',','-'],ruido2(sem+61,cx,cy,3)),
+            col('tierra',luz*0.80),'base');
+      }
+    }
+    if(!esNieve){
+      /* la alfombra: lo que se ve del pasto bajo, repartido en toda la franja */
+      for(let k=0;k<CPM;k+=2){
+        const cx=mx*CPM+k, cy=my*RPM+sy;
+        if(ruido2(sem+67,cx,cy,3.4)*densMata < 0.34) continue;
+        put(baseC+k,rb,m.largo?'|':'\u00b0',col(m.fam,luz*0.94),'alfombra');
+      }
+    }
+    /* las briznas */
+    const nPer=Math.max(2,Math.round(CPM*(m.largo||esNieve?0.15:0.09)));
+    const n=Math.round(nPer*clamp(0.45+densMata*0.75,0.2,1.5));
+    const colT=col(m.fam2||m.fam,luz*1.12), colM=col(m.fam,luz*0.95);
+    for(let b=0;b<n;b++){
+      const hb=h3(mx*997+b,my*131+sy*37,7);
+      const c0=baseC+((hb%(CPM*8))/8|0);
+      const mA=m.altoM[0]+(((hb>>5)%100)/100)*(m.altoM[1]-m.altoM[0]);
+      const alto=Math.max(2,Math.round(mA*HPM));
+      const propio=((((hb>>9)%9)-4)/4)*0.95;
+      const lean=clamp(propio-(m.viento||0)*0.70+(m.tendido||0)*((hb>>13)%2?1:-1),-2.4,2.4);
+      const span=Math.max(1,alto-1);
+      for(let r=0;r<alto;r++){
+        const f=r/span, dx=Math.round(lean*(f*f*0.62+f*0.38)*alto*0.55);
+        const tip=(r===alto-1);
+        let g;
+        if(m.largo||esNieve){
+          if(Math.abs(lean)<0.26) g='|';
+          else g=(r>0)?(lean<0?'\\':'/'):'|';
+        } else g=tip?'*':'\u00b0';
+        put(c0+dx,rb-r,g,tip?colT:colM,'brizna');
+      }
+    }
+  }
+};
+T.SUELO=SUELO; T.COSTAS=COSTAS;
+global.NVS=T;
+})(typeof window!=='undefined'?window:global);
+
+/* Nativa Online — TALLER de orillas. Esto NO entra al juego todavía.
+
+   EL PROBLEMA. El motor decide el material por METRO: sueloEn(mx,my) devuelve
+   una letra por metro y después se rellenan las CPM×RPM celdas de ese metro con
+   ella. Mientras la orilla es recta no se nota. En cuanto el río dobla, el borde
+   sale como una escalera de un metro de paso: ocho o diez caracteres de ancho
+   por escalón. Ninguna textura arregla eso, porque el defecto no está en la
+   textura sino en dónde se toma la decisión.
+
+   LA SALIDA. El borde no es un dato: es una función. El generador ya calcula el
+   eje del arroyo y su ancho como funciones continuas de la coordenada. Si en vez
+   de preguntar el material una vez por metro se lo pregunta una vez por CELDA,
+   la orilla sigue la curva con el paso de la celda, que es diez veces más fino.
+   Y si además, cerca del límite entre dos bandas, se sortea entre las dos con
+   probabilidad según de qué lado cae la celda, el borde deja de ser una línea y
+   se vuelve una franja mezclada: los dos materiales se entreveran unos
+   centímetros, como se entreveran de verdad la arena y el guijarral.
+
+   El metro sigue mandando para caminar y para el camino que busca el personaje.
+   Lo que cambia es sólo quién decide el color de cada letra. */
+(function(global){
+const T={};
+const NVA=global.NVA, NVS=global.NVS;
+
+/* el eje del río: dos senos de distinto largo, que es lo que da un meandro
+   que no se lee como un seno */
+T.eje=wy=>5.2*Math.sin(wy/9.5)+2.3*Math.sin(wy/3.3+1.1);
+T.ancho=wy=>3.4+0.9*Math.sin(wy/7.0)+0.4*Math.sin(wy/2.3);
+
+/* las bandas, medidas en anchos de río desde el eje */
+const BANDAS=[
+ {m:'rio-profundo', hasta:0.42},
+ {m:'rio',          hasta:0.80},
+ {m:'riachuelo',    hasta:1.00},
+ {m:'arena-mar',    hasta:1.20},
+ {m:'arena-rio',    hasta:1.68},
+ {m:'guijarral',    hasta:2.05},
+ {m:'pasto-vega',   hasta:2.55},
+ {m:'largo-vega',   hasta:1e9}
+];
+const MEZCLA=0.085;                     // de qué ancho es la franja entreverada
+
+T.u=(wx,wy)=>Math.abs(wx-T.eje(wy))/T.ancho(wy);
+function banda(u){
+  for(let i=0;i<BANDAS.length;i++) if(u<BANDAS[i].hasta) return i;
+  return BANDAS.length-1;
+}
+T.material=function(wx,wy,mezclar,cx,cy){
+  const u=T.u(wx,wy), i=banda(u);
+  if(!mezclar) return BANDAS[i].m;
+  /* ¿estamos cerca de un límite? Si sí, se sortea entre las dos bandas. */
+  const abajo=i>0?BANDAS[i-1].hasta:-1e9, arriba=BANDAS[i].hasta;
+  const dA=u-abajo, dB=arriba-u;
+  if(dA<MEZCLA&&i>0){
+    const p=0.5+dA/(2*MEZCLA);          // 0,5 en el límite, 1 ya adentro
+    return (NVA.r01(cx,cy,71)<p)?BANDAS[i].m:BANDAS[i-1].m;
+  }
+  if(dB<MEZCLA&&i<BANDAS.length-1){
+    const p=0.5+dB/(2*MEZCLA);
+    return (NVA.r01(cx,cy,73)<p)?BANDAS[i].m:BANDAS[i+1].m;
+  }
+  return BANDAS[i].m;
+};
+const esPasto=k=>NVS.SUELO[k]&&(NVS.SUELO[k].clase==='pasto'||NVS.SUELO[k].clase==='nieve');
+
+/* modo: 'metro' (como el motor hoy), 'celda', o 'mezcla' */
+T.pintar=function(modo,G,put,col,W,H,luz,t){
+  const CPM=G.CPM, RPM=G.RPM;
+  /* --- el relleno --- */
+  for(let my=0;my<H;my++) for(let sy=0;sy<RPM;sy++){
+    const r=G.r0+my*RPM+sy;
+    for(let mx=0;mx<W;mx++) for(let k=0;k<CPM;k++){
+      const c=G.c0+mx*CPM+k;
+      let wx,wy,clave;
+      if(modo==='metro'){
+        wx=mx+0.5-W/2; wy=my+0.5;
+        clave=T.material(wx,wy,false);
+      } else {
+        wx=mx+(k+0.5)/CPM-W/2; wy=my+(sy+0.5)/RPM;
+        clave=T.material(wx,wy,modo==='mezcla',mx*CPM+k,my*RPM+sy);
+      }
+      if(esPasto(clave)) continue;                  // el pasto va aparte
+      if(NVA.AGUA[clave]){
+        const o=NVA.celda(clave,wx,wy,t);
+        put(c,r,o.g,col(o.fam,o.lz*luz),'agua');
+      } else {
+        const o=NVS.celdaRelleno(clave,mx*CPM+k,my*RPM+sy,t,luz,CPM,RPM);
+        if(o&&o.g!==' ') put(c,r,o.g,col(o.fam,o.lz),'suelo');
+      }
+    }
+  }
+  /* --- el pasto, por metro: las briznas son más altas que la celda y se
+         enlazan de un metro al siguiente, así que no se puede partir --- */
+  const Gm={CPM:CPM,RPM:RPM,HPM:G.HPM,c0:G.c0,r0:G.r0,mx0:0,my0:0};
+  for(let my=0;my<H;my++) for(let mx=0;mx<W;mx++){
+    const clave=T.material(mx+0.5-W/2,my+0.5,false);
+    if(!esPasto(clave)) continue;
+    NVS.pintarMetro(clave,Gm,put,col,mx,my,luz,t);
+  }
+};
+/* cuántos escalones tiene el borde: se mide cuántas veces, bajando una fila, la
+   orilla salta más de una celda a lo ancho */
+T.medirEscalones=function(modo,W,H,CPM,RPM){
+  let saltos=0, filas=0, peor=0, antes=null;
+  for(let my=0;my<H;my++) for(let sy=0;sy<RPM;sy++){
+    /* el borde es la primera celda de tierra DESPUÉS de haber visto agua: la
+       primera de tierra a secas es el margen izquierdo del parche */
+    let borde=null, hubo=false;
+    for(let mx=0;mx<W&&borde===null;mx++) for(let k=0;k<CPM;k++){
+      const wx=((modo==='metro')?mx+0.5:mx+(k+0.5)/CPM)-W/2;
+      const wy=(modo==='metro')?my+0.5:my+(sy+0.5)/RPM;
+      const cl=T.material(wx,wy,false);
+      if(NVA.AGUA[cl]) hubo=true;
+      else if(hubo){ borde=mx*CPM+k; break; }
+    }
+    if(borde===null) continue;
+    if(antes!==null){ const d=Math.abs(borde-antes); if(d>1) saltos++; if(d>peor) peor=d; }
+    antes=borde; filas++;
+  }
+  return {filas:filas, saltos:saltos, peor:peor};
+};
+T.BANDAS=BANDAS; T.MEZCLA=MEZCLA;
+global.NVO=T;
+})(typeof window!=='undefined'?window:global);
+
+const OVX=0.70, OVY=0.54, ASPECTO=OVY/(0.6*OVX);
+const CPM=11, RPM=Math.max(2,Math.round(CPM/3)), HPM=RPM*1.7;
+let CW=11, andando=true, t0=Date.now();
+const cuadros=[];
+function pintarUno(q,t){
+  const cv=q.cv, W=q.W, H=q.H, chh=CW*ASPECTO;
+  const cols=W*CPM, rows=H*RPM+q.aire;
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.ceil(cols*CW*dpr); cv.height=Math.ceil(rows*chh*dpr);
+  cv.style.width=(cols*CW)+'px'; cv.style.height=(rows*chh)+'px';
+  const x=cv.getContext('2d');
+  x.setTransform(dpr,0,0,dpr,0,0);
+  x.fillStyle='#000'; x.fillRect(0,0,cols*CW,rows*chh);
+  x.font=(CW/(0.6*OVX)).toFixed(1)+'px ui-monospace,Menlo,Consolas,monospace';
+  x.textAlign='center'; x.textBaseline='middle';
+  const pon=(c,r,g,color)=>{
+    if(c<0||r<0||c>=cols||r>=rows) return;
+    x.fillStyle=color; x.fillText(g,c*CW+CW/2,r*chh+chh/2);
+  };
+  const G={CPM:CPM,RPM:RPM,HPM:HPM,c0:0,r0:q.aire,mx0:0,my0:0};
+  if(q.modo) NVO.pintar(q.modo,G,pon,col,W,H,1,t);
+  else for(let my=0;my<H;my++) for(let sy=0;sy<RPM;sy++)
+    for(let mx=0;mx<W;mx++) for(let k=0;k<CPM;k++){
+      const wx=mx+(k+0.5)/CPM, wy=my+(sy+0.5)/RPM;
+      const o=NVA.celda(q.agua,wx,wy,t);
+      pon(mx*CPM+k, q.aire+my*RPM+sy, o.g, col(o.fam,o.lz));
+    }
+}
+function pintar(){
+  const t=andando?(Date.now()-t0)/1000:4.2;
+  for(const q of cuadros) pintarUno(q,t);
+  document.getElementById('esc').textContent='letra de '+CW+' px';
+}
+const todo=document.getElementById('todo');
+function marco(sec,titulo,nota,clase){
+  const fig=document.createElement('figure');
+  if(clase) fig.className=clase;
+  const env=document.createElement('div'); env.className='lienzo';
+  const cv=document.createElement('canvas'); env.appendChild(cv);
+  const cap=document.createElement('figcaption');
+  cap.innerHTML='<b>'+titulo+'</b>'+(nota?' <span>&middot; '+nota+'</span>':'');
+  fig.appendChild(env); fig.appendChild(cap); sec.appendChild(fig);
+  return cv;
+}
+const GRUPOS=[
+ ['Agua dulce','La corriente corre al este. El riachuelo revienta contra las piedras; el r&iacute;o profundo casi no se mueve en la superficie.',
+  [['tranquila',12,6],['riachuelo',12,6],['rio',12,6],['rio-profundo',12,6]]],
+ ['Mar','La marejada viene del norte, as&iacute; que las bandas cruzan de este a oeste. Los parches son m&aacute;s hondos porque una ola de nueve metros no entra en cuatro.',
+  [['mar-calma',14,9],['mar-olas',14,9],['mar-tormenta',14,9],['rompiente',14,6]]]
+];
+for(const [nombre,nota,lista] of GRUPOS){
+  const sec=document.createElement('section'); sec.className='cat';
+  sec.innerHTML='<h2>'+nombre+'</h2><p>'+nota+'</p>';
+  for(const [k,W,H] of lista)
+    cuadros.push({agua:k, cv:marco(sec,NVA.AGUA[k].n,k), W:W, H:H, aire:2});
+  todo.appendChild(sec);
+}
+/* --- la orilla: el mismo río de tres maneras --- */
+{
+  const sec=document.createElement('section'); sec.className='cat';
+  const med={};
+  for(const modo of ['metro','celda']) med[modo]=NVO.medirEscalones(modo,18,14,CPM,RPM);
+  sec.innerHTML='<h2>El borde</h2><p>El mismo r&iacute;o, dibujado de tres maneras. '
+   +'Lo que cambia no es la textura: es <b>qui&eacute;n decide el material de cada letra</b>. '
+   +'Abajo, cu&aacute;ntas celdas salta la orilla al bajar una fila.</p>';
+  cuadros.push({modo:'metro', W:18, H:14, aire:16,
+    cv:marco(sec,'Por metro, como el motor hoy',
+      'escal&oacute;n mayor: '+med.metro.peor+' celdas &mdash; un metro entero de ancho','malo')});
+  cuadros.push({modo:'celda', W:18, H:14, aire:16,
+    cv:marco(sec,'Por celda','escal&oacute;n mayor: '+med.celda.peor+' celdas','bueno')});
+  cuadros.push({modo:'mezcla', W:18, H:14, aire:16,
+    cv:marco(sec,'Por celda, con la franja entreverada',
+      'el borde deja de ser una l&iacute;nea: los dos materiales se mezclan unos cent&iacute;metros','bueno')});
+  todo.appendChild(sec);
+}
+document.getElementById('mas').onclick=()=>{ CW=Math.min(26,CW+3); pintar(); };
+document.getElementById('menos').onclick=()=>{ CW=Math.max(5,CW-3); pintar(); };
+document.getElementById('anima').onclick=e=>{
+  andando=!andando; e.target.textContent=andando?'andando':'quieto';
+  if(andando) lazo(); else pintar();
+};
+function lazo(){ if(!andando) return; pintar(); requestAnimationFrame(lazo); }
+pintar(); lazo();
+</script></body></html>

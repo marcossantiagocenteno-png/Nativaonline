@@ -124,6 +124,73 @@ const EXTRA={
 };
 for(const k in EXTRA) SUELO[k]=EXTRA[k];
 
+/* ---------- una celda de relleno ----------
+   cx, cy en coordenadas de CELDA. Devuelve el glifo, la familia y la luz, o
+   null si el material no se rellena así (pasto y nieve llevan briznas y se
+   dibujan aparte). Está afuera de pintarMetro a propósito: el motor decide el
+   material por metro y entonces una orilla curva sale como una escalera de un
+   metro. Teniendo la celda sola, se puede decidir el material celda por celda
+   y la orilla sigue la curva. */
+const _rel={g:'.',fam:'tierra',lz:1};
+T.celdaRelleno=function(clave,cx,cy,t,luz,CPM,RPM){
+  const m=SUELO[clave];
+  if(!m||m.clase==='pasto'||m.clase==='nieve') return null;
+  const sem=clave.length*613+clave.charCodeAt(0)*7;
+  let d=0.42+0.52*ruido2(sem,cx,cy,7);              // el manchón de fondo
+  let fam=m.fam, lz=luz*(m.luzMul||1), g=null;
+  if(m.clase==='arena'){
+    /* La onda: una sinusoide en la dirección del viento o de la corriente, con
+       la cresta corrida por el ruido para que no salga peinada. El largo va en
+       METROS y hay que pasarlo a celdas: puesto en celdas daba un período de
+       dos caracteres, que no se lee como onda sino como alternancia. Y la
+       coordenada norte-sur se escala, porque un metro a lo alto son RPM filas
+       y a lo ancho CPM columnas. */
+    const O=m.onda, ca=Math.cos(O.angulo), sa=Math.sin(O.angulo);
+    const lc=O.largo*CPM;
+    const u=(cx*ca+cy*(CPM/RPM)*sa)/lc + ruido2(sem+3,cx,cy,11)*0.9;
+    const cr=0.5+0.5*Math.sin(u*6.283);
+    d=clamp(0.30+Math.pow(cr,1.5)*O.fuerza+ruido2(sem+5,cx,cy,4)*0.22,0,1);
+    if(m.mojada){ lz*=0.78; if(cr>0.93&&(h3(cx,cy,9)%7)===0){ g='-'; lz*=1.5; } }
+  } else if(m.clase==='tierra'){
+    const te=ruido2(sem+11,cx,cy,3.2);
+    d=clamp(0.18+te*m.terron*0.92+ruido2(sem+13,cx,cy,9)*0.26,0,1);
+    if(m.pisada) d=clamp(d*0.62+0.14,0,1);
+    if(m.grieta){
+      /* La grieta corre por donde el ruido pasa justo por el medio: ahí es una
+         línea fina. El umbral tiene que ser chico; con 0,06 tomaba una celda de
+         cada diez y la tierra quedaba enrejada. */
+      const gq=Math.abs(ruido2(sem+17,cx,cy,5.0)-0.5);
+      if(gq<0.016*m.grieta && te>0.42){ g='|'; lz*=0.34; }
+    }
+  } else if(m.clase==='barro'){
+    const ch=ruido2(sem+19,cx,cy,4.4);
+    const enCharco=ch<m.charco;
+    d=clamp(enCharco?0.72+ch*0.5:0.28+ch*0.46,0,1);
+    if(enCharco){ lz*=m.brillo?1.34:0.82; if(m.brillo&&(h3(cx,cy,23)%11)===0){ g='~'; lz*=1.5; } }
+    else if(m.costra){
+      const gq=Math.abs(ruido2(sem+29,cx,cy,3.0)-0.5);
+      if(gq<0.020*m.costra){ g='|'; lz*=0.30; }
+    }
+    if(m.pisada&&(h3((cx/3)|0,(cy/2)|0,31)%17)===0){ d=1; lz*=0.70; }
+  } else if(m.clase==='agua'){
+    const este=m.flujo==='x';
+    const fase=este?cx*0.09:cy*0.26;
+    const rip=0.5+0.5*Math.sin(t*2.2-fase+(este?(cy%RPM)*0.3:(cx%CPM)*0.05));
+    d=clamp(0.30+rip*0.65,0,1);
+    if(m.ola){ const ol=0.5+0.5*Math.sin(t*0.9-cy*0.5); d=clamp(d*(0.6+ol*0.7),0,1); }
+  } else if(m.clase==='espuma'){
+    const rip=0.5+0.5*Math.sin(t*2.6-cx*0.20+(cy%RPM)*0.45);
+    d=clamp(0.14+Math.pow(rip,2.4)*1.35,0,1);
+  } else if(m.clase==='guija'){
+    /* el canto se calibra: cerca del agua chico, lejos grueso */
+    const gr=ruido2(sem+37,cx,cy,2.6);
+    d=clamp(0.18+gr*(0.55+m.calibre*0.55),0,1);
+  }
+  if(!g) g=pick(m.ramp,d);
+  _rel.g=g; _rel.fam=fam; _rel.lz=clamp(lz*(0.86+d*0.30),0,1.4);
+  return _rel;
+};
+
 /* ---------- dibujo ---------- */
 /* G = {CPM, RPM, HPM, c0, r0}: c0/r0 es la esquina de arriba a la izquierda.
    Se dibuja de norte a sur, como el motor: lo de más al sur tapa. */
@@ -138,64 +205,11 @@ T.pintarMetro=function(clave,G,put,col,mx,my,luz,t){
   /* --- lo que se rellena celda por celda: arena, tierra, barro, agua, guija --- */
   if(m.clase!=='pasto'&&m.clase!=='nieve'){
     for(let sy=0;sy<RPM;sy++) for(let k=0;k<CPM;k++){
-      const cx=mx*CPM+k, cy=my*RPM+sy;
-      let d=0.42+0.52*ruido2(sem,cx,cy,7);        // el manchón de fondo
-      let fam=m.fam, lz=luz*(m.luzMul||1), g=null;
-      if(m.clase==='arena'){
-        /* La onda: una sinusoide en la dirección del viento o de la corriente,
-           con la cresta corrida por el ruido para que no salga peinada. El largo
-           va en METROS y hay que pasarlo a celdas: puesto en celdas daba un
-           período de dos caracteres, que no se lee como onda sino como
-           alternancia. Y la coordenada norte-sur se escala, porque un metro a
-           lo alto son RPM filas y a lo ancho CPM columnas. */
-        const O=m.onda, ca=Math.cos(O.angulo), sa=Math.sin(O.angulo);
-        const lc=O.largo*CPM;
-        const u=(cx*ca+cy*(CPM/RPM)*sa)/lc + ruido2(sem+3,cx,cy,11)*0.9;
-        const cr=0.5+0.5*Math.sin(u*6.283);
-        d=clamp(0.30+Math.pow(cr,1.5)*O.fuerza+ruido2(sem+5,cx,cy,4)*0.22,0,1);
-        if(m.mojada){ lz*=0.78; if(cr>0.93&&(h3(cx,cy,9)%7)===0){ g='-'; lz*=1.5; } }
-      } else if(m.clase==='tierra'){
-        const te=ruido2(sem+11,cx,cy,3.2);
-        d=clamp(0.18+te*m.terron*0.92+ruido2(sem+13,cx,cy,9)*0.26,0,1);
-        if(m.pisada) d=clamp(d*0.62+0.14,0,1);
-        if(m.grieta){
-          /* La grieta corre por donde el ruido pasa justo por el medio: ahí es
-             una línea fina. El umbral tiene que ser chico; con 0,06 la grieta
-             tomaba una celda de cada diez y la tierra quedaba enrejada. */
-          const gq=Math.abs(ruido2(sem+17,cx,cy,5.0)-0.5);
-          if(gq<0.016*m.grieta && te>0.42){ g='|'; lz*=0.34; }
-        }
-      } else if(m.clase==='barro'){
-        const ch=ruido2(sem+19,cx,cy,4.4);
-        const enCharco=ch<m.charco;
-        d=clamp(enCharco?0.72+ch*0.5:0.28+ch*0.46,0,1);
-        if(enCharco){ lz*=m.brillo?1.34:0.82; if(m.brillo&&(h3(cx,cy,23)%11)===0){ g='~'; lz*=1.5; } }
-        else if(m.costra){
-          /* la costra del barro seco se parte en placas: la misma línea fina */
-          const gq=Math.abs(ruido2(sem+29,cx,cy,3.0)-0.5);
-          if(gq<0.020*m.costra){ g='|'; lz*=0.30; }
-        }
-        if(m.pisada&&(h3((cx/3)|0,(cy/2)|0,31)%17)===0){ d=1; lz*=0.70; }
-      } else if(m.clase==='agua'){
-        const este=m.flujo==='x';
-        const fase=este?cx*0.09:cy*0.26;
-        const rip=0.5+0.5*Math.sin(t*2.2-fase+(este?sy*0.3:k*0.05));
-        d=clamp(0.30+rip*0.65,0,1);
-        if(m.ola){ const ol=0.5+0.5*Math.sin(t*0.9-cy*0.5); d=clamp(d*(0.6+ol*0.7),0,1); }
-      } else if(m.clase==='espuma'){
-        const rip=0.5+0.5*Math.sin(t*2.6-cx*0.20+sy*0.45);
-        d=clamp(0.14+Math.pow(rip,2.4)*1.35,0,1);
-      } else if(m.clase==='guija'){
-        /* el canto se calibra: cerca del agua chico, lejos grueso */
-        const gr=ruido2(sem+37,cx,cy,2.6);
-        d=clamp(0.18+gr*(0.55+m.calibre*0.55),0,1);
-      }
-      if(!g) g=pick(m.ramp,d);
-      if(g!==' ') put(baseC+k,top+sy,g,col(fam,clamp(lz*(0.86+d*0.30),0,1.4)),m.clase);
+      const o=T.celdaRelleno(clave,mx*CPM+k,my*RPM+sy,t,luz,CPM,RPM);
+      if(o&&o.g!==' ') put(baseC+k,top+sy,o.g,col(o.fam,o.lz),m.clase);
     }
     return;
   }
-
   /* --- pasto y nieve: matas, no alfombra pareja --- */
   const esNieve=m.clase==='nieve';
   /* cuánta mata hay en este metro: un ruido suave, para que el pasto crezca a
