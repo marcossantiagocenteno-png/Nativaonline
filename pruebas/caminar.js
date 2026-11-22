@@ -5,7 +5,7 @@ global.setInterval=f=>{ T.set(++id,f); return id; };
 global.clearInterval=i=>T.delete(i);
 const latir=n=>{ for(let k=0;k<n;k++) for(const f of [...T.values()]) f(); };
 
-const m=cargar('module.exports={NV:window.NV, empezarACaminar, dejarDeCaminar, draw_, tictac, me:()=>me, fbG:()=>fbG, fbC:()=>fbC};');
+const m=cargar('module.exports={NV:window.NV, empezarACaminar, dejarDeCaminar, draw_, tictac, me:()=>me, fbG:()=>fbG, fbC:()=>fbC, move, rumbo:()=>facing};');
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
 m.tictac();
 
@@ -36,6 +36,30 @@ for(let i=0;i<g.length;i++){
 console.log('  troncos:', tronco, '· follaje:', copa);
 probar('se dibujan troncos', tronco>30);
 probar('se dibuja follaje', copa>300);
+
+console.log('\n=== la dirección no salta de un juego de poses a otro ===');
+/* Un camino en diagonal sale en escalera —este, norte, este, norte— y sacando
+   la dirección del último paso, el dibujo alterna entre el juego de poses del
+   este y el del norte cada 186 ms. Se saca del desplazamiento NETO de los
+   últimos cuatro pasos, con histéresis para que cueste salir del eje en el
+   que ya está, y con salida inmediata cuando el personaje se da vuelta. */
+{
+  const andar=(camino,nombre)=>{
+    let cambios=0, antes=m.rumbo(); const vistos=[];
+    for(const [dx,dy] of camino){ m.move(dx,dy); const f=m.rumbo();
+      if(f!==antes) cambios++; antes=f; vistos.push(f[0]); }
+    console.log('  '+nombre.padEnd(24)+vistos.join('')+'  → '+cambios+' cambios');
+    return cambios;
+  };
+  probar('una escalera en diagonal no hace alternar la dirección',
+    andar([[1,0],[0,-1],[1,0],[0,-1],[1,0],[0,-1],[1,0],[0,-1]],'escalera al noreste')<=1);
+  probar('ir derecho no la hace cambiar',
+    andar([[1,0],[1,0],[1,0],[1,0],[1,0]],'recto al este')<=1);
+  probar('darse vuelta la cambia en el acto',
+    andar([[1,0],[1,0],[1,0],[-1,0],[-1,0],[-1,0]],'vuelta en U')===1);
+  probar('doblar la cambia, pero una sola vez',
+    andar([[1,0],[1,0],[0,1],[0,1],[0,1],[0,1]],'dobla al sur')<=2);
+}
 
 console.log('\n'+ok.length+' comprobaciones pasaron'+(mal.length?', '+mal.length+' FALLARON:':''));
 mal.forEach(x=>console.log('  ✗',x));

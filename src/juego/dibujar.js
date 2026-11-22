@@ -50,9 +50,14 @@ function draw_(){
     while(ti<objetos.length&&objetos[ti].y<=my){ if(objetos[ti].y===my) drawTree(objetos[ti],haze,t); ti++; }
     layer=3;
     /* Los personajes se dibujan en la fila que les toca, igual que los
-       árboles: así el que está más al sur tapa al que está más al norte. El
-       jugador es uno más de la lista. */
-    if(my===me.y) drawPlayer(haze);
+       árboles: así el que está más al sur tapa al que está más al norte.
+
+       La fila es la de donde está PISANDO, no la de la casilla a la que va.
+       Dibujado en la casilla de destino, al caminar hacia el norte el
+       personaje queda medio metro al sur de su fila, y el pasto y los árboles
+       de las filas siguientes —que se pintan después— le pasan por encima. Eso
+       se ve como glifos sueltos encima de la figura mientras camina. */
+    if(my===Math.round(NV.posDibujo?NV.posDibujo(Date.now()).y:me.y)) drawPlayer(haze);
     const otros=NV.personajes;
     if(otros&&otros.length){
       const Wc=Math.max(3,Math.round(0.55*CPM));

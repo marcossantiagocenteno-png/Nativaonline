@@ -31,7 +31,7 @@ global.Image=function(){ Object.defineProperty(this,'src',{set(v){ if(this.onloa
 
 const m=cargar(`module.exports={
   NV:window.NV, draw_, tictac, cargarArte,
-  estado:()=>({fbG,fbC,cols,rowsN,CPM,RPM,HPM,camX,camY}),
+  estado:()=>({fbG,fbC,fbL,cols,rowsN,CPM,RPM,HPM,camX,camY}),
   donde:()=>({x:me.x,y:me.y}),
   limpiar:()=>{fbG.fill(0);fbL.fill(0);}
 };`);
@@ -135,6 +135,23 @@ console.log('\n=== la mecánica vale para cualquiera, no sólo para el jugador =
   probar('la lista estaba vacía y ahora tiene uno', antes===0 && NV.personajes.length===1);
   probar('un personaje que no es el jugador se dibuja solo', hay>0);
   NV.personajes.length=0;
+}
+
+console.log('\n=== se dibuja en la fila que pisa ===');
+/* No en la de la casilla de destino. Las capas ya impiden que el pasto le
+   pinte encima —el personaje escribe en la capa 3 y el mundo en la 0 y la 2—,
+   así que esto no es por el pasto: es para que se ordene bien contra los
+   árboles y contra los demás personajes, que es el único caso donde a mitad
+   de un paso importa quién tapa a quién. */
+{
+  hora(4); m.tictac();
+  const yo=m.donde();
+  NV.desdeX=yo.x; NV.desdeY=yo.y+1; NV.ultimoPaso=Date.now()-93; NV.pasoMs=186;
+  const fila=Math.round(NV.posDibujo(Date.now()).y);
+  console.log('  yendo al norte, a mitad de paso pisa la fila '+fila
+              +' y su casilla de destino es la '+yo.y);
+  probar('a mitad de paso pisa entre las dos casillas', fila===yo.y+1||fila===yo.y);
+  NV.desdeX=undefined; NV.desdeY=undefined; NV.ultimoPaso=0;
 }
 
 console.log('\n'+ok.length+' comprobaciones pasaron'+(mal.length?', '+mal.length+' FALLARON:':''));

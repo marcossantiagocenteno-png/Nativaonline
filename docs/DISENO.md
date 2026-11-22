@@ -709,6 +709,23 @@ les toca, igual que a los árboles, así que el que está más al sur tapa al qu
 está más al norte. El jugador es uno más: `jugar.js` lleva su estado y el
 dibujo lo refleja.
 
+#### Hacia dónde mira
+
+**No se saca del último paso.** Un camino en diagonal sale en escalera —este,
+norte, este, norte— y mirando sólo el último paso la dirección cambia cada 186
+ms, así que el dibujo alterna entre el juego de poses del este y el del norte
+sin parar. Eso es lo que se ve como poses sueltas que no vienen a cuento.
+
+Se mira el desplazamiento **neto de los últimos cuatro pasos**, que en una
+escalera apunta en diagonal y se queda quieto en el eje que más manda, con
+**histéresis** —cuesta más salir del eje en el que ya está que quedarse— porque
+una escalera perfecta empata y sin eso oscila. Y **darse vuelta cambia en el
+acto**: es deliberado, y sin esa salida el personaje camina de espaldas tres
+pasos hasta que la ventana se da vuelta.
+
+Medido: una escalera al noreste, cero cambios de dirección en ocho pasos; una
+vuelta en U, uno solo.
+
 #### La luz de un personaje
 
 Tres cosas se suman, y ninguna estaba:

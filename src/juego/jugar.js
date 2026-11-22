@@ -23,8 +23,40 @@ NV.posDibujo=function(ahora){
   return {x:x0+(me.x-x0)*tp, y:y0+(me.y-y0)*tp, tp:tp};
 };
 
+/* Hacia dónde mira. NO se saca del último paso: un camino en diagonal sale en
+   escalera —este, norte, este, norte— y mirando sólo el último paso la
+   dirección cambia cada 186 ms, así que el dibujo alterna entre el juego de
+   poses del este y el del norte sin parar. Se mira el desplazamiento NETO de
+   los últimos pasos, que en una escalera apunta en diagonal y se queda quieto
+   en el eje que más manda. El empate va al norte-sur, que es el eje de la
+   cámara. */
+const PASOS_RUMBO=4;
+let ultimos=[];
+function rumboDe(dx,dy){
+  const ahora=Date.now();
+  /* tras una pausa se arranca de cero: si no, la dirección vieja pesa */
+  if(ahora-(NV.ultimoPaso||0)>520) ultimos=[];
+  ultimos.push([dx,dy]);
+  if(ultimos.length>PASOS_RUMBO) ultimos.shift();
+  /* Darse vuelta es deliberado: se cambia en el acto y se olvida lo anterior.
+     Sin esto, volver sobre los pasos deja al personaje caminando de espaldas
+     tres pasos hasta que la ventana se da vuelta. */
+  const opuesto = (facing==='este'&&dx<0)||(facing==='oeste'&&dx>0)
+               || (facing==='norte'&&dy>0)||(facing==='sur'&&dy<0);
+  if(opuesto) ultimos=[[dx,dy]];
+  let sx=0,sy=0;
+  for(const [a,b] of ultimos){ sx+=a; sy+=b; }
+  if(!sx&&!sy) return facing;
+  /* Histéresis: cuesta más salir del eje en el que ya se está que quedarse.
+     Sin ella, una escalera perfecta empata y la dirección oscila. */
+  const ver=Math.abs(sy), hor=Math.abs(sx);
+  const eraVertical = facing==='norte'||facing==='sur';
+  const esVertical = eraVertical ? ver>=hor*0.75 : ver>hor*1.35;
+  return esVertical ? (sy<0?'norte':'sur') : (sx>0?'este':'oeste');
+}
+
 function move(dx,dy){
-  facing=dy<0?'norte':dy>0?'sur':dx>0?'este':'oeste';
+  facing=rumboDe(dx,dy);
   const nx=me.x+dx,ny=me.y+dy;
   const gq=NV.sueloEn(nx,ny);
   if(!gq){ bubble('Más allá no hay nada todavía: el mundo termina acá.'); return; }
