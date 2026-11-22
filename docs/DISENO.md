@@ -666,6 +666,42 @@ Las tres filas de material que hacen falta —la de arriba, la propia y la de
 abajo— se traen una vez por fila. Preguntándolas de nuevo por celda, el cuadro
 pasaba de 24 a 31 ms, porque cada consulta busca su panel.
 
+### El arte: de imagen a glifos
+
+El arte de los personajes y las criaturas entra como **imagen**, no como ASCII,
+y la diferencia manda. Un pack ASCII viene dibujado a un solo tamaño; al
+achicarlo se deshace, porque **un glifo no se promedia**. Una imagen se achica
+sola y se convierte a glifos al tamaño que haga falta, así el mismo dibujo sirve
+de cerca y de lejos. Es lo que hace `src/motor/sprites.js`.
+
+En la imagen van separadas **dos cosas que el ASCII trae pegadas**: el color de
+la celda, en RGB, y la cobertura de su glifo, en el canal alfa. Al achicar, el
+color se promedia pesado por su cobertura. Si se hornea la tinta dentro del
+color, la figura se oscurece dos veces y queda un boceto apagado: fue el primer
+intento y no servía.
+
+El glifo lo elige el **brillo**, no el glifo que traía el original, como manda
+la regla 2 del diccionario. El arte que llega de fuera usa los glifos como
+decoración, y por eso se lee como ruido en vez de como volumen.
+
+**Cada celda de un sprite se pinta con fondo además de letra.** Un glifo ralo
+deja la celda casi vacía: el fondo es lo que le da masa a la figura. Sin él, un
+personaje dibujado con puntos y comas no se ve sobre el negro. El fondo de
+pantalla entera se probó y se descartó por costo; acá son los mil rectángulos de
+un personaje y no los sesenta mil de la pantalla.
+
+**La animación avanza por distancia caminada, no por reloj**: una zancada entera
+cada 2,4 metros. Atada al reloj, las piernas van a su ritmo mientras el
+personaje patina por el pasto.
+
+El arte lleva su propio sello en el cargador —`?a=1`, que se sube a mano al
+regenerarlo— porque pesa cientos de kilos y pedirlo con la hora, como al código,
+lo bajaría entero en cada carga.
+
+`taller/pack2hoja.py` convierte un pack `ascii-sprite-v1` en la hoja de imagen
+más su manifiesto. Lo que el pack traiga flojo se corrige ahí: una curva de tono
+levanta los claros y deja los oscuros, así la figura se despega del fondo.
+
 ### La interfaz
 
 Dos reglas de forma, y la primera pesa más que todo lo demás.

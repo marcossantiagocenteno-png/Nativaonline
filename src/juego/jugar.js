@@ -25,7 +25,12 @@ function move(dx,dy){
     return; }
   if(gq==='A') bubble('El agua te llega a los tobillos y arrastra.');
   else if(gq==='a') bubble('Pisás el arroyo; apenas te moja las botas.');
-  me.x=nx; me.y=ny; hide(); animarSuave(); drawMap(); guardar();
+  me.x=nx; me.y=ny;
+  /* Cuánto se lleva andado y cuándo fue el último paso. La animación de
+     caminar avanza por DISTANCIA y no por reloj: atada al reloj, las piernas
+     van a su ritmo mientras el personaje patina por el pasto. */
+  NV.andado=(NV.andado||0)+1; NV.ultimoPaso=Date.now();
+  hide(); animarSuave(); drawMap(); guardar();
 }
 function look(){
   let n=0,near=null;

@@ -95,6 +95,14 @@ function flush(){
   ctx.font=fontSize+'px '+MONO;
   ctx.save();
   ctx.translate(NV.desplaceX||0, NV.desplaceY||0);
+  /* los fondos de los sprites van antes que todas las letras */
+  for(let i=0;i<nArte;i+=2){
+    const p=fArte[i], col=fArte[i+1];
+    const r=(p/cols)|0, c=p-r*cols;
+    ctx.fillStyle='rgb('+((col>>16)&255)+','+((col>>8)&255)+','+(col&255)+')';
+    ctx.fillRect(c*cw, r*chh, cw+0.6, chh+0.6);
+  }
+  nArte=0;
   const adv=ctx.measureText('W').width;
   const canRun = ('letterSpacing' in ctx);
   if(canRun){ ctx.textAlign='left'; ctx.letterSpacing=(cw-adv).toFixed(2)+'px'; }
@@ -134,6 +142,15 @@ function flush(){
 NV.layout=layout; NV.aplicarEscala=aplicarEscala;
 NV.zoomAbsoluto=zoomAbsoluto; NV.zoomRelativo=zoomRelativo;
 NV.metrosVista=()=>metrosVista;
+NV.CPM=()=>CPM; NV.HPM=()=>HPM;
+/* Fondo por celda, sólo para los sprites. El fondo de pantalla entera se
+   probó y se descartó por costo; acá son los mil rectángulos de un personaje
+   y sin ellos un dibujo hecho de puntos y comas no se ve sobre el negro. */
+let fArte=[], nArte=0;
+NV.fondoArte=function(c,r,col){
+  if(c<0||r<0||c>=cols||r>=rowsN) return;
+  fArte[nArte++]=(r*cols+c); fArte[nArte++]=col;
+};
 /* Para las pruebas: cuántos píxeles ocupa un metro a lo ancho y a lo alto. Son
    las dos cifras que tienen que moverse sin saltos cuando se hace zoom. */
 NV.medidas=()=>({metros:metrosVista,CPM:CPM,RPM:RPM,cw:cw,chh:chh,

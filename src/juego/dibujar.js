@@ -1085,6 +1085,27 @@ function drawPlayer(haze){
       fbC[i]=packc(((col>>16)&255)*sdw,((col>>8)&255)*sdw,(col&255)*sdw);
     }
   }
+  /* ---- Myrella ----
+     Si el arte está cargado, se dibuja ella; si no, la figura de respaldo de
+     más abajo. La dirección sale de hacia dónde mira, y el cuadro de caminar
+     avanza por distancia: una zancada entera cada 2,4 metros. */
+  const ALTO_M=1.75;
+  const dir = facing==='norte'?'back' : facing==='sur'?'front'
+            : facing==='este'?'right' : 'left';
+  const andando = Date.now()-(NV.ultimoPaso||0) < 260;
+  const cuadro = andando ? Math.floor((NV.andado||0)/0.30)%8
+                         : Math.floor(Date.now()/200)%8;
+  const puesta = NV.dibujarArte
+    && NV.dibujarArte('myrella',(andando?'walk_':'idle_')+dir,cuadro,bc,br,ALTO_M,haze);
+  /* el nombre, en blanco, arriba de la cabeza */
+  const NOM='Myrella';
+  const rn=br-Math.round(ALTO_M*HPM)-2;
+  const cn=bc-Math.floor(NOM.length/2);
+  layer=3;
+  for(let i=0;i<NOM.length;i++)
+    put(cn+i,rn,NOM.charCodeAt(i),packc(238,236,228));
+  if(puesta) return;
+
   const headR=Math.max(1,Math.round(H*0.09));
   const headY=br-H+headR;
   const shoulder=br-Math.round(H*0.76);
