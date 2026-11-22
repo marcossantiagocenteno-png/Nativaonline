@@ -153,8 +153,29 @@ nubes hacen lluvia, siempre de a poco. Medido sobre un año: llueve el 24% del
 tiempo en otoño y nada en verano; las tormentas ocupan el 0,09%. La marea alta deja
 más humedad que la baja, pero no la decide sola.
 
-Las nubes apagan la luz y le quitan color; la lluvia se dibuja como hilos
-inclinados por el viento, delante de todo.
+**Tres intensidades de lluvia**, y la grande no la dispara la luna.
+
+| | se ve | viento |
+|---|---|---|
+| Llovizna | hilos ralos y cortos | normal |
+| Lluvia cerrada | cortina tupida, la distancia se pierde | casi el doble |
+| Tormenta | cortina inclinada, relámpagos | más del triple |
+
+Cada gota tiene su columna, su velocidad y su desvío: cae de verdad, se tuerce con
+la ráfaga y revienta contra el suelo con una marca.
+
+La **tormenta exige que coincidan tres cosas**: lluvia cerrada, marea viva o más y
+aire cargado. La luna manda por detrás, a través de la marea, nunca de forma
+directa: medido sobre un año, con Calavera llena hay tormenta solo el 3,6% de las
+veces. Así el que mira el cielo puede anticiparla —ve la marea trepando y el aire
+pesado— sin que sea una regla mecánica.
+
+Los **relámpagos** son un golpe de luz blanca en el mundo entero, de un cuarto de
+segundo, calculados sobre el reloj real para que tengan ritmo nervioso. En plena
+noche cerrada el fogonazo muestra el bosque completo por un instante.
+
+Las nubes apagan la luz y le quitan color. La lluvia, además, **cierra la vista**:
+la cortina tapa la distancia aunque sea mediodía.
 
 **Ventana ASTROS.** `src/juego/astros.js`, botón *astros* o tecla `C`. Muestra el
 estado del cielo, las dos lunas con su cara y su fase, la marea con su barra, el

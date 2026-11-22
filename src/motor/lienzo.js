@@ -80,8 +80,9 @@ function flush(){
   }
   if(canRun){ ctx.textAlign='center'; ctx.letterSpacing='0px'; }
   const amb=clamp(NV.luz.amb,0,1.1);
-  const vista=0.10+0.26*amb;                    // de noche se ve mucho menos lejos
-  const cierre=0.95-0.37*amb;
+  const vis=(NV.cielo&&NV.cielo.visibilidad)||1;
+  const vista=(0.10+0.26*amb)*vis;                    // de noche se ve mucho menos lejos
+  const cierre=Math.min(0.97, 0.95-0.37*amb+(1-vis)*0.35);
   const g=ctx.createRadialGradient(Wp/2,Hp/2,Math.min(Wp,Hp)*vista,Wp/2,Hp/2,Math.max(Wp,Hp)*0.80);
   g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,'+cierre.toFixed(2)+')');
   ctx.fillStyle=g; ctx.fillRect(0,0,Wp,Hp);

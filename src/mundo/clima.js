@@ -7,7 +7,7 @@ let wind=0;
 function windAt(mx,my,t){
   const wave=0.5+0.5*Math.sin(t*1.25 + mx*0.33 + my*0.10);
   const gust=gustN(mx*0.12+t*1.6, my*0.12, 2, 0.5);
-  return wave*(0.35+gust*1.15);
+  return wave*(0.35+gust*1.15)*(NV.vientoFactor||1);
 }
 
 
@@ -23,7 +23,8 @@ const CLIMA = {
   influenciaMarea:0.20,      // cuánto empuja la marea a la humedad
   umbralNube:0.46,
   umbralLluvia:0.62,
-  umbralTormenta:0.86
+  umbralTormenta:0.80,
+  mareaTormenta:0.62      // hace falta marea viva o más
 };
 const ruidoClima = NV.makeNoise(NV.mulberry(20261122));
 const suave=(a,b,v)=>{ const t=Math.max(0,Math.min(1,(v-a)/(b-a))); return t*t*(3-2*t); };
@@ -45,12 +46,17 @@ function clima(t){
 
   const nubes = suave(CLIMA.umbralNube, 0.95, humedad*0.75 + ruidoClima(t*0.9,500,2,1)*0.35);
   const lluvia = nubes>0.25 ? suave(CLIMA.umbralLluvia,0.98, humedad*0.6+nubes*0.5) : 0;
-  const tormenta = lluvia>0.45 && NV.windAt(0,0,t*9)>0.95 && humedad>CLIMA.umbralTormenta;
+  /* La tormenta no la dispara la luna por sí sola: hace falta que coincidan
+     lluvia cerrada, marea crecida y aire cargado. La luna manda por detrás, a
+     través de la marea, y por eso el que mira el cielo puede anticiparla. */
+  const tormenta = lluvia>0.52 && m.amplitud>CLIMA.mareaTormenta && humedad>CLIMA.umbralTormenta;
+  const intensidad = tormenta?3 : lluvia>0.42?2 : lluvia>0.06?1 : 0;
+  const viento = 1 + lluvia*0.9 + (tormenta?1.5:0);
 
-  return {temp, humedad, nubes, lluvia, tormenta, marea:m, estacion:est,
-    palabras: tormenta?'Hay tormenta.'
-            : lluvia>0.55?'Llueve con ganas.'
-            : lluvia>0.12?'Llovizna.'
+  return {temp, humedad, nubes, lluvia, tormenta, intensidad, viento, marea:m, estacion:est,
+    palabras: tormenta?'Hay tormenta: el viento acuesta el pasto.'
+            : intensidad===2?'Llueve cerrado.'
+            : intensidad===1?'Llovizna.'
             : nubes>0.72?'El cielo está tapado.'
             : nubes>0.35?'Pasan nubes.'
             : 'El cielo está despejado.',

@@ -35,7 +35,7 @@ function draw_(){
     layer=3;
     if(my===me.y) drawPlayer(haze);
   }
-  dibujarLluvia(t);
+  dibujarLluvia(Date.now()/1000);
   flush();
   const c=NV.cielo;
   $('st1').textContent=c.nombre+(c.deNoche&&c.brilloLunar>0.55?' · lunas altas':'');
@@ -49,21 +49,33 @@ function draw_(){
   if(dt>46&&animMs<520){ animMs=Math.min(520,Math.round(animMs*1.4)); restartAnim(); }
 }
 
-/* Lluvia: hilos que caen inclinados por el viento, delante de todo. */
+/* Lluvia: cada gota tiene su columna, su velocidad y su desvío. Cae de verdad,
+   se tuerce con la ráfaga y revienta contra el suelo. Tres intensidades. */
 function dibujarLluvia(t){
   const cl=NV.cielo&&NV.cielo.clima;
-  if(!cl||cl.lluvia<0.06) return;
+  if(!cl||!cl.intensidad) return;
   layer=3;
-  const n=Math.round(cols*rowsN*0.010*cl.lluvia*calidad);
-  const sesgo=cl.tormenta?2:1;
-  const largo=cl.tormenta?4:3;
-  const col=packc(150,178,196), col2=packc(96,120,140);
+  const I=cl.intensidad;
+  const dens=[0,0.006,0.020,0.034][I]*calidad;
+  const n=Math.round(cols*rowsN*dens);
+  const largo=[0,2,3,5][I];
+  const vel=[0,26,46,72][I];
+  const sesgo=[0,0.5,1,2][I]*(0.6+(NV.vientoFactor||1)*0.5);
+  const L=NV.luz;
+  const claro=packc(120*L.r+70, 150*L.g+70, 175*L.b+75);
+  const medio=packc(70*L.r+34, 92*L.g+40, 112*L.b+48);
+  const salpica=packc(150*L.r+60, 170*L.g+66, 180*L.b+70);
   for(let i=0;i<n;i++){
-    const h=hash3(i,0,7);
+    const h=hash3(i,3,11);
     const c0=h%cols;
-    const r0=((h>>7)%rowsN + Math.round(t*42+((h>>3)%17)))%rowsN;
+    const prop=0.75+((h>>5)%50)/100;                 // cada gota cae a su ritmo
+    const alto=rowsN+largo+6;
+    const r0=Math.round((((h>>9)%alto)+t*vel*prop)%alto)-largo;
+    const dx=Math.round(sesgo*prop);
     for(let k=0;k<largo;k++)
-      put(c0-k*sesgo, r0-k, sesgo>1?92:124, k?col2:col);
+      put(c0-k*dx, r0-k, dx>1?92:124, k?medio:claro);
+    if(r0>=0&&r0<rowsN&&((h>>3)%100)<34)             // el golpe contra el suelo
+      put(c0+1, r0, 45, salpica);
   }
   layer=0;
 }

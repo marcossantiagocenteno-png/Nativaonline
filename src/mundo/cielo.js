@@ -19,12 +19,23 @@ const PARADAS = [
 ];
 const entre=(a,b,t)=>a+(b-a)*t;
 
+/* Relámpago: un golpe de luz que dura un cuarto de segundo. Determinista,
+   calculado sobre el reloj real para que tenga el ritmo nervioso que le toca. */
+function relampago(ms, tormenta){
+  if(!tormenta) return 0;
+  const ranura=Math.floor(ms/260);
+  if(NV_.hash3(ranura,7,3)%1000 > 46) return 0;
+  const sub=(ms%260)/260;
+  return Math.max(0, 1-sub*1.5);
+}
+
 const cielo = {
   t:0, dia:1, ano:0, estacion:'primavera', fase:0.4, deNoche:false,
   elev:40, azimut:140,
   sombra:{dx:-1, dy:0, porMetro:1.7},
   luz:{amb:1, r:1, g:1, b:1},
-  lunas:null, brilloLunar:0, nombre:'mañana', eclipse:null, rojo:0, blanco:0, clima:null
+  lunas:null, brilloLunar:0, nombre:'mañana', eclipse:null, rojo:0, blanco:0,
+  clima:null, visibilidad:1, relampago:0
 };
 
 function actualizarCielo(ms){
@@ -64,6 +75,9 @@ function actualizarCielo(ms){
   cielo.clima = cl;
   if(cl){
     amb *= 1 - 0.46*cl.nubes - 0.16*cl.lluvia;
+    NV_.vientoFactor = cl.viento;
+    /* la cortina de lluvia tapa la distancia, aparte de la oscuridad */
+    cielo.visibilidad = 1 - 0.30*cl.lluvia - (cl.tormenta?0.28:0);
     const gris = cl.nubes*0.55 + cl.lluvia*0.25;
     const med = (r+g+b)/3;
     r=entre(r,med*0.96,gris); g=entre(g,med*0.99,gris); b=entre(b,med*1.08,gris);
@@ -97,6 +111,14 @@ function actualizarCielo(ms){
   }
   cielo.eclipse=ecl; cielo.rojo=rojo; cielo.blanco=blanco;
 
+  /* relámpago: el fogonazo muestra el bosque entero aunque sea noche cerrada */
+  const fl = relampago(ms, cl&&cl.tormenta);
+  cielo.relampago=fl;
+  if(fl>0){
+    amb = Math.min(1.5, amb + fl*1.25);
+    r=entre(r,1.02,fl*0.85); g=entre(g,1.06,fl*0.85); b=entre(b,1.12,fl*0.85);
+  }
+
   cielo.luz.amb=amb; cielo.luz.r=r*amb; cielo.luz.g=g*amb; cielo.luz.b=b*amb;
   cielo.nombre = ecl ? (ecl.luna==='Calavera'?'la luz se vuelve roja':'una claridad blanca')
                      : (t<0.5 ? p.n : q.n);
@@ -125,5 +147,6 @@ function cieloEnPalabras(){
   return (arriba.length>1?'Dos lunas: ':'En el cielo, ')+arriba.join('; ')+'.'+tiempo;
 }
 
+NV_.probarRelampago=relampago;
 NV_.cielo=cielo; NV_.actualizarCielo=actualizarCielo;
 NV_.cieloEnPalabras=cieloEnPalabras; NV_.luz=cielo.luz;
