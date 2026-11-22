@@ -306,6 +306,7 @@ function init(){
   me={x:claro.inicio.x, y:claro.inicio.y};
   world=claro;                                  // el panel donde está el jugador
   $('wname').textContent=claro.nombre;
+  const sl=$('sello'); if(sl) sl.textContent='v'+(NV.VERSION||'?');
   const g=cargarGuardado();
   if(g){
     me={x:g.x,y:g.y}; facing=g.mirando||facing;

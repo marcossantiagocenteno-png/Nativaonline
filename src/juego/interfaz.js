@@ -6,6 +6,10 @@
 
 const NVi = window.NV;
 
+/* Sello de versión, puesto por sellar.sh al publicar. Se ve en el pie: así
+   Marcos y yo sabemos al instante si está mirando la última versión. */
+NVi.VERSION='22/11 10:38';
+
 NVi.MARCADO = `<header>
   <h1 id="wname">Claro del norte</h1>
   <span class="zg">
@@ -36,7 +40,7 @@ NVi.MARCADO = `<header>
 </main>
 
 <footer>
-  <span id="st1">—</span><span id="st2"></span><span id="st3">Flechas o WASD &middot; E para mirar &middot; rueda, pellizco o + / &minus; para el zoom</span>
+  <span id="st1">—</span><span id="st2"></span><span id="sello"></span><span id="st3">Flechas o WASD &middot; E para mirar &middot; rueda, pellizco o + / &minus; para el zoom</span>
 </footer>
 
 

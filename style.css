@@ -48,3 +48,6 @@
 #cuadro dt{color:#fff;font-weight:600;margin-top:9px}
 #cuadro dt:first-child{margin-top:0}
 #cuadro dd{margin:0 0 0 0;color:#cfcfcf}
+
+#sello{color:#3f6a4c;font-size:10px;margin-right:auto;order:9}
+footer{align-items:baseline}
