@@ -69,7 +69,8 @@ for ia,k in enumerate(anims):
                 i=int(co[r][c*2:c*2+2],16)
                 if not i: continue
                 v=curva(pal[i-1])
-                a=int(255*(0.16+0.84*tinta(ch[r][c])))
+                # el piso de cobertura no puede ser bajo 
+                a=int(255*(0.42+0.58*tinta(ch[r][c])))
                 px[f*AN+(c-c0), ia*AL+(r-r0)]=(v[0],v[1],v[2],a)
 
 buf=io.BytesIO(); hoja.save(buf,'PNG',optimize=True)

@@ -694,6 +694,27 @@ un personaje y no los sesenta mil de la pantalla.
 cada 2,4 metros. Atada al reloj, las piernas van a su ritmo mientras el
 personaje patina por el pasto.
 
+**El color NO se divide por la cobertura al leerlo.** `getImageData` ya devuelve
+el color sin premultiplicar: el navegador mezcla en premultiplicado al achicar y
+lo deshace al leer. Volver a dividirlo por el alfa —que es lo que hay que hacer
+en una herramienta que mezcla a mano, y de ahí vino el error— lo multiplica por
+dos y medio y deja al personaje gris claro.
+
+Por lo mismo, **el piso de la cobertura en la hoja no puede ser bajo**: con alfa
+chico, el redondeo de ocho bits que deshace el navegador se amplifica y salen
+motas casi blancas por toda la figura. El piso es 0,42.
+
+**La figura lleva contorno.** Las celdas vacías que tocan una celda dibujada se
+limpian, así entre el personaje y el pasto queda una línea de fondo y la silueta
+se despega en vez de confundirse con la hierba. Y lleva un resplandor del 6% en
+un radio corto, apenas para remarcarla; más que eso parece que lleva linterna.
+
+**En reposo se está QUIETA.** Una persona parada no se balancea sin parar: se
+queda quieta un rato largo y de golpe cambia el peso de pie o mira a un costado.
+El ciclo dura catorce segundos y el 74% es el primer cuadro, sin moverse. El
+pack viene con ocho cuadros de reposo pensados para encadenarse a cinco por
+segundo, y así se lee como si girara sobre sí misma.
+
 **A poca altura se muestran menos cuadros.** A doce filas, los movimientos
 chicos del reposo —el balanceo de la capa, el peso que cambia de pie— se
 redondean a celdas enteras: en vez de un balanceo sale un parpadeo de celdas y

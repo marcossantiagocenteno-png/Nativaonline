@@ -68,20 +68,37 @@ function celdasArte(nombre,anim,cuadro,cols,filas){
                      0,0,cols,filas);
   const d=_ctxArte.getImageData(0,0,cols,filas).data;
   const g=new Uint16Array(cols*filas), col=new Int32Array(cols*filas);
+  const borde=new Uint8Array(cols*filas);
   const nR=RAMPA_ARTE.length-1;
   for(let i=0,p=0;i<cols*filas;i++,p+=4){
     const a=d[p+3];
-    if(a<34){ g[i]=0; continue; }
-    /* deshacer la premultiplicación con tope: donde la cobertura es muy baja,
-       dividir por ella dispara el color a blanco */
-    const k=255/(a<96?96:a);
-    const r=Math.min(255,d[p]*k), ve=Math.min(255,d[p+1]*k), b=Math.min(255,d[p+2]*k);
+    if(a<58){ g[i]=0; continue; }
+    /* El color va tal cual. getImageData YA devuelve el color sin
+       premultiplicar: el navegador mezcla en premultiplicado al achicar y lo
+       deshace al leer. Volver a dividirlo por la cobertura —que es lo que hay
+       que hacer en una herramienta que mezcla a mano— lo multiplicaba acá por
+       dos y medio y dejaba al personaje gris claro. */
+    /* Donde la cobertura es poca, el color que devuelve el navegador viene del
+       redondeo de ocho bits dividido por un alfa chico: el ruido se amplifica y
+       salen motas casi blancas. Se atenúa con la cobertura, que además es lo
+       que hace una celda apenas pintada. */
+    const fa=0.80+0.20*(a/255);
+    const r=d[p]*fa, ve=d[p+1]*fa, b=d[p+2]*fa;
     const lum=(r*0.3+ve*0.59+b*0.11)/255;
     const t=Math.pow(lum*(0.45+0.55*(a/255)),0.78);
     g[i]=RAMPA_ARTE.charCodeAt(Math.min(nR,(t*RAMPA_ARTE.length)|0))||32;
     col[i]=(Math.round(r)<<16)|(Math.round(ve)<<8)|Math.round(b);
   }
-  c={cols:cols,filas:filas,g:g,col:col};
+  /* El contorno: las celdas vacías que tocan una celda dibujada. Se limpian al
+     dibujar, así entre la figura y el pasto queda una línea de fondo y la
+     silueta se despega en vez de confundirse con la hierba. */
+  for(let r=0;r<filas;r++) for(let cc=0;cc<cols;cc++){
+    const i=r*cols+cc;
+    if(g[i]) continue;
+    if((cc>0&&g[i-1])||(cc<cols-1&&g[i+1])||(r>0&&g[i-cols])||(r<filas-1&&g[i+cols]))
+      borde[i]=1;
+  }
+  c={cols:cols,filas:filas,g:g,col:col,borde:borde};
   /* el zoom cambia el tamaño pedido y llena la memoria de tamaños viejos */
   if(_cacheArte.size>220) _cacheArte.clear();
   _cacheArte.set(clave,c);
@@ -112,7 +129,8 @@ NV.dibujarArte=function(nombre,anim,cuadro,bc,br,altoM,luz){
   for(let r=0;r<filas;r++){
     for(let c=0;c<cols;c++){
       const i=r*cols+c, g=cel.g[i];
-      if(!g) continue;
+      /* el contorno se limpia: deja el fondo entre la figura y el pasto */
+      if(!g){ if(cel.borde[i]) NV.put(c0+c, r0+r, 32, 0); continue; }
       const v=cel.col[i];
       /* El color va tal cual, sólo por la luz. La hoja ya trae su curva de
          tono aplicada en pack2hoja.py: multiplicarlo otra vez por uno y medio

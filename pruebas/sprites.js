@@ -11,13 +11,15 @@ function lienzoFalso(){
     clearRect(){}, set imageSmoothingEnabled(v){}, set imageSmoothingQuality(v){},
     drawImage(){ ultimoDraw=[...arguments].slice(1); },
     getImageData(x,y,w,h){
+      /* El navegador devuelve el color SIN premultiplicar: mezcla en
+         premultiplicado al achicar y lo deshace al leer. El falso tiene que
+         hacer lo mismo, o la prueba no sirve para atrapar una división de más. */
       const d=new Uint8ClampedArray(w*h*4);
       for(let r=0;r<h;r++) for(let c=0;c<w;c++){
         const i=(r*w+c)*4;
         const a=Math.round(255*(c+1)/w);
         const l=Math.round(230*(r+1)/h);
-        d[i]=Math.round(l*a/255); d[i+1]=Math.round(l*0.8*a/255);
-        d[i+2]=Math.round(l*0.5*a/255); d[i+3]=a;
+        d[i]=l; d[i+1]=Math.round(l*0.8); d[i+2]=Math.round(l*0.5); d[i+3]=a;
       }
       return {data:d};
     }
@@ -80,6 +82,60 @@ console.log('\n=== la conversión respeta brillo y cobertura ===');
     probar('a más brillo, glifo más tupido',
       m.RAMPA_ARTE.indexOf(abajo)>m.RAMPA_ARTE.indexOf(arriba));
   }
+}
+
+console.log('\n=== el color no se divide por la cobertura ===');
+/* Éste es el error que dejó a Myrella gris: getImageData ya devuelve el color
+   sin premultiplicar, y el conversor lo volvía a dividir por el alfa. Con
+   cobertura baja eso multiplica por dos y medio y manda todo al gris claro.
+   El lienzo falso devuelve un color conocido; acá se exige que salga ése. */
+{
+  const c=m.celdasArte('myrella','idle_front',1,24,30);
+  let peor=0, mirados=0, grises=0;
+  for(let r=0;r<c.filas;r++) for(let cc=0;cc<c.cols;cc++){
+    const i=r*c.cols+cc;
+    if(!c.g[i]) continue;
+    const a=Math.round(255*(cc+1)/c.cols);
+    const l=Math.round(230*(r+1)/c.filas);
+    const fa=0.80+0.20*(a/255);
+    const esp=l*fa, dio=(c.col[i]>>16)&255;
+    peor=Math.max(peor,Math.abs(dio-esp)); mirados++;
+    /* gris = los tres canales casi iguales; el falso da R:G:B de 1 : 0,8 : 0,5 */
+    const g2=(c.col[i]>>8)&255, b2=c.col[i]&255;
+    if(dio>20 && Math.abs(dio-b2)<dio*0.18) grises++;
+  }
+  console.log('  celdas miradas: '+mirados+' · peor diferencia con el color esperado: '+peor);
+  console.log('  celdas que salieron grises: '+grises);
+  probar('el color sale como entró, sin dividir por la cobertura', mirados>0 && peor<=2);
+  probar('no se agrisa', grises===0);
+}
+
+console.log('\n=== la figura lleva contorno ===');
+{
+  const c=m.celdasArte('myrella','idle_front',0,24,30);
+  let borde=0;
+  for(let i=0;i<c.cols*c.filas;i++) if(c.borde[i]) borde++;
+  console.log('  celdas de contorno alrededor de la figura: '+borde);
+  probar('hay contorno', borde>10);
+  let mal2=0;
+  for(let i=0;i<c.cols*c.filas;i++) if(c.borde[i]&&c.g[i]) mal2++;
+  probar('el contorno no pisa la figura', mal2===0);
+}
+
+console.log('\n=== quieta se queda quieta un rato largo ===');
+{
+  /* el ciclo de reposo dura catorce segundos y tres cuartas partes son el
+     primer cuadro: una persona parada no se balancea sin parar */
+  const CICLO=14000, QUIETA=0.74;
+  let enCero=0;
+  for(let ms=0;ms<CICLO;ms+=100){
+    const u=ms/CICLO;
+    const cuadro = u<QUIETA ? 0 : Math.round(1+Math.floor((u-QUIETA)/(1-QUIETA)*7))%8;
+    if(cuadro===0) enCero++;
+  }
+  const pct=Math.round(100*enCero/(CICLO/100));
+  console.log('  del ciclo de '+(CICLO/1000)+' s, pasa el '+pct+'% sin moverse');
+  probar('pasa más de dos tercios del tiempo inmóvil', pct>=70);
 }
 
 console.log('\n=== la memoria no se llena ni se repite trabajo ===');

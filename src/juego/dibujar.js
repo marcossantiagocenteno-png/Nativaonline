@@ -1120,8 +1120,20 @@ function drawPlayer(haze){
   /* a poca altura no se muestran los ocho cuadros: ver cuadrosUtiles */
   const nf = NV.cuadrosUtiles ? NV.cuadrosUtiles('myrella',NV.filasDe(ALTO_M),!andando) : 8;
   const salto = 8/nf;
-  const cuadro = Math.round(salto*( andando ? Math.floor((NV.andado||0)/(0.30*salto))%nf
-                                            : Math.floor(Date.now()/320)%nf ))%8;
+  let cuadro;
+  if(andando){
+    /* una zancada entera cada 3,6 metros */
+    cuadro = Math.round(salto*(Math.floor((NV.andado||0)/(0.45*salto))%nf))%8;
+  } else {
+    /* EN REPOSO SE ESTÁ QUIETA, y cada tanto se mueve. Una persona parada no
+       se balancea sin parar: se queda quieta un rato largo y de golpe cambia el
+       peso de pie o mira a un costado. El ciclo dura catorce segundos y las
+       tres cuartas partes son el primer cuadro, sin moverse. */
+    const CICLO=14000, QUIETA=0.74;
+    const u=(Date.now()%CICLO)/CICLO;
+    cuadro = u<QUIETA ? 0
+           : Math.round(salto*(1+Math.floor((u-QUIETA)/(1-QUIETA)*(nf-1))))%8;
+  }
   const puesta = NV.dibujarArte
     && NV.dibujarArte('myrella',(andando?'walk_':'idle_')+dir,cuadro,bc,br,ALTO_M,haze);
   /* el nombre, en blanco, arriba de la cabeza */
