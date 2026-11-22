@@ -20,6 +20,9 @@ Antes de tocar nada, leer `docs/DISENO.md`. Ese documento manda sobre el código
 
 ## Al trabajar
 
+- Antes de cada commit que toque `src/`, correr `./sellar.sh`: pone la fecha como
+  versión en los enlaces de `index.html` para que el navegador no sirva la copia
+  vieja. Es el error que más veces nos hizo creer que algo no funcionaba.
 - Probar antes de publicar: `node pruebas/humo.js` carga los módulos en un
   navegador simulado, genera el mundo, dibuja un cuadro y camina 60 pasos.
 - El juicio visual lo pone Marcos. Describir qué se cambió y por qué, no afirmar
