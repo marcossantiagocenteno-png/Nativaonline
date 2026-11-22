@@ -407,6 +407,42 @@ profundidad. Si nacen alineadas, el pasto se lee como un campo arado.
 
 ---
 
+## 8 bis. Cómo se camina
+
+Tres formas, y las tres conviven:
+
+- **Flechas o WASD**, un paso por pulsación. Mantener apretado camina sin parar,
+  un paso cada 130 ms.
+- **El control del pulgar**, abajo a la derecha en pantalla táctil: apretado
+  camina, soltado para.
+- **Tocar la pantalla**: el personaje va caminando hasta ahí, las veces que haga
+  falta, rodeando lo que no se puede pisar. Una marca verde late en el destino
+  mientras va. Cualquier orden manual corta la marcha.
+
+El camino se busca con A* sobre la grilla de metros, en cuatro direcciones, igual
+que camina el personaje. Si el toque cae sobre algo sólido, se busca la casilla
+pisable más cercana.
+
+**Cada terreno cuesta lo suyo de andar**, y de ahí sale una conducta que no está
+programada: el personaje **usa los senderos solo**. No hay ninguna regla que diga
+"seguir el camino"; simplemente andar por tierra pisada es más barato que abrirse
+paso entre el pasto alto.
+
+| terreno | coste |
+|---|---|
+| tierra pisada | 0,55 |
+| hierba corta | 0,95 |
+| guijarral | 1,05 |
+| arena | 1,15 |
+| duna | 1,3 |
+| pasto alto | 1,45 |
+| nieve | 1,5 |
+| agua somera | 1,9 |
+| corriente | 2,8 |
+
+Medido sobre tres travesías largas del claro: el 35% del recorrido termina yendo
+por el sendero, sin que nadie se lo indique.
+
 ## 9 bis. El reloj y el guardado
 
 **El mundo tiene su propio reloj y corre sin nadie.** La fecha también: cada 100

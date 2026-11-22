@@ -82,6 +82,7 @@ function olvidarGuardado(){ try{ localStorage.removeItem(CLAVE); }catch(e){} }
 const PASO_MS=130;
 let rumbo=null, pasoTimer=null;
 function empezarACaminar(dx,dy){
+  detenerRuta();                       // el mando manual manda sobre el toque
   rumbo={dx,dy};
   move(dx,dy);
   if(pasoTimer) clearInterval(pasoTimer);
@@ -91,6 +92,83 @@ function dejarDeCaminar(dx,dy){
   if(!rumbo) return;
   if(dx!==undefined && (rumbo.dx!==dx||rumbo.dy!==dy)) return;  // soltó otra tecla
   rumbo=null;
+  if(pasoTimer){ clearInterval(pasoTimer); pasoTimer=null; }
+}
+
+/* ---------- ir a donde se toca ----------
+   Un toque en la pantalla manda caminar hasta ahí. El camino se busca con A*
+   sobre la grilla de metros, en cuatro direcciones, como camina el personaje.
+   Pisar el sendero cuesta menos, así que si hay un camino cerca lo toma solo:
+   no hay que programar "seguir el sendero", sale de que andar por tierra
+   pisada es más barato que abrirse paso entre el pasto. */
+const COSTE={ d:0.55, g:0.95, G:1.45, k:1.05, s:1.15, N:1.5, D:1.3, a:1.9, A:2.8 };
+/* tierra pisada < hierba corta < guijarral < arena < pasto alto < duna <
+   nieve < agua somera < corriente. Son costes de andar, no de distancia. */
+let ruta=null, destino=null;
+
+function buscarCamino(ax,ay,bx,by,tope){
+  if(NV.solidoEn(bx,by)) return null;
+  const clave=(x,y)=>x+','+y;
+  const abierto=[{x:ax,y:ay,g:0,f:Math.abs(bx-ax)+Math.abs(by-ay)}];
+  const costeDe=new Map([[clave(ax,ay),0]]);
+  const padre=new Map();
+  let visto=0, mejor=null, mejorH=Infinity;
+  while(abierto.length && visto<(tope||6000)){
+    let i=0; for(let k=1;k<abierto.length;k++) if(abierto[k].f<abierto[i].f) i=k;
+    const n=abierto.splice(i,1)[0]; visto++;
+    const h=Math.abs(bx-n.x)+Math.abs(by-n.y);
+    if(h<mejorH){ mejorH=h; mejor=n; }
+    if(n.x===bx&&n.y===by){ mejor=n; break; }
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const x=n.x+dx, y=n.y+dy, k=clave(x,y);
+      const suelo=NV.sueloEn(x,y);
+      if(!suelo || NV.solidoEn(x,y)) continue;
+      const g=n.g+(COSTE[suelo]||1);
+      if(costeDe.has(k) && costeDe.get(k)<=g) continue;
+      costeDe.set(k,g); padre.set(k,n);
+      abierto.push({x,y,g,f:g+Math.abs(bx-x)+Math.abs(by-y)});
+    }
+  }
+  if(!mejor) return null;
+  const pasos=[];
+  let n=mejor;
+  while(n && !(n.x===ax&&n.y===ay)){ pasos.push({x:n.x,y:n.y}); n=padre.get(clave(n.x,n.y)); }
+  pasos.reverse();
+  return pasos.length?pasos:null;
+}
+
+function irHacia(gx,gy){
+  dejarDeCaminar();
+  /* si cae sobre algo sólido, buscar la casilla pisable más cercana */
+  if(NV.solidoEn(gx,gy)){
+    let hallado=null;
+    for(let r=1;r<=4&&!hallado;r++)
+      for(let j=-r;j<=r&&!hallado;j++) for(let i=-r;i<=r;i++){
+        if(Math.max(Math.abs(i),Math.abs(j))!==r) continue;
+        if(NV.sueloEn(gx+i,gy+j)&&!NV.solidoEn(gx+i,gy+j)){ hallado={x:gx+i,y:gy+j}; break; }
+      }
+    if(!hallado){ bubble('Por ahí no se puede llegar.'); return; }
+    gx=hallado.x; gy=hallado.y;
+  }
+  const camino=buscarCamino(me.x,me.y,gx,gy);
+  if(!camino){ bubble('No encuentro cómo llegar hasta ahí.'); return; }
+  ruta=camino; destino={x:gx,y:gy}; NV.destino=destino;
+  if(pasoTimer) clearInterval(pasoTimer);
+  pasoTimer=setInterval(seguirRuta, PASO_MS);
+  seguirRuta();
+}
+function seguirRuta(){
+  if(!ruta||!ruta.length){ detenerRuta(); return; }
+  const p=ruta[0];
+  const dx=Math.sign(p.x-me.x), dy=Math.sign(p.y-me.y);
+  const antes=me.x+','+me.y;
+  move(dx,dy);
+  if(me.x+','+me.y===antes){ detenerRuta(); return; }   // algo cambió: parar
+  ruta.shift();
+  if(!ruta.length) detenerRuta();
+}
+function detenerRuta(){
+  ruta=null; destino=null; NV.destino=null;
   if(pasoTimer){ clearInterval(pasoTimer); pasoTimer=null; }
 }
 
@@ -262,6 +340,20 @@ function init(){
   }
   for(const b of document.querySelectorAll('.zb'))
     b.addEventListener('click',()=>setZoom(+b.dataset.z-zi));
+  /* un toque corto manda caminar; arrastrar o pellizcar, no */
+  let tocó=null;
+  cv.addEventListener('pointerdown',e=>{ tocó={x:e.clientX,y:e.clientY,t:Date.now()}; });
+  cv.addEventListener('pointerup',e=>{
+    if(!tocó) return;
+    const quieto=Math.abs(e.clientX-tocó.x)<12&&Math.abs(e.clientY-tocó.y)<12;
+    const corto=Date.now()-tocó.t<600;
+    tocó=null;
+    if(!quieto||!corto) return;
+    const r=cv.getBoundingClientRect();
+    const col=Math.floor((e.clientX-r.left)/cw), fil=Math.floor((e.clientY-r.top)/chh);
+    if(col<0||fil<0||col>=cols||fil>=rowsN) return;
+    irHacia(camX+Math.floor(col/CPM), camY+Math.floor(fil/RPM));
+  });
   cv.addEventListener('wheel',e=>{ e.preventDefault(); setZoom(e.deltaY<0?1:-1); },{passive:false});
   let pinch=0;
   cv.addEventListener('touchstart',e=>{

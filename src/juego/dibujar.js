@@ -39,6 +39,15 @@ function draw_(){
     layer=3;
     if(my===me.y) drawPlayer(haze);
   }
+  if(NV.destino){                       // adónde se va, mientras se va
+    const d=NV.destino;
+    const c0=(d.x-camX)*CPM+Math.floor(CPM/2), r0=(d.y-camY)*RPM+RPM-1;
+    const pulso=0.6+0.4*Math.sin(Date.now()/230);
+    const col=packc(120+120*pulso, 220, 150+80*pulso);
+    layer=3;
+    for(const [dx,dy] of [[0,0],[-2,0],[2,0],[0,-1],[0,1]]) put(c0+dx,r0+dy,43,col);
+    layer=0;
+  }
   dibujarLluvia(Date.now()/1000);
   dibujarNiebla(t);
   flush();
