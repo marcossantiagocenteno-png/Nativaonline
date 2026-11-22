@@ -5,7 +5,6 @@ const ORDEN=['src/motor/base.js','src/mundo/diccionario.js','src/mundo/generar.j
   'src/mundo/paneles.js','src/mundo/astro.js','src/mundo/cielo.js','src/mundo/mareas.js','src/mundo/clima.js','src/motor/lienzo.js','src/juego/interfaz.js','src/juego/dibujar.js','src/juego/astros.js','src/juego/jugar.js'];
 const ctx={font:'',textBaseline:'',textAlign:'',fillStyle:'',letterSpacing:'0px',
   measureText:t=>({width:6*(t?t.length:1)}),setTransform(){},fillRect(){},fillText(){},
-  save(){},restore(){},translate(){},
   createRadialGradient(){return{addColorStop(){}}}};
 /* Solo existen los elementos que el marcado de interfaz.js declara de verdad.
    Para cualquier otro id se devuelve null, igual que el navegador: así los
@@ -21,17 +20,7 @@ global.window={claude:{use:async()=>null}, addEventListener(){}, removeEventList
 global.document={getElementById:el,createElement:()=>({style:{},textContent:'',appendChild(){}}),querySelector:()=>null,querySelectorAll:()=>[],hidden:false,body:{classList:{add(){}},insertAdjacentHTML(){},appendChild(){}}};
 global.matchMedia=()=>({matches:false});
 global.addEventListener=()=>{};
-/* El navegador llama a esto en el próximo cuadro; acá se ejecuta al instante.
-   Con un lazo que se vuelve a agendar solo, eso sería recursión infinita, así
-   que se corta a tres niveles. Las pruebas que miden cuadros se arman su propia
-   cola después de cargar. */
-let profundidad=0;
-global.requestAnimationFrame=cb=>{
-  if(profundidad>2) return 0;
-  profundidad++;
-  try{ cb(Date.now()); } finally{ profundidad--; }
-  return 0;
-};
+global.requestAnimationFrame=cb=>cb();
 global.performance={now:()=>Number(process.hrtime.bigint()/1000000n)};
 global.setInterval=()=>0;global.clearInterval=()=>{};global.setTimeout=()=>0;global.clearTimeout=()=>{};
 const src=ORDEN.map(f=>fs.readFileSync(R+f,'utf8')).join('\n;\n');

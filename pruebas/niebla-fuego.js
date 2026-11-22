@@ -21,9 +21,15 @@ console.log('  oeste', franja(0).toFixed(3), '· centro', franja(40).toFixed(3),
 probar('hay más niebla al oeste que al este', franja(0)>franja(78)*1.5);
 
 console.log('\n=== la niebla se mueve ===');
-const a=NV.nieblaEn(12,40,base+0.05), b=NV.nieblaEn(12,40,base+0.05+0.01);
-console.log('  misma casilla, 15 minutos después:', a.toFixed(3), '→', b.toFixed(3));
-probar('el banco de niebla se desplaza', Math.abs(a-b)>0.02);
+/* Se mide sobre una grilla y no en una casilla sola: el ruido tiene mesetas, y
+   como el día del planeta depende de la fecha real, una sola muestra a veces cae
+   justo en una y la prueba fallaba sin que la niebla estuviera quieta. */
+let mov=0,nm=0;
+for(let y=8;y<96;y+=11) for(let x=4;x<34;x+=7){
+  mov+=Math.abs(NV.nieblaEn(x,y,base+0.05)-NV.nieblaEn(x,y,base+0.06)); nm++;
+}
+console.log('  cambio medio en una casilla, 15 minutos después:', (mov/nm).toFixed(3));
+probar('el banco de niebla se desplaza', mov/nm>0.02);
 
 console.log('\n=== hoguera ===');
 const h=w.trees.filter(t=>t.k==='hoguera');

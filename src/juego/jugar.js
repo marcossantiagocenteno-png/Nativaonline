@@ -25,7 +25,7 @@ function move(dx,dy){
     return; }
   if(gq==='A') bubble('El agua te llega a los tobillos y arrastra.');
   else if(gq==='a') bubble('Pisás el arroyo; apenas te moja las botas.');
-  me.x=nx; me.y=ny; hide(); animarSuave(); drawMap(); guardar();
+  me.x=nx; me.y=ny; hide(); requestDraw(); drawMap(); guardar();
 }
 function look(){
   let n=0,near=null;
@@ -49,22 +49,6 @@ function requestDraw(){
   pend=true;
   requestAnimationFrame(()=>{ pend=false; draw(); });
 }
-
-/* ---------- movimiento suave ----------
-   Mientras la cámara persigue al jugador o el zoom se está acercando a su
-   destino, se redibuja seguido. Cuando los dos llegan, el lazo se apaga solo y
-   el juego vuelve a su latido lento. */
-let lazo=null, ultCuadro=0;
-function animarSuave(){
-  if(lazo!==null) return;
-  const paso=t=>{
-    const zoomando=NV.acercarZoom();
-    if(t-ultCuadro>26){ ultCuadro=t; draw(); }
-    if(zoomando || !NV.camQuieta) lazo=requestAnimationFrame(paso);
-    else { lazo=null; draw(); }
-  };
-  lazo=requestAnimationFrame(paso);
-}
 /* ---------- guardado ----------
    Vive en el navegador de quien juega: vuelve donde dejó, en ese dispositivo.
    Puede faltar o fallar, así que todo va envuelto y el juego sigue igual. */
@@ -77,7 +61,7 @@ function guardar(forzar){
   try{
     localStorage.setItem(CLAVE, JSON.stringify({
       semilla:NV.CONFIG.seed, x:me.x, y:me.y, mirando:facing,
-      zoom:NV.metrosVista(), mapa:mapOn, ts:ahora
+      zoom:zi, mapa:mapOn, ts:ahora
     }));
   }catch(e){}
 }
@@ -315,7 +299,8 @@ function drawMap(){
 function init(){
   cv=$('cv'); ctx=cv.getContext('2d');
   if(matchMedia('(pointer:coarse)').matches) document.body.classList.add('touch');
-
+  applyLOD();
+  for(const b of document.querySelectorAll('.zb')) b.classList.toggle('on',+b.dataset.z===zi);
   tictac();
   const claro=NV.panel(0,0);
   me={x:claro.inicio.x, y:claro.inicio.y};
@@ -325,7 +310,7 @@ function init(){
   const g=cargarGuardado();
   if(g){
     me={x:g.x,y:g.y}; facing=g.mirando||facing;
-    if(typeof g.zoom==='number') NV.zoomAbsoluto(g.zoom);
+    if(typeof g.zoom==='number'){ zi=clamp(g.zoom,0,2); NV.applyLOD(); }
     if(g.mapa) setTimeout(()=>toggleMap(true),60);
     const horas=(Date.now()-(g.ts||0))/3600000;
     setTimeout(()=>bubble(horas>1
@@ -354,8 +339,8 @@ function init(){
 
     else if(k==='r'&&e.shiftKey){ olvidarGuardado(); const c=NV.panel(0,0); me={x:c.inicio.x,y:c.inicio.y};
       bubble('Volvés al claro de partida.'); requestDraw(); e.preventDefault(); }
-    else if(k==='+'||k==='='){ NV.zoomRelativo(0.86); animarSuave(); e.preventDefault(); }
-    else if(k==='-'||k==='_'){ NV.zoomRelativo(1.16); animarSuave(); e.preventDefault(); }
+    else if(k==='+'||k==='='){ setZoom(1); e.preventDefault(); }
+    else if(k==='-'||k==='_'){ setZoom(-1); e.preventDefault(); }
   });
   addEventListener('keyup',e=>{
     const k=e.key.toLowerCase();
@@ -364,6 +349,8 @@ function init(){
     if(dir) dejarDeCaminar(dir[0],dir[1]);
   });
   addEventListener('blur',()=>dejarDeCaminar());
+  for(const b of document.querySelectorAll('.zb'))
+    b.addEventListener('click',()=>setZoom(+b.dataset.z-zi));
   /* un toque corto manda caminar; arrastrar o pellizcar, no */
   let tocó=null;
   cv.addEventListener('pointerdown',e=>{ tocó={x:e.clientX,y:e.clientY,t:Date.now()}; });
@@ -381,7 +368,7 @@ function init(){
     if(Math.abs(gx-me.x)<=1 && Math.abs(gy-me.y)<=1) look();
     else irHacia(gx,gy);
   });
-  cv.addEventListener('wheel',e=>{ e.preventDefault(); NV.zoomRelativo(e.deltaY<0?0.90:1.11); animarSuave(); },{passive:false});
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); setZoom(e.deltaY<0?1:-1); },{passive:false});
   let pinch=0;
   cv.addEventListener('touchstart',e=>{
     if(e.touches.length===2) pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,
@@ -391,8 +378,7 @@ function init(){
     if(e.touches.length!==2||!pinch) return;
     const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,
                        e.touches[0].clientY-e.touches[1].clientY);
-    NV.zoomRelativo(pinch/d);          // el pellizco manda directo, sin escalones
-    pinch=d; animarSuave();
+    if(Math.abs(d-pinch)>26){ setZoom(d>pinch?1:-1); pinch=d; }
     e.preventDefault();
   },{passive:false});
   cv.addEventListener('touchend',()=>{ pinch=0; },{passive:true});

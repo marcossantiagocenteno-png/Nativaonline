@@ -313,33 +313,13 @@ La cámara mira el suelo **inclinada**. El eje este-oeste se dibuja ancho y el
 norte-sur comprimido; lo que tiene altura se levanta sobre su casilla y tapa lo que
 queda detrás. Eso da la profundidad: 2.5D sin tres dimensiones.
 
-**El zoom es continuo**: no hay niveles ni escalones, y se puede dejar en
-cualquier punto entre 9 y 72 metros de ancho de pantalla. El truco es que el zoom
-**no cambia el tamaño de la letra —que se queda siempre en unos 7,5 píxeles—
-sino cuántas letras entran en un metro**: de 42 caracteres por metro bien de
-cerca a 6 bien de lejos. Así el mundo crece y se achica sin saltos, y la cantidad
-de caracteres en pantalla se mantiene en unos 65.000, de modo que acercarse no
-cuesta más que alejarse.
+Tres niveles de detalle, cada uno con su resolución:
 
-| ancho visible | caracteres por metro | filas por metro | fondo visible |
+| nivel | caracteres por metro | filas por metro | se ve |
 |---|---|---|---|
-| 9 m | 42 | 14 | 12 m |
-| 24 m | 16 | 5 | 35 m |
-| 48 m | 8 | 3 | 59 m |
-| 72 m | 6 | 2 | 99 m |
-
-Las filas por metro son siempre un tercio de los caracteres por metro: de ahí
-sale la inclinación de la cámara, y se mantiene igual en todo el rango.
-
-**Nada de esto se le muestra al jugador.** No hay botones de nivel ni números: se
-acerca con la rueda, el pellizco o las teclas `+` y `−`, y se queda donde lo
-dejen.
-
-**La cámara persigue al jugador, no salta con él.** Guarda su posición con
-decimales y el dibujo se corre los píxeles que falten, así que caminar se ve como
-un desplazamiento y no como un parpadeo de metro en metro. Cuando la cámara
-alcanza al jugador y el zoom llega a su destino, el lazo de dibujo se apaga solo
-y el juego vuelve a su latido lento.
+| 1 · lejos | 9 | 3 | ~60 m |
+| 2 · media | 18 | 6 | ~27 m |
+| 3 · cerca | 36 | 12 | ~11 m |
 
 Altura: 1,7 filas por cada fila de fondo. Norte arriba, sur abajo, este a la derecha.
 
