@@ -23,7 +23,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Sellar la versión para que el navegador no sirva caché vieja
-        run: sed -i "s/__V__/${GITHUB_SHA::8}/g" index.html
+        shell: bash
+        run: |
+          V=$(git rev-parse --short=8 HEAD)
+          echo "sellando con $V"
+          sed -i "s/__V__/$V/g" index.html
+          grep -o 'base.js?v=[a-z0-9]*' index.html | head -1
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
