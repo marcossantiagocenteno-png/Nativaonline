@@ -735,6 +735,29 @@ arena de río a 9,4 en la duna, donde la tirada larga *es* la onda. Y el pasto
 sale con un desvío del 13% de briznas entre un metro y otro, en vez de parejo
 como una cancha.
 
+#### El relieve: lomas que sólo se ven por la luz
+
+El mundo es plano —ningún panel guarda altura— y un suelo plano se ve igual de
+iluminado en todas partes: ahí se notaba que el paisaje quedó atrás de
+Myrella, que sí tiene luz de lado. El relieve es un campo de altura suave
+(`NV.relieveEn`, dos octavas, onda de unos 28 m, en **metros del mundo**) que
+**no cambia dónde se camina ni dónde va nada**: sólo decide cuánta luz recibe
+cada metro de tierra. La pendiente que sube hacia el este mira al oeste, de
+espaldas al sol, y queda en penumbra; la que baja hacia el este se ilumina
+(`NV.luzRelieve`, de 0,72 a 1,28, promedio 1,00).
+
+- El agua **no lo usa**: sus ondas ya llevan su propia luz.
+- Se consulta **una vez por metro**, igual que el resto de la luz del suelo.
+- Medido en un pasto parejo: lo que mira al oeste queda al 90 % de la
+  luminosidad sin relieve, y lo que mira al este sube al 120 %. Entre metros
+  vecinos el salto mayor es de 0,088, así que no hay escalones.
+
+**Lo que no es**: no sube ni baja nada. Los árboles y las rocas siguen apoyados
+en una línea recta y no hay sombra de una loma sobre otra; es un sombreado, no
+una altura. Subir de verdad (desplazar filas, que los objetos acompañen la
+pendiente, caminar cuesta arriba) es un cambio de mundo y queda abierto.
+Los valores `ganancia`, `piso` y `techo` están en `RELIEVE` y son estimados.
+
 ### El borde entre dos materiales
 
 Éste es el defecto que más se nota y el que ninguna textura arregla, porque no

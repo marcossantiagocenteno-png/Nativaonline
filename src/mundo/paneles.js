@@ -130,6 +130,21 @@ function limites(){
 NVp.limites=limites;
 NVp.LADO=LADO; NVp.BIOMAS=BIOMAS; NVp.panel=panel; NVp.panelDe=panelDe;
 NVp.nombreDe=nombreDe; NVp.desdeNombre=desdeNombre;
+/* ---------- relieve: lomas y hondonadas que sólo se ven por la luz ----------
+   El mundo es plano (no hay altura en ningún panel), y un suelo plano no recibe
+   luz de lado: se ve igual de iluminado en todos lados. Esto es un campo de
+   altura suave, en METROS DEL MUNDO, que no cambia dónde se camina ni dónde van
+   las cosas: sólo decide cuánta luz recibe cada metro según hacia dónde mira su
+   pendiente. El sol está al este y bajo, así que la ladera que mira al este se
+   ilumina y la que mira al oeste queda en penumbra. */
+const ruidoRelieve = NVp.makeNoise(NVp.mulberry((NVp.CONFIG&&NVp.CONFIG.seed?NVp.hashStr(NVp.CONFIG.seed+':relieve'):9187)));
+const RELIEVE={escala:0.035, octavas:2, ganancia:7.5, piso:0.72, techo:1.28};
+function relieveEn(wx,wy){ return ruidoRelieve(wx,wy,RELIEVE.octavas,RELIEVE.escala)-0.5; }
+function luzRelieve(wx,wy){
+  const dx=relieveEn(wx+0.5,wy)-relieveEn(wx-0.5,wy);       // sube hacia el este: mira al oeste
+  return Math.max(RELIEVE.piso, Math.min(RELIEVE.techo, 1-dx*RELIEVE.ganancia));
+}
+NVp.relieveEn=relieveEn; NVp.luzRelieve=luzRelieve; NVp.RELIEVE=RELIEVE;
 NVp.sueloEn=sueloEn; NVp.solidoEn=solidoEn; NVp.sombraEn=sombraEn;
 NVp.fuegoEn=fuegoEn; NVp.flujoEn=flujoEn; NVp.calorEn=calorEn; NVp.calorCerca=calorCerca;
 NVp.objetosEn=objetosEn; NVp.olvidarObjetos=olvidarObjetos;

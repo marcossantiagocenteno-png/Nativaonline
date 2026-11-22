@@ -456,6 +456,7 @@ function drawGroundRow(my,rBase,haze,t){
     } else if(mt.textura==='caida'){
       lp *= 0.30;
     }
+    if(!mt.ola) lp*=NV.luzRelieve(mx+0.5,my+0.5);      // lomas y hondonadas: sólo por la luz
     let light=clamp(sh*lp*haze,0,1.3);
     const light0=light;
     /* resplandor de la hoguera: más fuerte cuanto más oscuro esté todo.
