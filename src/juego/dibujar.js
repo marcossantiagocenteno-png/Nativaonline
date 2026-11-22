@@ -21,8 +21,20 @@ function draw_(){
   const t0=performance.now();
   const colsM=Math.ceil(cols/CPM), rowsM=Math.ceil(rowsN/RPM);
   const LIM=NV.limites();
-  camX=clamp(Math.round(me.x-colsM/2),LIM.x0,Math.max(LIM.x0,LIM.x1-colsM));
-  camY=clamp(Math.round(me.y-rowsM/2),LIM.y0,Math.max(LIM.y0,LIM.y1-rowsM));
+  /* La cámara persigue al jugador sin saltos: guarda su posición con decimales
+     y el dibujo se corre los píxeles que falten. */
+  const destX=clamp(me.x-colsM/2+0.5, LIM.x0, Math.max(LIM.x0,LIM.x1-colsM));
+  const destY=clamp(me.y-rowsM/2+0.5, LIM.y0, Math.max(LIM.y0,LIM.y1-rowsM));
+  if(NV.camXf===undefined){ NV.camXf=destX; NV.camYf=destY; }
+  const sigue=0.30;
+  NV.camXf += (destX-NV.camXf)*sigue;
+  NV.camYf += (destY-NV.camYf)*sigue;
+  if(Math.abs(destX-NV.camXf)<0.01) NV.camXf=destX;
+  if(Math.abs(destY-NV.camYf)<0.01) NV.camYf=destY;
+  camX=Math.floor(NV.camXf); camY=Math.floor(NV.camYf);
+  NV.desplaceX=-(NV.camXf-camX)*CPM*cw;
+  NV.desplaceY=-(NV.camYf-camY)*RPM*chh;
+  NV.camQuieta = NV.camXf===destX && NV.camYf===destY;
   fbG.fill(0); fbL.fill(0);
   const t=frame*0.11;
   const lastRow=Math.min(LIM.y1-1,camY+rowsM+22);
