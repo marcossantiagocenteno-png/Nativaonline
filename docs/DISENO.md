@@ -694,6 +694,16 @@ un personaje y no los sesenta mil de la pantalla.
 cada 2,4 metros. Atada al reloj, las piernas van a su ritmo mientras el
 personaje patina por el pasto.
 
+**A poca altura se muestran menos cuadros.** A doce filas, los movimientos
+chicos del reposo —el balanceo de la capa, el peso que cambia de pie— se
+redondean a celdas enteras: en vez de un balanceo sale un parpadeo de celdas y
+la figura tiembla quieta. De treinta filas para arriba van los ocho cuadros; de
+doce para abajo, uno solo si está quieta y dos si camina.
+
+**La sombra del personaje** es una mancha a los pies que se estira al oeste
+sobre varias filas y se afina con la distancia. De una sola fila y tres metros
+de largo, como estaba, se leía como una barra gris tirada en el pasto.
+
 El arte lleva su propio sello en el cargador —`?a=1`, que se sube a mano al
 regenerarlo— porque pesa cientos de kilos y pedirlo con la hora, como al código,
 lo bajaría entero en cada carga.
@@ -735,6 +745,20 @@ bajo y el tinte rojo del eclipse son información. Si el marco ya es dorado, esa
 señal compite con la decoración.
 
 ### Color
+
+**El multiplicador del brillo tiene techo** (1,18). Cuando la luz pasa de uno,
+`step()` ya elige el escalón más claro de la familia; si además se sigue
+multiplicando, el color se va a blanco y se pierde el dibujo. Pasaba con la cara
+iluminada de las rocas, que llegaba a 1,67, y con el personaje, al que se le
+aplicaba una curva de tono que la hoja ya traía.
+
+**Toda textura se indexa en coordenadas DEL OBJETO, nunca de la pantalla.** Es
+la trampa que más veces cayó. El grano de la piedra usaba la columna y la fila
+de pantalla: al caminar, los manchones se arrastraban por encima de la roca, y
+al hacer zoom la piedra parecía otra. Lo mismo vale para el muro del acantilado
+—que se mide a lo largo del filo y en metros de altura— y para el suelo, cuyo
+ruido va en metros del mundo. `pruebas/rocas.js` dibuja la misma piedra desde
+dos cámaras y exige que salga idéntica.
 
 Cuatro familias —verde, corteza, piedra, arena, agua— con **cuatro escalones de luz
 cada una**. Nada de degradado continuo: el degradado ensucia y confunde.

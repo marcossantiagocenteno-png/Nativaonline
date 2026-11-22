@@ -114,13 +114,27 @@ NV.dibujarArte=function(nombre,anim,cuadro,bc,br,altoM,luz){
       const i=r*cols+c, g=cel.g[i];
       if(!g) continue;
       const v=cel.col[i];
+      /* El color va tal cual, sólo por la luz. La hoja ya trae su curva de
+         tono aplicada en pack2hoja.py: multiplicarlo otra vez por uno y medio
+         y sumarle treinta lo satura, y el personaje sale todo blanco. */
       const rr=((v>>16)&255)*luz*L.r, gg=((v>>8)&255)*luz*L.g, bb=(v&255)*luz*L.b;
-      NV.fondoArte(c0+c, r0+r, NV.packc(rr*0.42,gg*0.42,bb*0.42));
-      NV.put(c0+c, r0+r, g, NV.packc(rr*1.5+30*luz, gg*1.5+30*luz, bb*1.5+30*luz));
+      NV.fondoArte(c0+c, r0+r, NV.packc(rr*0.38,gg*0.38,bb*0.38));
+      NV.put(c0+c, r0+r, g, NV.packc(rr*1.06,gg*1.06,bb*1.06));
     }
   }
   return true;
 };
+/* Cuántos cuadros distintos tiene sentido mostrar a este tamaño. A doce filas,
+   los movimientos chicos del reposo se redondean a celdas enteras: en vez de un
+   balanceo suave salen celdas que prenden y apagan, y la figura tiembla. Chica,
+   menos cuadros; quieta y chica, uno solo. */
+NV.cuadrosUtiles=function(nombre,filas,quieta){
+  if(filas>=30) return 8;
+  if(filas>=20) return 4;
+  if(filas>=14) return quieta?2:4;
+  return quieta?1:2;
+};
+NV.filasDe=altoM=>Math.max(3,Math.round(altoM*NV.HPM()));
 NV.hayArte=n=>!!(_arte[n]&&_arte[n].listo);
 NV.cargarArte=cargarArte;
 cargarArte();

@@ -80,8 +80,13 @@ function put(c,r,code,col){
   fbG[i]=code; fbC[i]=col; fbL[i]=layer;
 }
 const packc=(r,g,b)=>(clamp(r|0,0,255)<<16)|(clamp(g|0,0,255)<<8)|clamp(b|0,0,255);
+/* El multiplicador tiene techo. step() ya elige el escalón más claro de la
+   familia cuando la luz pasa de uno; si además se sigue multiplicando, el color
+   se va a blanco y se pierde todo el dibujo. Pasaba con la cara iluminada de
+   las rocas, que llegaba a 1,67. */
+const TECHO=1.18;
 const packs=(fam,s,calor)=>{
-  const c=step(fam,s), m=0.72+s*0.5, L=NV.luz;
+  const c=step(fam,s), m=0.72+(s>TECHO?TECHO:s)*0.5, L=NV.luz;
   let r=c[0]*m*L.r, g=c[1]*m*L.g, b=c[2]*m*L.b;
   if(calor){ const k=Math.min(1.2,calor); r+=168*k; g+=84*k; b+=22*k; }
   return packc(r,g,b);

@@ -117,6 +117,37 @@ console.log('\n=== los pies caen donde tienen que caer ===');
   }
 }
 
+console.log('\n=== quieta y chica, no tiembla ===');
+/* A doce filas los movimientos chicos del reposo se redondean a celdas
+   enteras: en vez de un balanceo suave salen celdas que prenden y apagan. A
+   ese tamaño se muestra un solo cuadro. */
+{
+  for(const [filas,quieta,esp] of [[12,true,1],[12,false,2],[16,true,2],[24,false,4],[40,true,8]]){
+    const n=NV.cuadrosUtiles('myrella',filas,quieta);
+    console.log('  '+String(filas).padStart(2)+' filas '+(quieta?'quieta':'andando')
+                +' → '+n+' cuadro'+(n>1?'s':''));
+    probar('a '+filas+' filas '+(quieta?'quieta':'andando')+' usa '+esp, n===esp);
+  }
+}
+
+console.log('\n=== el personaje no se satura a blanco ===');
+{
+  const st=m.estado();
+  m.limpiar(); m.capa(3);
+  NV.luz={r:1,g:1,b:1,amb:1};
+  NV.dibujarArte('myrella','idle_front',0,Math.floor(st.cols/2),Math.floor(st.rowsN*0.7),1.75,1);
+  const s2=m.estado();
+  let blancas=0,total=0;
+  for(let i=0;i<s2.cols*s2.rowsN;i++){
+    if(!s2.fbG[i]) continue;
+    total++;
+    const v=s2.fbC[i];
+    if(((v>>16)&255)>240 && ((v>>8)&255)>240 && (v&255)>240) blancas++;
+  }
+  console.log('  celdas del personaje: '+total+' · a blanco puro: '+blancas);
+  probar('el personaje conserva su color', total>0 && blancas/total<0.06);
+}
+
 console.log('\n'+ok.length+' comprobaciones pasaron'+(mal.length?', '+mal.length+' FALLARON:':''));
 mal.forEach(t=>console.log('  ✗ '+t));
 process.exit(mal.length?1:0);

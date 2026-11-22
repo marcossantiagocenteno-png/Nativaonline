@@ -534,7 +534,13 @@ function drawRoca(tr,haze,t){
     const a=enCadena(CH.izq,y), b=enCadena(CH.der,y);
     return (a===null||b===null)?null:(a<b?[a,b]:[b,a]);
   };
-  const claro=tex.claro, oscuro=tex.oscuro, b2=tex.grano+2, b1=tex.grano+1;
+  const claro=tex.claro, oscuro=tex.oscuro;
+  /* La textura se mide en coordenadas DE LA PIEDRA, no de la pantalla. Atada a
+     la pantalla, el manchón se arrastraba por encima de la roca al caminar y
+     cambiaba de forma al hacer zoom: la piedra parecía otra cada vez. Acá
+     cuántas celdas de textura tiene la roca a lo ancho y a lo alto es fijo, así
+     que el dibujo es el mismo a cualquier tamaño. */
+  const eU=Math.round(26/tex.grano), eV=Math.round(54/tex.grano);
   /* --- derrumbe al pie: va primero, lo tapa la piedra --- */
   if(m.pie){
     const n=Math.round(m.pie*h*CPM*0.9);
@@ -554,8 +560,10 @@ function drawRoca(tr,haze,t){
     const spA=span(y+1/filas<=1?y+1/filas:1);
     const cI=aC(sp[0]), cD=aC(sp[1]);
     const cAI=spA?aC(spA[0]):0, cAD=spA?aC(spA[1]):-1;
-    /* el filo entre caras se quiebra fila a fila: derecho era una raya de regla */
-    const tiemble=((hash3(sem,r,21)%100)/100-0.5)*0.07;
+    /* el filo entre caras se quiebra, pero con la altura de la piedra y no con
+       la fila de pantalla: si no, tiembla distinto según dónde esté la cámara */
+    const tv=(y*eV)|0, tvF=(y*eV*2.6)|0;
+    const tiemble=((hash3(sem,(y*70)|0,21)%100)/100-0.5)*0.07;
     for(let c=cI;c<=cD;c++){
       if(c<0||c>=cols) continue;
       const xr=(c-bc)/med;
@@ -563,14 +571,15 @@ function drawRoca(tr,haze,t){
       for(let k=0;k<m.caras.length;k++) if(xr>=m.caras[k][0]+tiemble) luz=m.caras[k][1];
       /* el grano va en dos octavas: un manchón que le da forma y un temblor
          celda a celda que lo desarma. En una sola octava salía a cuadros. */
-      const v=clamp((hash3(sem+((c/b2)|0),(r/b1)|0,2)%100)*0.007
-                   +(hash3(sem+c,r,12)%100)*0.003,0,1);
+      const tu=((xr+1.6)*eU)|0, tuF=((xr+1.6)*eU*2.6)|0;
+      const v=clamp((hash3(sem+tu,tv,2)%100)*0.007
+                   +(hash3(sem+tuF,tvF,12)%100)*0.003,0,1);
       let lz=luz*(0.88+0.24*v);
       const rampa=luz>0.62?claro:oscuro;
       let g=rampa[clamp(Math.round(v*(rampa.length-1)),0,rampa.length-1)];
       if(!spA||c<cAI||c>cAD){                       // el filo de arriba
         const dIz=spA?Math.abs(cAI-cI):9, dDe=spA?Math.abs(cAD-cD):9;
-        g=(c<cI+1&&dIz>1)?'/':(c>cD-1&&dDe>1)?'\\':((hash3(sem+c,r,4)%5)?'_':'-');
+        g=(c<cI+1&&dIz>1)?'/':(c>cD-1&&dDe>1)?'\\':((hash3(sem+tu,tv,4)%5)?'_':'-');
         lz=luz*1.34;
       }
       /* la silueta se lee por el color, no por un paréntesis en cada fila */
@@ -588,7 +597,7 @@ function drawRoca(tr,haze,t){
       if(y<=0.02||y>=0.99) continue;
       const sp=span(y);
       if(!sp||xr<sp[0]+0.02||xr>sp[1]-0.02) continue;
-      const c=aC(xr), r=aR(y), hh=hash3(sem+c,Math.round(e*100),3);
+      const c=aC(xr), r=aR(y), hh=hash3(sem+(((xr+1.6)*eU)|0),Math.round(e*100),3);
       if((hh%100)<14) continue;
       let luz=m.caras[0][1];
       for(let q=0;q<m.caras.length;q++) if(xr>=m.caras[q][0]) luz=m.caras[q][1];
@@ -621,7 +630,8 @@ function drawRoca(tr,haze,t){
       for(let i=-ri;i<=ri;i++){
         const u=Math.hypot(i/ri,j/rj);
         if(u>1) continue;
-        const hh=hash3(sem+c0+i,r,8);
+        /* el liquen también en coordenadas de la mancha, no de la pantalla */
+        const hh=hash3(sem+i*7,j*7,8);
         if((1-u)*(0.5+0.9*((hh%100)/100))<0.42) continue;
         const y=(br-r)/(h*HPM), sp=span(clamp(y,0,1));
         if(!sp) continue;
@@ -635,7 +645,7 @@ function drawRoca(tr,haze,t){
   /* --- la sombra al pie, cortada: lo que la apoya en el suelo --- */
   const sp0=span(0.004);
   if(sp0) for(let c=aC(sp0[0]);c<=aC(sp0[1]);c++){
-    const hh=hash3(sem+c,0,9);
+    const hh=hash3(sem+((((c-bc)/med+1.6)*eU)|0),0,9);
     if((hh%100)<26) continue;
     put(c,br+1,(hh>>5)%3?95:46,packs(tex.fam,0.11*haze));
   }
@@ -679,8 +689,12 @@ function drawMuro(tr,haze,t){
     for(let k=0;k<anchoC;k++){
       const c=bc-Math.floor(anchoC/2)+k;
       if(c<0||c>=cols) continue;
-      const v=clamp((hash3(sem+((c/b2)|0),(r/b1)|0,2)%100)*0.007
-                   +(hash3(sem+c,r,12)%100)*0.003,0,1);
+      /* La textura del muro se mide a lo largo del filo y en metros de altura,
+         no en columnas y filas de pantalla: así calza entre tajadas vecinas y
+         no se arrastra al caminar ni al hacer zoom. */
+      const tu=((eje*5)+((k*5/anchoC)|0))|0, tv=(y*6)|0;
+      const v=clamp((hash3(sem+tu,tv,2)%100)*0.007
+                   +(hash3(sem+tu*3,(y*16)|0,12)%100)*0.003,0,1);
       let lz=lzBase;
       const rampa=lz>0.62?tex.claro:tex.oscuro;
       let g=rampa[clamp(Math.round(v*(rampa.length-1)),0,rampa.length-1)];
@@ -1072,17 +1086,27 @@ function drawPlayer(haze){
   const H=Math.max(6,Math.round(1.75*HPM));          // 1,75 m de alto
   const Wc=Math.max(3,Math.round(0.55*CPM));         // 55 cm de ancho
   const bc=(me.x-camX)*CPM+Math.floor(CPM/2), br=(me.y-camY)*RPM+RPM-1;
-  /* sombra al oeste, tres metros largos */
-  const SL=Math.round(3*CPM);
-  for(let d=1;d<=SL;d++){
-    const sdw=0.30+0.55*(d/SL);
-    const an=Math.max(1,Math.round(Wc*(0.5+0.5*d/SL)));
-    for(let k=-an;k<=an;k++){
-      const c=bc-d+k;
-      if(c<0||c>=cols||br<0||br>=rowsN) continue;
-      const i=br*cols+c; if(!fbG[i]) continue;
-      const col=fbC[i];
-      fbC[i]=packc(((col>>16)&255)*sdw,((col>>8)&255)*sdw,(col&255)*sdw);
+  /* La sombra: una mancha a los pies que se estira al oeste y se desvanece.
+     Antes era una sola fila de tres metros de largo, y a cualquier zoom se leía
+     como una barra gris tirada en el pasto. Ahora ocupa varias filas, se afina
+     con la distancia y no llega tan lejos. */
+  const SL=Math.max(3,Math.round(1.9*CPM));
+  const SA=Math.max(1,Math.round(0.40*RPM));
+  for(let d=0;d<=SL;d++){
+    const u=d/SL;
+    const sdw=0.42+0.52*u;                       // más oscura cerca del pie
+    const an=Math.max(1,Math.round(Wc*(0.62-0.34*u)));
+    const alt=Math.max(0,Math.round(SA*(1-u*0.7)));
+    for(let j=-alt;j<=alt;j++){
+      const r=br+j;
+      if(r<0||r>=rowsN) continue;
+      for(let k=-an;k<=an;k++){
+        const c=bc-d+k;
+        if(c<0||c>=cols) continue;
+        const i=r*cols+c; if(!fbG[i]) continue;
+        const col=fbC[i], f=sdw+(1-sdw)*(Math.abs(j)/(alt+1))*0.8;
+        fbC[i]=packc(((col>>16)&255)*f,((col>>8)&255)*f,(col&255)*f);
+      }
     }
   }
   /* ---- Myrella ----
@@ -1093,8 +1117,11 @@ function drawPlayer(haze){
   const dir = facing==='norte'?'back' : facing==='sur'?'front'
             : facing==='este'?'right' : 'left';
   const andando = Date.now()-(NV.ultimoPaso||0) < 260;
-  const cuadro = andando ? Math.floor((NV.andado||0)/0.30)%8
-                         : Math.floor(Date.now()/200)%8;
+  /* a poca altura no se muestran los ocho cuadros: ver cuadrosUtiles */
+  const nf = NV.cuadrosUtiles ? NV.cuadrosUtiles('myrella',NV.filasDe(ALTO_M),!andando) : 8;
+  const salto = 8/nf;
+  const cuadro = Math.round(salto*( andando ? Math.floor((NV.andado||0)/(0.30*salto))%nf
+                                            : Math.floor(Date.now()/320)%nf ))%8;
   const puesta = NV.dibujarArte
     && NV.dibujarArte('myrella',(andando?'walk_':'idle_')+dir,cuadro,bc,br,ALTO_M,haze);
   /* el nombre, en blanco, arriba de la cabeza */

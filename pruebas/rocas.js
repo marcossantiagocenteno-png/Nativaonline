@@ -2,7 +2,7 @@
 // la cara que da al sol se distinga de la otra y que el voladizo exista.
 const cargar=require('./cargar.js');
 const m=cargar(`module.exports={
-  NV:window.NV, drawRoca, drawMuro, draw_, tictac,
+  NV:window.NV, drawRoca, drawMuro, draw_, tictac, packs,
   estado:()=>({fbG,fbC,fbL,cols,rowsN,CPM,RPM,HPM}),
   poner:(x,y)=>{camX=x;camY=y;}, capa:v=>{layer=v;},
   limpiar:()=>{fbG.fill(0);fbL.fill(0);}
@@ -134,6 +134,54 @@ console.log('\n=== las gigantes ocupan lo que miden ===');
   }
   console.log('  '+gig.length+' gigantes · celdas de su pie que no son macizas: '+mal_);
   probar('no se puede caminar por adentro de una gigante', gig.length>0&&mal_===0);
+}
+
+console.log('\n=== la textura no se mueve con la cámara ===');
+/* El grano se indexaba con la columna y la fila DE PANTALLA, así que al
+   caminar los manchones se arrastraban por encima de la piedra y al hacer zoom
+   la roca parecía otra. Se dibuja la misma piedra desde dos cámaras distintas,
+   dejándola en el mismo lugar de la pantalla, y tiene que salir idéntica. */
+{
+  const e=m.estado();
+  function grilla(cam){
+    m.poner(cam,cam); m.limpiar(); m.capa(2);
+    /* la roca se corre con la cámara: queda en el mismo pixel de pantalla */
+    m.drawRoca({x:cam+Math.floor(e.cols/e.CPM/2), y:cam+Math.floor(e.rowsN/e.RPM)-6,
+                h:2.5,k:'roca',s:1},1,0);
+    const st=m.estado(), g=[];
+    for(let r=0;r<st.rowsN;r++) for(let c=0;c<st.cols;c++) g.push(st.fbG[r*st.cols+c]);
+    return g;
+  }
+  const a=grilla(0), b=grilla(7);
+  let dif=0, hay=0;
+  for(let i=0;i<a.length;i++){ if(a[i]||b[i]) hay++; if(a[i]!==b[i]) dif++; }
+  console.log('  celdas con algo: '+hay+' · distintas entre las dos cámaras: '+dif);
+  probar('la piedra se dibuja igual venga de donde venga la cámara', dif===0);
+}
+
+console.log('\n=== nada se satura a blanco ===');
+/* Con la cara iluminada en 1,67 y packs multiplicando encima, la roca salía
+   blanca. El techo de packs lo evita; esto lo vigila. */
+{
+  const e=m.estado();
+  m.poner(0,0); m.limpiar(); m.capa(2);
+  for(let i=0;i<9;i++)
+    m.drawRoca({x:6+i*5,y:Math.floor(e.rowsN/e.RPM)-6,h:[0.5,1.2,2.5,6,0.6,1.4,2.8,5,0.45][i],
+                k:'roca',s:i},1,0);
+  const st=m.estado();
+  let blancas=0, total=0;
+  for(let i=0;i<st.cols*st.rowsN;i++){
+    if(!st.fbG[i]) continue;
+    total++;
+    const v=st.fbC[i];
+    if(((v>>16)&255)>240 && ((v>>8)&255)>240 && (v&255)>240) blancas++;
+  }
+  console.log('  celdas de piedra: '+total+' · a blanco puro: '+blancas
+              +' ('+(100*blancas/Math.max(1,total)).toFixed(1)+'%)');
+  probar('la piedra no se va a blanco', blancas/Math.max(1,total)<0.01);
+  const alto=m.packs('piedra',1.9), r=(alto>>16)&255;
+  console.log('  con luz 1,9 el canal rojo de la piedra llega a '+r+' (sin techo daría 255)');
+  probar('el techo del brillo funciona', r<246);
 }
 
 console.log('\n=== coste de un cuadro ===');
