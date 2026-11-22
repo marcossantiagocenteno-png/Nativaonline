@@ -122,7 +122,7 @@ function celdasArte(nombre,anim,cuadro,cuadro2,mez,cols,filas){
 /* Dibuja un cuadro con los pies en (bc, br), de altoM metros de alto.
    Devuelve false si el arte todavía no está listo: ahí el que llama dibuja su
    figura de respaldo. */
-NV.dibujarArte=function(nombre,anim,fase,bc,br,altoM,luz){
+NV.dibujarArte=function(nombre,anim,fase,bc,br,altoM,luz,LP){
   const e=_arte[nombre];
   if(!e||!e.listo) return false;
   const man=e.man;
@@ -144,7 +144,9 @@ NV.dibujarArte=function(nombre,anim,fase,bc,br,altoM,luz){
   const cPie=Math.min(cols-1,Math.max(0,Math.round((man.pieX+0.5)*cols/man.ancho-0.5)));
   const fPie=Math.min(filas-1,Math.max(0,Math.round((man.pieY+0.5)*filas/man.alto-0.5)));
   const c0=bc-cPie, r0=br-fPie;
-  const L=NV.luz;
+  /* La luz puede venir dada —la del personaje, que tiene piso y suma el fuego
+     de al lado— o ser la del cielo a secas. */
+  const L=LP||NV.luz;
   for(let r=0;r<filas;r++){
     for(let c=0;c<cols;c++){
       const i=r*cols+c, g=cel.g[i];

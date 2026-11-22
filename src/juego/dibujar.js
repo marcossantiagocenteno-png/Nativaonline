@@ -49,7 +49,20 @@ function draw_(){
     layer=2;
     while(ti<objetos.length&&objetos[ti].y<=my){ if(objetos[ti].y===my) drawTree(objetos[ti],haze,t); ti++; }
     layer=3;
+    /* Los personajes se dibujan en la fila que les toca, igual que los
+       árboles: así el que está más al sur tapa al que está más al norte. El
+       jugador es uno más de la lista. */
     if(my===me.y) drawPlayer(haze);
+    const otros=NV.personajes;
+    if(otros&&otros.length){
+      const Wc=Math.max(3,Math.round(0.55*CPM));
+      for(let q=0;q<otros.length;q++){
+        const o=otros[q];
+        if(Math.round(NV.posPersonaje(o,Date.now()).y)!==my) continue;
+        layer=3;
+        if(!NV.dibujarPersonaje(o,haze,t,lienzoDe(Wc))) figuraRespaldo(o,haze);
+      }
+    }
   }
   if(NV.destino){                       // adónde se va, mientras se va
     const d=NV.destino;
@@ -1082,25 +1095,20 @@ function drawTree(tr,haze,t){
   }
 }
 
-function drawPlayer(haze){
-  const H=Math.max(6,Math.round(1.75*HPM));          // 1,75 m de alto
-  const Wc=Math.max(3,Math.round(0.55*CPM));         // 55 cm de ancho
-  /* Dónde está AHORA MISMO, entre la casilla de la que salió y a la que va. El
-     personaje camina de a un metro, pero dibujarlo saltando un metro es
-     dieciocho columnas de un cuadro al otro: no camina, aparece más allá. */
-  const pm=NV.pasoMs||186;
-  const P=NV.posDibujo?NV.posDibujo(Date.now()):{x:me.x,y:me.y,tp:1};
-  const tp=P.tp, px=P.x, py=P.y;
-  const bc=Math.round((px-camX)*CPM+CPM/2), br=Math.round((py-camY)*RPM+RPM-1);
-  /* La sombra: una mancha a los pies que se estira al oeste y se desvanece.
-     Antes era una sola fila de tres metros de largo, y a cualquier zoom se leía
-     como una barra gris tirada en el pasto. Ahora ocupa varias filas, se afina
-     con la distancia y no llega tan lejos. */
-  const SL=Math.max(3,Math.round(1.9*CPM));
-  const SA=Math.max(1,Math.round(0.40*RPM));
+/* ---------- EL JUGADOR ----------
+   Es un personaje más: toda la mecánica —el paso entre casillas, la fundición
+   entre poses, el contorno, la sombra, la luz con piso y el fuego de al lado—
+   vive en personajes.js y le sirve igual a una nativa, a un lobo o a lo que
+   venga. Acá sólo se refleja el estado que lleva jugar.js y se presta lo que
+   hace falta del lienzo. */
+let _jugador=null;
+
+/* La sombra: una mancha a los pies que se estira al oeste y se desvanece. */
+function sombraDe(bc,br,CPMl,RPMl,Wc){
+  const SL=Math.max(3,Math.round(1.9*CPMl));
+  const SA=Math.max(1,Math.round(0.40*RPMl));
   for(let d=0;d<=SL;d++){
-    const u=d/SL;
-    const sdw=0.42+0.52*u;                       // más oscura cerca del pie
+    const u=d/SL, sdw=0.42+0.52*u;
     const an=Math.max(1,Math.round(Wc*(0.62-0.34*u)));
     const alt=Math.max(0,Math.round(SA*(1-u*0.7)));
     for(let j=-alt;j<=alt;j++){
@@ -1115,47 +1123,53 @@ function drawPlayer(haze){
       }
     }
   }
-  /* ---- Myrella ----
-     Si el arte está cargado, se dibuja ella; si no, la figura de respaldo de
-     más abajo. La dirección sale de hacia dónde mira, y el cuadro de caminar
-     avanza por distancia: una zancada entera cada 2,4 metros. */
-  const ALTO_M=1.85;                                 // una mujer alta
-  const dir = facing==='norte'?'back' : facing==='sur'?'front'
-            : facing==='este'?'right' : 'left';
-  const andando = Date.now()-(NV.ultimoPaso||0) < pm+120;
-  /* a poca altura no se muestran los ocho cuadros: ver cuadrosUtiles */
-  const nf = NV.cuadrosUtiles ? NV.cuadrosUtiles('myrella',NV.filasDe(ALTO_M),!andando) : 8;
-  const salto = 8/nf;
-  /* La fase es CONTINUA, no un número de cuadro: con ella el motor funde un
-     cuadro con el siguiente y el movimiento deja de ser un salto. */
-  let fase;
-  if(andando){
-    /* Una zancada entera cada 5,1 metros. La distancia incluye la fracción del
-       paso en curso: contando sólo los metros enteros, la pose se congelaba
-       186 ms y después saltaba una pose y media de golpe. Eso era el pie que
-       se teletransportaba a la pierna extendida. */
-    const rec=(NV.andado||0)-1+tp;
-    fase = salto*(((rec/(0.64*salto))%nf)+nf)%8;
-  } else {
-    /* EN REPOSO SE ESTÁ QUIETA, y cada tanto se mueve. Una persona parada no
-       se balancea sin parar: se queda quieta un rato largo y de golpe cambia el
-       peso de pie o mira a un costado. El ciclo dura veinte segundos y las tres
-       cuartas partes son el primer cuadro, sin moverse. */
-    const CICLO=20000, QUIETA=0.74;
-    const u=(Date.now()%CICLO)/CICLO;
-    fase = u<QUIETA ? 0 : salto*(1+(u-QUIETA)/(1-QUIETA)*(nf-1));
+}
+/* Un resplandor apenas perceptible alrededor, para que la figura se despegue
+   del pasto sin que parezca que lleva una linterna. */
+function haloDe(bc,br,CPMl,RPMl,fuerza){
+  const RH=Math.max(2,Math.round(2.2*CPMl)), RV=Math.max(1,Math.round(1.3*RPMl));
+  for(let j=-RV;j<=RV;j++){
+    const r=br-Math.round(RV*0.6)+j;
+    if(r<0||r>=rowsN) continue;
+    for(let k=-RH;k<=RH;k++){
+      const c=bc+k;
+      if(c<0||c>=cols) continue;
+      const u=Math.hypot(k/RH,j/RV);
+      if(u>1) continue;
+      const i=r*cols+c; if(!fbG[i]) continue;
+      /* suma, no multiplica: de noche no hay nada que multiplicar */
+      const a=(fuerza||0.06)*(1-u)*(1-u)*96;
+      const col=fbC[i];
+      fbC[i]=packc(((col>>16)&255)+a*1.00,((col>>8)&255)+a*0.92,(col&255)+a*0.80);
+    }
   }
-  const puesta = NV.dibujarArte
-    && NV.dibujarArte('myrella',(andando?'walk_':'idle_')+dir,fase,bc,br,ALTO_M,haze);
-  /* el nombre, en blanco, arriba de la cabeza */
-  const NOM='Myrella';
-  const rn=br-Math.round(ALTO_M*HPM)-2;
-  const cn=bc-Math.floor(NOM.length/2);
-  layer=3;
-  for(let i=0;i<NOM.length;i++)
-    put(cn+i,rn,NOM.charCodeAt(i),packc(238,236,228));
-  if(puesta) return;
+}
+function lienzoDe(ancho){
+  return {RPM:RPM, camX:camX, camY:camY,
+          put:put, capa:v=>{layer=v;},
+          sombra:(bc,br,c2,r2)=>sombraDe(bc,br,c2,r2,ancho),
+          halo:haloDe};
+}
 
+function drawPlayer(haze){
+  if(!_jugador) _jugador=NV.nuevoPersonaje({arte:'myrella',nombre:'Myrella',alto:1.85});
+  const p=_jugador;
+  p.x=me.x; p.y=me.y;
+  p.desdeX=NV.desdeX; p.desdeY=NV.desdeY;
+  p.ultimoPaso=NV.ultimoPaso||0; p.pasoMs=NV.pasoMs||186;
+  p.andado=NV.andado||0; p.mirando=facing;
+  const Wc=Math.max(3,Math.round(0.55*CPM));
+  const puesta=NV.dibujarPersonaje(p,haze,frame*0.11,lienzoDe(Wc));
+  if(!puesta) figuraRespaldo(p,haze);
+}
+
+/* Si el arte no cargó, una figura dibujada con glifos: nunca se queda sin
+   personaje en pantalla. */
+function figuraRespaldo(p,haze){
+  const H=Math.max(6,Math.round(1.75*HPM));
+  const Wc=Math.max(3,Math.round(0.55*CPM));
+  const P=NV.posPersonaje(p,Date.now());
+  const bc=Math.round((P.x-camX)*CPM+CPM/2), br=Math.round((P.y-camY)*RPM+RPM-1);
   const headR=Math.max(1,Math.round(H*0.09));
   const headY=br-H+headR;
   const shoulder=br-Math.round(H*0.76);
@@ -1187,6 +1201,7 @@ function drawPlayer(haze){
     put2(bc+dx,hip+a,'/',0.98);
   }
 }
+
 
 NV.titilar=titilar; NV.dibujarNiebla=dibujarNiebla;
 NV.draw=draw; NV.draw_=draw_;

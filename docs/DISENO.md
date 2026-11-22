@@ -686,6 +686,56 @@ Las tres filas de material que hacen falta —la de arriba, la propia y la de
 abajo— se traen una vez por fila. Preguntándolas de nuevo por celda, el cuadro
 pasaba de 24 a 31 ms, porque cada consulta busca su panel.
 
+### Los personajes
+
+Un personaje es **cualquier cosa que se para en una casilla**, se dibuja con un
+sprite, camina, mira hacia un lado y tiene nombre: el jugador, una nativa, un
+lobo, un animal. Todo lo que costó afinar vive en `src/juego/personajes.js` y
+no en el dibujo del jugador, así que **un personaje nuevo nace con todo hecho**:
+
+- se dibuja entre casillas, interpolando el paso;
+- la animación avanza por distancia caminada y funde un cuadro con el siguiente;
+- lleva contorno, para despegarse del pasto;
+- lleva sombra propia, que se estira al oeste;
+- recibe la luz del cielo, la de las lunas y la del fuego que tenga cerca, y
+  nunca se apaga del todo;
+- lleva su nombre encima;
+- y si el arte no cargó, se dibuja una figura de respaldo.
+
+Un personaje es un objeto llano —`{arte, nombre, alto, x, y, desdeX, desdeY,
+ultimoPaso, pasoMs, andado, mirando, zancada, color}`— y `NV.personajes` es la
+lista de los que no son el jugador. El bucle de dibujo los pone en la fila que
+les toca, igual que a los árboles, así que el que está más al sur tapa al que
+está más al norte. El jugador es uno más: `jugar.js` lleva su estado y el
+dibujo lo refleja.
+
+#### La luz de un personaje
+
+Tres cosas se suman, y ninguna estaba:
+
+**La del cielo, con piso.** Nunca baja de 0,16: de noche el personaje se ve
+oscurecido, no desaparecido. Sin piso, a 0,07 de luz ambiente la figura era un
+agujero negro.
+
+**Ganancia de 1,34.** El arte viene con colores oscuros —verdes y ocres de
+bosque— mientras que el suelo se pinta con los escalones más claros de su
+familia. Sin ganancia el personaje queda la mitad de brillante que el pasto y
+se lee como una sombra. No es aclararlo: es compensar que compite contra una
+paleta que ya está en su escalón más alto.
+
+**La del fuego.** Se mira qué arde en su casilla y se suma luz anaranjada, con
+tope. El calor crudo llega a 2,4 al lado de la hoguera; sumado tal cual
+multiplicaría la luz por más de uno y medio. Medido: de noche, al lado de la
+hoguera el rojo pasa de 0,21 a 0,83, y queda casi el doble que el azul.
+
+**Y las lunas ya alumbraban**, en el ambiente del cielo: medido, la noche más
+clara tiene 0,52 de ambiente con las lunas altas y la más oscura 0,14 sin
+ellas.
+
+**El resplandor propio suma, no multiplica**, y es más fuerte cuanto más oscuro
+está: 0,156 de noche contra 0,058 de día. Un seis por ciento de casi nada sigue
+siendo casi nada, y de noche es justo cuando hace falta.
+
 ### El arte: de imagen a glifos
 
 El arte de los personajes y las criaturas entra como **imagen**, no como ASCII,
