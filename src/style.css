@@ -1,4 +1,16 @@
 /* Nativa Online — interfaz.
+
+   Dos reglas de forma, y la primera pesa más que todo lo demás:
+
+   1. EL MUNDO LLEGA A LOS BORDES. No hay encabezado ni pie. Una página web
+      tiene encabezado, contenido y pie; un juego ocupa la pantalla entera y
+      flota sus paneles encima, pegados a las esquinas. Mientras el lienzo
+      estuvo metido entre dos barras, esto se leyó como un sitio.
+
+   2. NADA REDONDO, NADA SUELTO. Esquinas cuadradas, filetes de un píxel, letra
+      de nueve a once y relleno de dos a cuatro. La densidad es parte del
+      aspecto: un panel que respira es un widget, uno apretado es un HUD.
+
    Fondo negro, letras blancas, marcos de oro viejo. La escena se dibuja en el
    lienzo y la interfaz no le compite: nada de verdes ni de relleno. */
 
@@ -8,112 +20,109 @@
   --dim:#9c9484;
   --oro:#c8a24a;
   --oroflojo:#6d5726;
+  --velo:#000000cc;          /* el fondo de un panel sobre la escena */
 }
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--negro);color:var(--ink);
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"DejaVu Sans Mono",monospace}
-body{display:flex;flex-direction:column;overflow:hidden}
+html,body{margin:0;height:100%;background:var(--negro);color:var(--ink);overflow:hidden;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"DejaVu Sans Mono",monospace;
+  font-size:10px;line-height:1.3;-webkit-text-size-adjust:100%}
 
-button,select{font:inherit;color:var(--ink);background:var(--negro);
-  border:1px solid var(--oroflojo);border-radius:4px;padding:5px 9px;cursor:pointer}
+#stage{position:absolute;inset:0;overflow:hidden}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+
+/* --- los paneles de las esquinas --- */
+.hud{position:absolute;z-index:30;background:var(--velo);
+  border:1px solid var(--oroflojo);padding:3px 5px;max-width:46%;
+  pointer-events:none;letter-spacing:.2px}
+.hud button{pointer-events:auto}
+#hudTL{left:4px;top:11px}
+#hudBL{left:4px;bottom:4px}
+#wname{color:var(--ink);font-size:11px;letter-spacing:.8px}
+#st1,#st2,#st3,#ayuda{color:var(--dim);font-size:9px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+#sello{color:#5a533f;font-size:8px}
+.fila{display:flex;gap:3px;margin-top:3px}
+
+button,select{font:inherit;font-size:9px;color:var(--ink);background:var(--negro);
+  border:1px solid var(--oroflojo);border-radius:0;padding:2px 5px;cursor:pointer}
 button:hover{border-color:var(--oro)}
 button.on{border-color:var(--oro);color:var(--oro)}
 
-header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:7px 10px;
-  border-bottom:1px solid var(--oroflojo);background:var(--negro)}
-header h1{font-size:13px;margin:0 8px 0 0;font-weight:600;letter-spacing:.6px}
-header .sp{flex:1}
-.zg{display:inline-flex;gap:0}
-.zg .zb{border-radius:0;border-left-width:0;padding:5px 8px;font-size:11px}
-.zg .zb:first-child{border-radius:4px 0 0 4px;border-left-width:1px}
-.zg .zb:last-child{border-radius:0 4px 4px 0}
+#compass{position:absolute;right:4px;bottom:46px;font-size:8px;color:var(--dim);
+  text-align:center;line-height:1;letter-spacing:1px;pointer-events:none;opacity:.6;z-index:30}
+#compass span{font-size:10px}
 
-main{flex:1;display:flex;min-height:0}
-#stage{flex:1;position:relative;min-width:0;overflow:hidden}
-#cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
-
-#compass{position:absolute;left:12px;top:14px;font-size:10px;color:var(--dim);
-  text-align:center;line-height:1.1;letter-spacing:1px;pointer-events:none;opacity:.7}
-#compass span{font-size:13px}
-
-/* la franja del día, arriba de la escena */
-#reloj{position:absolute;left:0;right:0;top:0;height:6px;z-index:29;opacity:.8;
-  border-bottom:1px solid #00000066;
+/* la franja del día, al filo de arriba */
+#reloj{position:absolute;left:0;right:0;top:0;height:5px;z-index:29;opacity:.85;
   background:linear-gradient(90deg,#0a0a0a 0%,#0a0a0a 22%,#8a5a1e 26%,#b9b09a 34%,
     #e6e0d2 50%,#b9b09a 68%,#8a4a1e 76%,#0a0a0a 80%,#0a0a0a 100%)}
-#relojM{position:absolute;top:-3px;width:3px;height:12px;background:#fff;
-  box-shadow:0 0 6px #fff;transition:left .4s linear}
-#relojS{position:absolute;top:-4px;margin-left:-6px;width:13px;height:13px;
-  line-height:13px;text-align:center;font-size:11px;color:#fff;
-  text-shadow:0 0 5px #000;transition:left .4s linear;pointer-events:none}
-
-footer{border-top:1px solid var(--oroflojo);background:var(--negro);padding:6px 10px;
-  font-size:11px;color:var(--dim);display:flex;gap:14px;flex-wrap:wrap;align-items:baseline}
-#sello{color:#5a533f;font-size:10px;margin-left:auto}
+#relojM{position:absolute;top:-2px;width:2px;height:9px;background:#fff;
+  box-shadow:0 0 5px #fff;transition:left .4s linear}
+#relojS{position:absolute;top:-4px;margin-left:-5px;width:11px;height:11px;
+  line-height:11px;text-align:center;font-size:9px;color:#fff;
+  text-shadow:0 0 4px #000;transition:left .4s linear;pointer-events:none}
 
 /* lo que se dice al explorar */
-#bubble{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);
-  max-width:min(520px,88%);background:#000000ee;border:1px solid var(--oro);
-  border-radius:4px;padding:10px 14px;font-size:13px;line-height:1.45;display:none;
+#bubble{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);
+  max-width:min(460px,76%);background:#000000ee;border:1px solid var(--oro);
+  padding:5px 8px;font-size:10px;line-height:1.4;display:none;z-index:34;
   white-space:pre-wrap;color:var(--ink)}
 #bubble.show{display:block}
 #bubble b{color:var(--oro)}
 
-/* el mapa, con las lunas y la marea */
-#map{position:absolute;right:8px;top:8px;display:none;z-index:30;
-  background:#000000e8;border:1px solid var(--oroflojo);border-radius:4px;padding:4px 5px}
+/* el mapa */
+#map{position:absolute;right:4px;top:11px;display:none;z-index:30;
+  background:var(--velo);border:1px solid var(--oroflojo);padding:2px 3px}
 #map.show{display:block}
 #mapTx{margin:0;color:#8d8d8d;line-height:1.05;letter-spacing:0;white-space:pre;
   font-family:inherit;font-size:7px}
 #mapTx b{color:#ff4040;font-weight:700}
-#mapCab{display:flex;align-items:center;gap:5px;padding:1px 1px 4px;
-  border-bottom:1px solid var(--oroflojo);margin-bottom:4px}
+#mapCab{display:flex;align-items:center;gap:4px;padding:0 0 3px;
+  border-bottom:1px solid var(--oroflojo);margin-bottom:3px}
 #mapCab .ml{display:inline-flex;border-radius:50%;padding:1px;line-height:0}
 #mapCab .ml.cal{box-shadow:0 0 0 1px var(--oro)}
 #mapCab .ml.mad{box-shadow:0 0 0 1px #e8e8e8}
 #mapCab .ml.ecl{animation:lat 1.4s infinite}
 @keyframes lat{50%{box-shadow:0 0 6px 2px var(--oro)}}
-#mapCab .mh{margin-left:auto;font-size:9px;color:var(--dim);letter-spacing:.3px}
-#mapCab .mcoord{width:100%;font-size:9px;color:var(--oroflojo);padding-top:2px}
+#mapCab .mh{margin-left:auto;font-size:8px;color:var(--dim);letter-spacing:.3px}
+#mapCab .mcoord{width:100%;font-size:8px;color:var(--oroflojo);padding-top:1px}
 @media (pointer:coarse){ #mapTx{font-size:8px} }
 
-/* el botón de información, dentro de la escena */
-#bInfo{position:absolute;right:12px;bottom:12px;z-index:33;width:38px;height:38px;
-  border-radius:50%;border:1px solid var(--oro);background:#000000d9;color:var(--oro);
-  font-size:17px;line-height:1;padding:0;font-style:italic}
+/* el botón de información y su barra de cajones */
+#bInfo{position:absolute;right:4px;bottom:4px;z-index:33;width:24px;height:24px;
+  border:1px solid var(--oro);background:#000000d9;color:var(--oro);
+  font-size:12px;line-height:1;padding:0;font-style:italic}
 #bInfo:hover,#bInfo.on{background:var(--oro);color:#000}
-
-/* la barra de cajones */
-#info{position:absolute;right:12px;bottom:58px;z-index:33;width:158px;display:none;
-  background:var(--negro);border:1px solid var(--oro);border-radius:4px;padding:4px}
+#info{position:absolute;right:4px;bottom:32px;z-index:33;width:112px;display:none;
+  background:var(--negro);border:1px solid var(--oro);padding:2px}
 #info.show{display:block}
-#info .icaj{padding:8px 10px;font-size:12px;color:var(--ink);cursor:pointer;border-radius:2px}
+#info .icaj{padding:4px 6px;font-size:10px;color:var(--ink);cursor:pointer}
 #info .icaj:hover{background:var(--oro);color:#000}
 
 /* el cuadro del medio */
 #cuadro{position:absolute;inset:0;z-index:40;display:none;align-items:center;
-  justify-content:center;padding:18px;background:#000000aa}
+  justify-content:center;padding:12px;background:#000000aa}
 #cuadro.show{display:flex}
-#cuadro .cbox{position:relative;width:min(420px,100%);background:var(--negro);
-  color:var(--ink);border:1px solid var(--oro);border-radius:4px;padding:16px 18px 18px}
-#cuadro h2{margin:0 0 12px;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;
+#cuadro .cbox{position:relative;width:min(340px,100%);background:var(--negro);
+  color:var(--ink);border:1px solid var(--oro);padding:9px 11px 11px}
+#cuadro h2{margin:0 0 7px;font-size:10px;letter-spacing:1.4px;text-transform:uppercase;
   font-weight:600;color:var(--oro)}
-#cuadro #cx{position:absolute;right:6px;top:5px;background:none;border:0;color:var(--ink);
-  font-size:19px;line-height:1;padding:3px 7px;cursor:pointer}
-#cuadro #cx:hover{color:#000;background:var(--oro);border-radius:3px}
-#cuadro dl{margin:0;font-size:12.5px;line-height:1.6}
-#cuadro dt{color:var(--oro);font-weight:600;margin-top:10px}
+#cuadro #cx{position:absolute;right:2px;top:1px;background:none;border:0;color:var(--ink);
+  font-size:14px;line-height:1;padding:1px 5px;cursor:pointer}
+#cuadro #cx:hover{color:#000;background:var(--oro)}
+#cuadro dl{margin:0;font-size:10px;line-height:1.5}
+#cuadro dt{color:var(--oro);font-weight:600;margin-top:7px}
 #cuadro dt:first-child{margin-top:0}
 #cuadro dd{margin:0;color:var(--ink)}
 #cuadro b{color:var(--oro)}
 
 /* si algo revienta, que se lea */
-#fallo{position:fixed;left:0;right:0;top:0;z-index:99;margin:0;padding:10px 12px;
-  background:#2a0d0d;color:#ffb4a0;font-size:11px;line-height:1.5;white-space:pre-wrap;
+#fallo{position:fixed;left:0;right:0;top:0;z-index:99;margin:0;padding:7px 9px;
+  background:#2a0d0d;color:#ffb4a0;font-size:10px;line-height:1.45;white-space:pre-wrap;
   border-bottom:2px solid #d9534f;max-height:40%;overflow:auto;display:none}
 
 /* aviso breve */
-#toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);background:#000000ee;
-  border:1px solid var(--oro);color:var(--oro);padding:7px 12px;border-radius:999px;
-  font-size:12px;display:none;z-index:60}
+#toast{position:fixed;left:50%;top:10px;transform:translateX(-50%);background:#000000ee;
+  border:1px solid var(--oro);color:var(--oro);padding:3px 8px;
+  font-size:10px;display:none;z-index:60}
 #toast.show{display:block}

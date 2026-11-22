@@ -666,6 +666,38 @@ Las tres filas de material que hacen falta —la de arriba, la propia y la de
 abajo— se traen una vez por fila. Preguntándolas de nuevo por celda, el cuadro
 pasaba de 24 a 31 ms, porque cada consulta busca su panel.
 
+### La interfaz
+
+Dos reglas de forma, y la primera pesa más que todo lo demás.
+
+**El mundo llega a los bordes.** No hay encabezado ni pie. Una página web tiene
+encabezado, contenido y pie; un juego ocupa la pantalla entera y flota sus
+paneles encima, pegados a las esquinas. Mientras el lienzo estuvo metido entre
+dos barras, esto se leyó como un sitio por más que el color fuera el correcto.
+Arriba a la izquierda, dónde estás y cómo está el día; arriba a la derecha, el
+mapa; abajo a la izquierda, la estación y la fecha; abajo a la derecha, el botón
+de información.
+
+**Nada redondo, nada suelto.** Esquinas cuadradas, filetes de un píxel, letra de
+nueve a once y relleno de dos a cuatro. La densidad es parte del aspecto: un
+panel que respira es un widget, uno apretado es un HUD.
+
+La interfaz sigue siendo HTML y no se dibuja adentro del lienzo. Se puede hacer
+que el HTML parezca la grilla, y así se conservan los botones que se pueden
+tocar, el texto nítido y —sobre todo— que un cambio de interfaz llegue al
+instante sin esperar los diez minutos de la caché.
+
+**Lo que no se copia de otros juegos del género**: el HUD lleno de números —vida,
+maná, nivel, experiencia—. Acá no se muestran por diseño, y eso no es una
+carencia: las esquinas dicen otras cosas, que son más difíciles de hacer bien y
+más propias de este mundo.
+
+**Pendiente**: el oro todavía hace de estructura. Tiene que bajar a acento —gris
+apenas visible para los marcos, oro sólo para lo que está activo o lo que
+importa— porque la escena es oscura con destellos cálidos, y el fuego, el sol
+bajo y el tinte rojo del eclipse son información. Si el marco ya es dorado, esa
+señal compite con la decoración.
+
 ### Color
 
 Cuatro familias —verde, corteza, piedra, arena, agua— con **cuatro escalones de luz

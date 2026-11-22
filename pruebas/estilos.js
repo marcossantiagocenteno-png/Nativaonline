@@ -17,7 +17,9 @@ const marcado=fs.readFileSync('src/juego/interfaz.js','utf8');
 /* Las piezas que se colocan solas en la pantalla necesitan regla propia; el
    resto hereda del encabezado, del pie o del cuadro. */
 const PROPIOS=['stage','cv','compass','reloj','relojM','relojS','bubble','map','mapTx',
-               'bInfo','info','cuadro','fallo','toast','sello'];
+               'bInfo','info','cuadro','fallo','toast','sello',
+               /* los paneles de las esquinas, desde que el lienzo va a los bordes */
+               'hudTL','hudBL','wname','ayuda'];
 const sinRegla=PROPIOS.filter(i=>!css.includes('#'+i));
 console.log('piezas que se colocan solas:', PROPIOS.length, '· sin regla:', sinRegla.join(', ')||'ninguna');
 probar('cada pieza que se coloca sola tiene estilo', sinRegla.length===0);
@@ -28,7 +30,9 @@ const faltan=clases.filter(c=>!css.includes('.'+c));
 console.log('clases usadas:', clases.join(' '), '· sin estilo:', faltan.join(', ')||'ninguna');
 probar('las clases del marcado tienen estilo', faltan.length===0);
 
-const muertas=['#pad','.modal','#astros','#legend'].filter(r=>css.includes(r));
+/* el encabezado y el pie se fueron cuando el mundo pasó a llegar a los bordes */
+const muertas=['#pad','.modal','#astros','#legend','header','footer','main{','.sp','.zg']
+  .filter(r=>css.includes(r));
 console.log('reglas de cosas que ya no existen:', muertas.join(', ')||'ninguna');
 probar('no quedan estilos de piezas borradas', muertas.length===0);
 

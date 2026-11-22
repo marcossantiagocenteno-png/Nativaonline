@@ -66,8 +66,10 @@ function draw_(){
   const c=NV.cielo;
   $('st1').textContent=c.nombre+(c.deNoche&&c.brilloLunar>0.55?' · lunas altas':'');
   $('st3').textContent=c.estacion+' · día '+c.diaMes+' del mes '+c.mes;
-  $('st2').textContent='mirando al '+facing;
-  $('st2').textContent='viento '+(wind<0.5?'calmo':wind<0.95?'suave':'racheado');
+  /* las dos cosas en una línea: antes la segunda pisaba a la primera y el
+     rumbo no se veía nunca */
+  $('st2').textContent='viento '+(wind<0.5?'calmo':wind<0.95?'suave':'racheado')
+          +' · mirando al '+facing;
   const dt=performance.now()-t0;
   lastMs=lastMs*0.7+dt*0.3;
   if(lastMs>34&&calidad>0.42) calidad=Math.max(0.42,calidad-0.08);
