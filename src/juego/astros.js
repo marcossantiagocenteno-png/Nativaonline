@@ -21,25 +21,18 @@ function lunaSVG(fase, grande){
 const SIG={ estrella:'*', calavera:'@', madre:'o', marea:'~', nube:'=',
             lluvia:'/', tormenta:'%', rojo:'#', blanco:'O' };
 
-/* Resumen del cielo, compacto, para la esquina del mapa.
-   El borde dice qué luna es —ámbar Calavera, pálido Madre— y el dibujo dice la
-   fase: no hace falta leer nada. */
+/* Lo que acompaña al mapa: las dos lunas y la marea. Nada más: la hora, la
+   fecha y el tiempo ya están en el pie de la pantalla. */
 function resumenCielo(){
-  const ms=Date.now();
-  const a=NVx.astroEn(ms), c=NVx.clima(a.t), m=NVx.marea(a.t), cielo=NVx.cielo;
-  const luna=(L,clase)=>{
+  const a=NVx.astroEn(Date.now()), m=NVx.marea(a.t);
+  const luna=L=>{
     const ecl=L.eclipse;
-    return '<span class="ml '+clase+(ecl?' ecl':'')+'" title="'+L.nombre+' '+L.nombreFase+'">'+
-      lunaSVG(L.fase,false)+'</span>';
+    return '<span class="ml '+(L.nombre==='Calavera'?'cal':'mad')+(ecl?' ecl':'')+
+      '" title="'+L.nombre+' '+L.nombreFase+'">'+lunaSVG(L.fase,false)+'</span>';
   };
-  const tiempo = c.tormenta?'tormenta' : c.lluvia>0.42?'lluvia' : c.lluvia>0.06?'llovizna'
-               : (cielo.nieblaAqui>0.3?'niebla' : c.nubes>0.5?'nublado':'despejado');
-  return '<div class="mcab">'+
-      luna(a.lunas.calavera,'cal')+luna(a.lunas.madre,'mad')+
-      '<span class="mh">'+cielo.nombre+'</span>'+
-    '</div>'+
-    '<div class="mpie">'+a.estacion+' · día '+a.diaMes+' del mes '+a.mes+
-      '<span>'+tiempo+' · marea '+m.clase+'</span></div>';
+  const barra='|'.repeat(Math.max(1,Math.round(m.amplitud*8))).padEnd(8,'.');
+  return '<div class="mcab">'+luna(a.lunas.calavera)+luna(a.lunas.madre)+
+    '<span class="mh">'+m.clase+' ['+barra+']</span></div>';
 }
 
 NVx.lunaSVG=lunaSVG; NVx.resumenCielo=resumenCielo;
