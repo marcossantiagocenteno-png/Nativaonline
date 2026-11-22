@@ -85,6 +85,13 @@ function layout(){
 let tK=0, tBr=0;
 const TINTE_ALT=1.8;                       // metros
 NV.tinteFuego=(k,filaBase)=>{ tK=k||0; tBr=filaBase||0; };
+/* Grabadora: mientras está encendida, cada casilla que escribe put se anota,
+   para poder redibujar el objeto espejado en el agua (los reflejos). */
+const GMAX=60000;
+const gB=new Int32Array(GMAX*4);
+let gn=0, gr=false;
+NV.grabar=on=>{ gr=!!on; if(on) gn=0; };
+NV.grabados={B:gB, n:()=>gn};
 function put(c,r,code,col){
   if(c<0||r<0||c>=cols||r>=rowsN) return;
   const i=r*cols+c;
@@ -96,6 +103,7 @@ function put(c,r,code,col){
       col=packc(((col>>16)&255)+168*w, ((col>>8)&255)+84*w, (col&255)+22*w);
     }
   }
+  if(gr&&gn<GMAX){ const q=gn*4; gB[q]=c; gB[q+1]=r; gB[q+2]=code; gB[q+3]=col; gn++; }
   fbG[i]=code; fbC[i]=col; fbL[i]=layer;
 }
 const packc=(r,g,b)=>(clamp(r|0,0,255)<<16)|(clamp(g|0,0,255)<<8)|clamp(b|0,0,255);

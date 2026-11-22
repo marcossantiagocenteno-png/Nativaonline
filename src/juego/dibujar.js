@@ -36,6 +36,7 @@ function draw_(){
   NV.desplaceY=-(NV.camYf-camY)*RPM*chh;
   NV.camQuieta = NV.camXf===destX && NV.camYf===destY;
   fbG.fill(0); fbL.fill(0);
+  _ft.clear(); _ftX0=camX-3; _ftN=colsM+10;
   const t=frame*0.11;
   const lastRow=Math.min(LIM.y1-1,camY+rowsM+22);
   const objetos=NV.objetosEn(camX-2, camY-2, camX+colsM+2, lastRow+2);
@@ -305,6 +306,89 @@ function vecinoDe(i,type,u,v,cx,cy){
   if(t2&&t2!==type){ const p=Math.max(0,v-0.5)*2; acc+=p*p*MEZCLA; if(h<acc) return t2; }
   return type;
 }
+
+/* ---------- LA ORILLA: UNA CURVA, NO UNA ESCALERA ----------
+   vecinoDe suelta el borde de la grilla, pero la línea de agua sigue siendo la
+   del metro: la costa se define con una letra por metro y por mucho que se
+   entreveren las casillas, la frontera pasa por donde cambia la letra. Una
+   orilla que dobla sale como escalera de un metro de paso.
+
+   Acá se decide por CAMPO. Cada metro tiene un 0 (tierra) o un 1 (agua); cada
+   esquina del metro recibe el promedio ponderado de los metros que la rodean
+   (el binomial 1-3-3-1 en cada eje), y dentro del metro se interpola entre las
+   cuatro esquinas. La orilla es donde ese campo vale un medio. Una recta sigue
+   donde estaba, pero una escalera se vuelve diagonal y una curva se vuelve
+   curva. Un ruido en coordenadas del mundo la hace serpentear unos decímetros.
+
+   Con el campo se deduce la distancia a la orilla, y de ahí salen dos cosas: la
+   franja de espuma, que respira con la marea corta, y la arena mojada del lado
+   de tierra. */
+const _ft=new Map();               // una fila de letras del suelo, una vez por cuadro
+let _ftX0=0, _ftN=0;
+function filaT(y){
+  let a=_ft.get(y);
+  if(!a){ a=new Array(_ftN); for(let i=0;i<_ftN;i++) a[i]=NV.sueloEn(_ftX0+i,y); _ft.set(y,a); }
+  return a;
+}
+const esAgua=t=>{ const q=MAT[t]; return !!(q&&q.ola); };
+const _W=[1,3,3,1];
+let _C0=0,_C1=0,_C2=0,_C3=0, _oL=[null,null,null,null], _oT='', _ob=0;
+function prepararOrilla(mx,my,type){
+  const i=mx-_ftX0;
+  const R=[filaT(my-2),filaT(my-1),filaT(my),filaT(my+1),filaT(my+2)];
+  let agua=false, tierra=false;
+  for(let a=1;a<=3;a++) for(let b=-1;b<=1;b++){
+    const t=R[a][i+b]; if(!t) continue;
+    if(t==='V') return false;              // la caída del acantilado no es orilla
+    if(esAgua(t)) agua=true; else tierra=true;
+  }
+  if(!agua||!tierra) return false;
+  const propia=esAgua(type)?1:0;
+  const M=(a,b)=>{ const t=R[b][i+a]; return t?(esAgua(t)?1:0):propia; };
+  const esq=(cx,cy)=>{
+    let acc=0;
+    for(let b=0;b<4;b++) for(let a=0;a<4;a++) acc+=_W[a]*_W[b]*M(cx-2+a, cy-2+b+2);
+    return acc/64;
+  };
+  _C0=esq(0,0); _C1=esq(1,0); _C2=esq(0,1); _C3=esq(1,1);
+  _oL[0]=R[2][i-1]; _oL[1]=R[2][i+1]; _oL[2]=R[1][i]; _oL[3]=R[3][i];
+  _oT=type;
+  return true;
+}
+/* la letra del vecino más cercano a la casilla que sea de la clase pedida */
+function letraDeClase(agua,u,v){
+  if(esAgua(_oT)===agua) return _oT;
+  const d=[u,1-u,v,1-v];
+  let mejor=-1, md=9;
+  for(let k=0;k<4;k++){
+    const t=_oL[k];
+    if(!t||esAgua(t)!==agua||t==='V') continue;
+    if(d[k]<md){ md=d[k]; mejor=k; }
+  }
+  return mejor<0?_oT:_oL[mejor];
+}
+function decidirOrilla(u,v,wx,wy){
+  const m=(_C0*(1-u)+_C1*u)*(1-v)+(_C2*(1-u)+_C3*u)*v;
+  const umbral=0.5+(tex2(wx*1.3,wy*1.3,0.7)-0.5)*0.12;
+  /* El campo no sube igual en todas partes: en una recta sube unos 0,5 por
+     metro, pero en una diagonal o en una esquina sube mucho menos. Medida
+     directamente en unidades del campo, la franja de espuma salía el doble de
+     gruesa donde la costa es oblicua. Se divide por la pendiente para tener la
+     distancia a la orilla en METROS. */
+  const gu=(1-v)*(_C1-_C0)+v*(_C3-_C2), gv=(1-u)*(_C2-_C0)+u*(_C3-_C1);
+  const g=Math.sqrt(gu*gu+gv*gv);
+  _ob=(m-umbral)/(g>0.12?g:0.12);          // metros; >0 del lado del agua
+  return letraDeClase(_ob>0,u,v);
+}
+/* la franja de espuma: ancha y angosta con el vaivén, y entrecortada */
+function espumar(wx,wy,cx,cyb,calor,t){
+  const banda=0.13+0.09*(0.5+0.5*NV.sen((wx*1.7+wy*1.3)*6.28318-t*1.3));   // metros
+  if(_ob>=banda) return;
+  if((hash3(cx,cyb,71)%100)>=84) return;
+  const f=_ob/banda;
+  _cg = f<0.30?42 : f<0.65?61 : 45;      // * = -
+  _cc = packs('espuma',1.05+0.30*(1-f),calor*0.75);
+}
 /* una celda de relleno de cualquier material, con su propio color */
 let _cg=0,_cc=0;
 function celdaSuelo(mt,wx,wy,cx,cyb,light,calor,t){
@@ -388,6 +472,7 @@ function drawGroundRow(my,rBase,haze,t){
     const base=(mx-camX)*CPM;
     const grass=!!mt.mata;
     const mezclar=tocaOtro(mx-_f0,type);
+    const bw=mezclar&&!grass&&prepararOrilla(mx,my,type);
     /* cuánta mata hay en este metro: un ruido suave, para que el pasto crezca a
        parches y no parejo como una cancha */
     const densMata=grass?clamp(mt.mata*(0.30+1.45*tex2(mx+0.5,my+0.5,1.6)),0,1.4):0;
@@ -402,10 +487,15 @@ function drawGroundRow(my,rBase,haze,t){
           for(let k=0;k<CPM;k++){
             const u=(k+0.5)/CPM, cx=mx*CPM+k, cyb=my*RPM+sy;
             if(cerca){ afinar(k,sy); light=_lz; calor=_cal; colG=_col; }
-            const tc=vecinoDe(mx-_f0,type,u,v,cx,cyb);
+            const tc=bw?decidirOrilla(u,v,mx+u,wy2):vecinoDe(mx-_f0,type,u,v,cx,cyb);
             const mc=(tc===type)?mt:(MAT[tc]||mt);
             if(mc.mata) continue;                  // el pasto lo pone su propia pasada
-            if(celdaSuelo(mc,mx+u,wy2,cx,cyb,light,calor,t)) put(base+k,rb,_cg,_cc);
+            /* del lado de tierra, la arena justo al borde está mojada */
+            const lk=(bw&&_ob<=0&&_ob>-0.24&&!mc.ola)?light*0.72:light;
+            if(celdaSuelo(mc,mx+u,wy2,cx,cyb,lk,calor,t)){
+              if(bw&&_ob>0&&mc.ola) espumar(mx+u,wy2,cx,cyb,calor,t);
+              put(base+k,rb,_cg,_cc);
+            }
           }
           continue;
         }
@@ -1000,15 +1090,67 @@ function drawArbol(tr,haze,t){
   }
 }
 
+/* ---------- REFLEJOS ----------
+   Un objeto cerca del agua se ve en ella. Mientras se dibuja, put anota cada
+   casilla que escribe; después se redibujan espejadas bajo su base, a la misma
+   distancia hacia abajo que lo que tenían hacia arriba, y SOLO donde hay agua:
+   un árbol a tres metros de la orilla muestra en el agua nada más la parte de
+   arriba, que es como se ve de verdad.
+
+   Van en la capa 1, por encima del agua y por debajo de todo lo demás, y se
+   oscurecen y se enfrían con la distancia al pie. Las ondas las cortan en
+   franjas y las corren de lado: un reflejo quieto parece una calcomanía. */
+function reflejable(tr){
+  if(tr.k==='hoguera') return false;
+  const reach=Math.ceil((tr.h||2)*1.7)+1;
+  const i=tr.x-_ftX0;
+  if(i<1||i>=_ftN-1) return false;
+  for(let y=tr.y+1;y<=tr.y+reach;y++){
+    const f=filaT(y);
+    if(esAgua(f[i])||esAgua(f[i-1])||esAgua(f[i+1])) return true;
+  }
+  return false;
+}
+function dibujarReflejo(tr,br,t){
+  const D=NV.grabados, B=D.B, n=D.n();
+  if(!n) return;
+  const alto=Math.max(4,Math.round((tr.h||2)*HPM));
+  const prev=layer; layer=1;
+  for(let q=0;q<n;q++){
+    const c=B[q*4], r=B[q*4+1], code=B[q*4+2], col=B[q*4+3];
+    const h=br-r; if(h<0) continue;
+    const r2=br+1+h;
+    const fase=r2*0.62+t*1.9;
+    if(NV.sen(fase+c*0.05)>0.78) continue;            // la onda corta el reflejo
+    const c2=c+Math.round(NV.sen(fase+c*0.02)*1.4);     // y lo corre de lado
+    const mx=camX+Math.floor(c2/CPM), my=camY+Math.floor(r2/RPM);
+    const letra=filaT(my)[mx-_ftX0];
+    if(!letra||!esAgua(letra)) continue;
+    const f=0.85-0.60*Math.min(1,h/alto);
+    /* el brillo propio del agua depende de cuánta luz haya: de noche un árbol
+       casi negro no puede salir más claro en el agua que en el aire */
+    const a=0.10+0.90*Math.min(1,NV.luz.amb);
+    put(c2,r2,code,packc(((col>>16)&255)*f*0.34+4*a, ((col>>8)&255)*f*0.44+9*a, (col&255)*f*0.62+18*a));
+  }
+  layer=prev;
+}
+
 /* Lo que se levanta del suelo —árboles, rocas, muros— también recibe el calor
-   de un fuego cercano. Se mide donde pisa y decae hacia arriba (ver put). */
+   de un fuego cercano, y se refleja si hay agua al sur. */
 function drawTree(tr,haze,t){
-  if(tr.k==='hoguera'||!NV.calorCerca(tr.x,tr.y)){ drawObjeto(tr,haze,t); return; }
-  const f=NV.calorEn(tr.x+0.5,tr.y+0.9);
-  const k=f*(1.55-Math.min(1,NV.luz.amb)*0.95)*titilar(t)*0.75;
-  if(k<0.02){ drawObjeto(tr,haze,t); return; }
-  NV.tinteFuego(k,(tr.y-camY)*RPM+RPM-1);
-  try{ drawObjeto(tr,haze,t); } finally{ NV.tinteFuego(0,0); }
+  const refl=reflejable(tr);
+  let tinte=0;
+  if(tr.k!=='hoguera'&&NV.calorCerca(tr.x,tr.y)){
+    const f=NV.calorEn(tr.x+0.5,tr.y+0.9);
+    const k=f*(1.55-Math.min(1,NV.luz.amb)*0.95)*titilar(t)*0.75;
+    if(k>=0.02) tinte=k;
+  }
+  const br=(tr.y-camY)*RPM+RPM-1;
+  if(tinte) NV.tinteFuego(tinte,br);
+  if(refl) NV.grabar(true);
+  try{ drawObjeto(tr,haze,t); }
+  finally{ if(tinte) NV.tinteFuego(0,0); if(refl) NV.grabar(false); }
+  if(refl) dibujarReflejo(tr,br,t);
 }
 function drawObjeto(tr,haze,t){
   const bc=(tr.x-camX)*CPM+Math.floor(CPM/2), br=(tr.y-camY)*RPM+RPM-1;

@@ -655,6 +655,55 @@ El agua se resuelve **celda por celda**, no por metro: es lo que le da la onda
 continua. Para que eso no cueste el cuadro, el motor lleva una tabla de 1.024
 senos; el error de redondeo es menor que el salto entre dos glifos.
 
+#### La orilla es un campo, no una letra por metro
+
+El mundo guarda una letra de suelo por metro, así que la costa salía en
+escalones de un metro. Ahora la orilla se **calcula**: se arma una máscara por
+metro (agua = 1), se suaviza con el filtro binomial [1,3,3,1] en cada eje sobre
+cuatro metros, y dentro de cada metro el valor se interpola. La costa es el
+contorno en 0,5, con un poco de ruido **del mundo** para que no salga de regla.
+Medido en tres pendientes: irregularidad de 0,31–0,35 m a 0,13–0,16 m, y el
+salto mayor entre columnas vecinas de 0,84–0,98 m a 0,12–0,19 m.
+
+La distancia al borde se saca en **metros** (el valor del campo dividido por la
+norma de su gradiente, con piso en 0,12), no en unidades del campo: en unidades
+del campo la franja de espuma engordaba en las diagonales.
+
+- **Espuma**: banda de 0,13 a 0,22 m del lado del agua. Con 6 filas por metro
+  son una o dos filas: es fina a propósito.
+- **Arena mojada**: 0,24 m del lado de tierra, a 0,72 de luz. Medido, la tierra
+  pegada al borde recibe el 74 % de la luz de la de más adentro.
+- **No hay orilla donde hay caída**: si una `V` cae en el 3×3, no se calcula (la
+  base de un acantilado no es playa).
+
+#### Reflejos en el agua
+
+Los árboles, rocas y la hoguera se reflejan en el agua. Cuando un objeto
+reflejable se dibuja, el lienzo **graba** lo que `put` escribe (`NV.grabar`,
+tope de 60.000 casillas por cuadro); después `dibujarReflejo` lo espeja respecto
+de la fila de su base, **sólo sobre metros de agua**, en la capa 1 (entre el
+suelo y los objetos).
+
+- Las olas lo cortan y lo corren de lado; se apaga hacia la punta (`f` va de 0,85
+  a 0,25 del pie a la copa).
+- El color se enfría y se oscurece, y el brillo propio del agua se escala por la
+  luz ambiente: de noche no hay reflejo más claro que el árbol.
+- La capa 1 la lava la **niebla**, igual que lava el agua de al lado. Por eso la
+  prueba la apaga: si no, la niebla tapa lo que se quiere medir.
+
+**Lo que no hace**: el personaje no se refleja (no pasa por `drawTree`); no hay
+luz direccional, así que el reflejo no depende de dónde esté el sol; los valores
+de brillo (0,34/0,44/0,62 y los desfases 4/9/18) son estimados a ojo, no medidos
+contra nada.
+
+#### Dónde van los acantilados — sigue abierto
+
+Se revisó y **no se tocó el mundo**. Ningún generador coloca muros: `bioEste` y
+`bioEsquina` hacen una costa recta norte-sur con una franja `V`. Poner acantilados
+exige una de las dos cosas de arriba (un cabo con flanco al sur, o una playa
+transitable al pie), y las dos cambian la forma de la costa, el paso del jugador
+y las pruebas de paneles. Es decisión de mundo, de Marcos.
+
 ### La textura del suelo
 
 El suelo se sorteaba celda por celda: cada celda sacaba su densidad de un hash
