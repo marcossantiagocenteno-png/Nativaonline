@@ -413,11 +413,19 @@ Tres formas, y las tres conviven:
 
 - **Flechas o WASD**, un paso por pulsación. Mantener apretado camina sin parar,
   un paso cada 130 ms.
-- **El control del pulgar**, abajo a la derecha en pantalla táctil: apretado
-  camina, soltado para.
 - **Tocar la pantalla**: el personaje va caminando hasta ahí, las veces que haga
   falta, rodeando lo que no se puede pisar. Una marca verde late en el destino
   mientras va. Cualquier orden manual corta la marcha.
+- **Tocar lo que se tiene al lado** no camina: lo explora, igual que la tecla `E`.
+
+No hay cruceta en pantalla: el toque la reemplaza, y la pantalla queda limpia.
+
+**La barra de información.** Un botón con una `i` abre una barra lateral de
+cajones. Al abrir un cajón, la barra se repliega y aparece un cuadro en el medio
+de la pantalla, con fondo negro, letras blancas y marco blanco, con una `×` arriba
+a la derecha para cerrarlo. Por ahora hay un solo cajón, *Controles*; los cuadros
+se declaran en `CUADROS`, dentro de `src/juego/jugar.js`, y agregar uno es sumar
+una entrada ahí y un cajón en el marcado.
 
 El camino se busca con A* sobre la grilla de metros, en cuatro direcciones, igual
 que camina el personaje. Si el toque cae sobre algo sólido, se busca la casilla

@@ -172,6 +172,26 @@ function detenerRuta(){
   if(pasoTimer){ clearInterval(pasoTimer); pasoTimer=null; }
 }
 
+/* ---------- cuadros de información ---------- */
+const CUADROS={
+  controles:{titulo:'Controles', cuerpo:
+    '<dl>'+
+    '<dt>Moverse</dt><dd>Las flechas o <b>W A S D</b>. Mantené apretado y camina sin parar.</dd>'+
+    '<dt>Ir a un punto</dt><dd>Hacé clic o tocá la pantalla donde quieras llegar: el camino lo busca solo, rodeando lo que no se puede pisar.</dd>'+
+    '<dt>Explorar</dt><dd><b>E</b> o la barra espaciadora. También haciendo clic sobre lo que tenés al lado.</dd>'+
+    '<dt>Mapa</dt><dd><b>M</b> o el botón <i>mapa</i>.</dd>'+
+    '<dt>Acercarse</dt><dd>Los números <b>1 2 3</b> de la barra, la rueda del mouse o el pellizco.</dd>'+
+    '</dl>'}
+};
+function abrirCuadro(cual){
+  const c=CUADROS[cual];
+  if(!c) return;
+  $('ctit').textContent=c.titulo;
+  $('ccuerpo').innerHTML=c.cuerpo;
+  $('cuadro').classList.add('show');
+}
+function cerrarCuadro(){ $('cuadro').classList.remove('show'); }
+
 let ultSol=-9, ultTormenta=false;
 function tictac(){
   const c=NV.actualizarCielo(Date.now());
@@ -303,7 +323,7 @@ function init(){
 
   addEventListener('resize',()=>{ clearTimeout(init._r); init._r=setTimeout(layout,140); });
   addEventListener('keydown',e=>{
-    if(document.querySelector('.modal.show')){ if(e.key==='Escape') closeModals(); return; }
+    if(e.key==='Escape'){ cerrarCuadro(); $('info').classList.remove('show'); return; }
     const k=e.key.toLowerCase();
     const dir={arrowup:[0,-1],w:[0,-1],arrowdown:[0,1],s:[0,1],
                arrowleft:[-1,0],a:[-1,0],arrowright:[1,0],d:[1,0]}[k];
@@ -328,16 +348,6 @@ function init(){
     if(dir) dejarDeCaminar(dir[0],dir[1]);
   });
   addEventListener('blur',()=>dejarDeCaminar());
-  /* el control del pulgar: apretado camina, soltado para */
-  const RUMBOS={n:[0,-1],s:[0,1],w:[-1,0],e:[1,0]};
-  for(const b of $('pad').querySelectorAll('button[data-mv]')){
-    const m=b.dataset.mv;
-    if(m==='a'){ b.addEventListener('click',look); continue; }
-    const r=RUMBOS[m];
-    b.addEventListener('pointerdown',ev=>{ ev.preventDefault(); empezarACaminar(r[0],r[1]); });
-    for(const fin of ['pointerup','pointerleave','pointercancel'])
-      b.addEventListener(fin,()=>dejarDeCaminar());
-  }
   for(const b of document.querySelectorAll('.zb'))
     b.addEventListener('click',()=>setZoom(+b.dataset.z-zi));
   /* un toque corto manda caminar; arrastrar o pellizcar, no */
@@ -352,7 +362,10 @@ function init(){
     const r=cv.getBoundingClientRect();
     const col=Math.floor((e.clientX-r.left)/cw), fil=Math.floor((e.clientY-r.top)/chh);
     if(col<0||fil<0||col>=cols||fil>=rowsN) return;
-    irHacia(camX+Math.floor(col/CPM), camY+Math.floor(fil/RPM));
+    const gx=camX+Math.floor(col/CPM), gy=camY+Math.floor(fil/RPM);
+    /* tocar lo que uno tiene al lado es mirarlo, no caminar hacia ello */
+    if(Math.abs(gx-me.x)<=1 && Math.abs(gy-me.y)<=1) look();
+    else irHacia(gx,gy);
   });
   cv.addEventListener('wheel',e=>{ e.preventDefault(); setZoom(e.deltaY<0?1:-1); },{passive:false});
   let pinch=0;
@@ -370,10 +383,19 @@ function init(){
   cv.addEventListener('touchend',()=>{ pinch=0; },{passive:true});
   $('bAnim').addEventListener('click',()=>{ animOn=!animOn; $('bAnim').classList.toggle('on',animOn); restartAnim(); draw(); });
   $('bMap').addEventListener('click',()=>toggleMap());
+  $('bInfo').addEventListener('click',()=>{
+    const i=$('info'); i.classList.toggle('show');
+    $('bInfo').classList.toggle('on', i.classList.contains('show'));
+  });
+  for(const caj of $('info').querySelectorAll('.icaj'))
+    caj.addEventListener('click',()=>{
+      $('info').classList.remove('show');          // la barra se repliega
+      $('bInfo').classList.remove('on');
+      abrirCuadro(caj.dataset.cuadro);
+    });
+  $('cx').addEventListener('click',cerrarCuadro);
 
 
-  for(const b of document.querySelectorAll('[data-close]')) b.addEventListener('click',closeModals);
 }
-function closeModals(){ for(const m of document.querySelectorAll('.modal')) m.classList.remove('show'); }
 
 init();

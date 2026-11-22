@@ -13,6 +13,7 @@ NVi.MARCADO = `<header>
   </span>
   <button id="bAnim" class="on" title="Viento">~</button>
   <button id="bMap">mapa</button>
+  <button id="bInfo" title="Información">i</button>
   <span class="sp"></span>
 </header>
 
@@ -23,11 +24,14 @@ NVi.MARCADO = `<header>
     <div id="reloj"><span id="relojM"></span><span id="relojS"></span></div>
     <div id="map"><div id="mapCab"></div><pre id="mapTx"></pre></div>
     <div id="bubble"></div>
-    <div id="pad">
-      <button class="e"></button><button data-mv="n">&#9650;</button><button class="e"></button>
-      <button data-mv="w">&#9664;</button><button data-mv="a">E</button><button data-mv="e">&#9654;</button>
-      <button class="e"></button><button data-mv="s">&#9660;</button><button class="e"></button>
-    </div>
+    <aside id="info">
+      <div class="icaj" data-cuadro="controles">Controles</div>
+    </aside>
+    <div id="cuadro"><div class="cbox">
+      <button id="cx" title="Cerrar">&times;</button>
+      <h2 id="ctit"></h2>
+      <div id="ccuerpo"></div>
+    </div></div>
   </div>
 </main>
 
@@ -35,18 +39,6 @@ NVi.MARCADO = `<header>
   <span id="st1">—</span><span id="st2"></span><span id="st3">Flechas o WASD &middot; E para mirar &middot; rueda, pellizco o + / &minus; para el zoom</span>
 </footer>
 
-<div class="modal" id="mdHelp"><div class="box">
-  <h3>D&oacute;nde est&aacute;s</h3>
-  <div style="font-size:12px;line-height:1.6">
-    Un claro de 100 &times; 100 metros. Arriba es <b>norte</b>, abajo <b>sur</b>, derecha <b>este</b>.
-    El sol est&aacute; al este y bajo, as&iacute; que todo tira su sombra hacia el oeste y los &aacute;rboles tienen
-    la cara derecha iluminada.<br><br>
-    La c&aacute;mara mira el suelo inclinada: un metro hacia el norte ocupa menos pantalla que un metro
-    hacia el este, y lo que tiene altura se levanta y tapa lo que queda detr&aacute;s.<br><br>
-    Camin&aacute; con flechas o WASD. En celular, el control de abajo a la derecha.
-  </div>
-  <div class="acts"><button data-close class="on">Cerrar</button></div>
-</div></div>
 
 
 <div id="toast"></div>`;
