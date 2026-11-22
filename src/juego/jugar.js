@@ -46,6 +46,8 @@ function requestDraw(){
 let ultSol=-9;
 function tictac(){
   const c=NV.actualizarCielo(Date.now());
+  const m=$('relojM');
+  if(m) m.style.left=(c.fase*100).toFixed(2)+'%';
   if(world && Math.abs(c.fase-ultSol)>0.004){      // cada ~30 s reales
     ultSol=c.fase;
     NV.calcularSombras(world);

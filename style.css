@@ -16,3 +16,12 @@
 #astros .ab{color:#3f6a4c;font-size:10px;letter-spacing:1px;padding:1px 0 3px 24px}
 #astros .ae{color:var(--ink);padding:2px 0 2px 2px;border-bottom:1px solid #121c16}
 #astros .ae i{color:var(--dim);font-style:normal;float:right;font-size:10px}
+
+/* Barra de día y noche: dónde estamos dentro del día del planeta */
+#reloj{position:absolute;left:0;right:0;top:0;height:3px;z-index:29;
+  background:linear-gradient(90deg,
+    #0a1020 0%, #0a1020 22%, #d98a4a 26%, #cfd6c8 34%,
+    #e8eadf 50%, #cfd6c8 68%, #d9764a 76%, #0a1020 80%, #0a1020 100%);
+  opacity:.55}
+#relojM{position:absolute;top:-2px;width:2px;height:7px;background:#fff;
+  box-shadow:0 0 4px #fff;transition:left .4s linear}
