@@ -27,7 +27,7 @@ function draw_(){
   const t=frame*0.11;
   const lastRow=Math.min(LIM.y1-1,camY+rowsM+22);
   const objetos=NV.objetosEn(camX-2, camY-2, camX+colsM+2, lastRow+2);
-  let ti=0; while(ti<objetos.length&&objetos[ti].y<camY-4) ti++;
+  let ti=0; while(ti<objetos.length&&objetos[ti].y<camY) ti++;
 
   for(let my=camY;my<=lastRow;my++){
     const rBase=(my-camY)*RPM+RPM-1;                       // fila del suelo
@@ -35,7 +35,7 @@ function draw_(){
     layer=0;
     if(my<camY+rowsM) drawGroundRow(my,rBase,haze,t);
     layer=2;
-    while(ti<objetos.length&&objetos[ti].y===my){ drawTree(objetos[ti],haze,t); ti++; }
+    while(ti<objetos.length&&objetos[ti].y<=my){ if(objetos[ti].y===my) drawTree(objetos[ti],haze,t); ti++; }
     layer=3;
     if(my===me.y) drawPlayer(haze);
   }

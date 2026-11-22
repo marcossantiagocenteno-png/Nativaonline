@@ -75,6 +75,25 @@ function cargarGuardado(){
 }
 function olvidarGuardado(){ try{ localStorage.removeItem(CLAVE); }catch(e){} }
 
+/* ---------- caminar sostenido ----------
+   Mantener la flecha apretada camina sin parar, con un paso por cada 130 ms.
+   El teclado repite solo, pero con una pausa larga al principio y a un ritmo
+   que no controlamos; así el paso es parejo y el pulgar también sirve. */
+const PASO_MS=130;
+let rumbo=null, pasoTimer=null;
+function empezarACaminar(dx,dy){
+  rumbo={dx,dy};
+  move(dx,dy);
+  if(pasoTimer) clearInterval(pasoTimer);
+  pasoTimer=setInterval(()=>{ if(rumbo) move(rumbo.dx,rumbo.dy); }, PASO_MS);
+}
+function dejarDeCaminar(dx,dy){
+  if(!rumbo) return;
+  if(dx!==undefined && (rumbo.dx!==dx||rumbo.dy!==dy)) return;  // soltó otra tecla
+  rumbo=null;
+  if(pasoTimer){ clearInterval(pasoTimer); pasoTimer=null; }
+}
+
 let ultSol=-9;
 function tictac(){
   const c=NV.actualizarCielo(Date.now());
@@ -200,10 +219,14 @@ function init(){
   addEventListener('keydown',e=>{
     if(document.querySelector('.modal.show')){ if(e.key==='Escape') closeModals(); return; }
     const k=e.key.toLowerCase();
-    if(k==='arrowup'||k==='w'){ move(0,-1); e.preventDefault(); }
-    else if(k==='arrowdown'||k==='s'){ move(0,1); e.preventDefault(); }
-    else if(k==='arrowleft'||k==='a'){ move(-1,0); e.preventDefault(); }
-    else if(k==='arrowright'||k==='d'){ move(1,0); e.preventDefault(); }
+    const dir={arrowup:[0,-1],w:[0,-1],arrowdown:[0,1],s:[0,1],
+               arrowleft:[-1,0],a:[-1,0],arrowright:[1,0],d:[1,0]}[k];
+    if(dir){
+      e.preventDefault();
+      if(e.repeat) return;                       // el teclado ya repite; lo hacemos nosotros
+      if(!rumbo||rumbo.dx!==dir[0]||rumbo.dy!==dir[1]) empezarACaminar(dir[0],dir[1]);
+      return;
+    }
     else if(k==='e'||k===' '){ look(); e.preventDefault(); }
     else if(k==='m'){ toggleMap(); e.preventDefault(); }
 
@@ -212,12 +235,23 @@ function init(){
     else if(k==='+'||k==='='){ setZoom(1); e.preventDefault(); }
     else if(k==='-'||k==='_'){ setZoom(-1); e.preventDefault(); }
   });
-  for(const b of $('pad').querySelectorAll('button[data-mv]'))
-    b.addEventListener('click',()=>{
-      const m=b.dataset.mv;
-      if(m==='n') move(0,-1); else if(m==='s') move(0,1);
-      else if(m==='w') move(-1,0); else if(m==='e') move(1,0); else look();
-    });
+  addEventListener('keyup',e=>{
+    const k=e.key.toLowerCase();
+    const dir={arrowup:[0,-1],w:[0,-1],arrowdown:[0,1],s:[0,1],
+               arrowleft:[-1,0],a:[-1,0],arrowright:[1,0],d:[1,0]}[k];
+    if(dir) dejarDeCaminar(dir[0],dir[1]);
+  });
+  addEventListener('blur',()=>dejarDeCaminar());
+  /* el control del pulgar: apretado camina, soltado para */
+  const RUMBOS={n:[0,-1],s:[0,1],w:[-1,0],e:[1,0]};
+  for(const b of $('pad').querySelectorAll('button[data-mv]')){
+    const m=b.dataset.mv;
+    if(m==='a'){ b.addEventListener('click',look); continue; }
+    const r=RUMBOS[m];
+    b.addEventListener('pointerdown',ev=>{ ev.preventDefault(); empezarACaminar(r[0],r[1]); });
+    for(const fin of ['pointerup','pointerleave','pointercancel'])
+      b.addEventListener(fin,()=>dejarDeCaminar());
+  }
   for(const b of document.querySelectorAll('.zb'))
     b.addEventListener('click',()=>setZoom(+b.dataset.z-zi));
   cv.addEventListener('wheel',e=>{ e.preventDefault(); setZoom(e.deltaY<0?1:-1); },{passive:false});
