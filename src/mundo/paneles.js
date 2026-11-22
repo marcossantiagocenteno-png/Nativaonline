@@ -70,6 +70,27 @@ function fuegoEn(gx,gy){
   const p=panelDe(gx,gy);
   return p&&p.fuego?p.fuego[localY(gy)*LADO+localX(gx)]:0;
 }
+/* El calor del fuego, CONTINUO. fuegoEn() da un valor por metro: dibujado tal
+   cual, la luz de una hoguera sale en anillos cuadrados de un metro de lado,
+   con un salto de unos veinticinco niveles de rojo entre uno y el siguiente.
+   Acá se interpola entre los centros de metro vecinos, así que la luz cambia
+   casilla por casilla y, de paso, un personaje que camina no la ve saltar al
+   cruzar de un metro a otro. Las coordenadas son metros del mundo: el centro
+   del metro m es m+0.5, y en el centro da exactamente lo mismo que fuegoEn. */
+function calorEn(wx,wy){
+  const u=wx-0.5, v=wy-0.5;
+  const i=Math.floor(u), j=Math.floor(v), fu=u-i, fv=v-j;
+  const a=fuegoEn(i,j), b=fuegoEn(i+1,j), c=fuegoEn(i,j+1), d=fuegoEn(i+1,j+1);
+  return (a*(1-fu)+b*fu)*(1-fv)+(c*(1-fu)+d*fu)*fv;
+}
+/* ¿Hay algo ardiendo a la vista de este metro? Descarte barato para no
+   interpolar en todo el mapa: el campo de la hoguera llega a 16 m de ancho y
+   12,8 de alto (la elipse del proyecto), más un metro por la interpolación. */
+function calorCerca(gx,gy){
+  const p=panelDe(gx,gy);
+  if(!p||!p.hoguera) return false;
+  return Math.abs(localX(gx)-p.hoguera.x)<=18 && Math.abs(localY(gy)-p.hoguera.y)<=15;
+}
 function flujoEn(gx,gy){
   const p=panelDe(gx,gy);
   return p&&p.flow?p.flow[localY(gy)*LADO+localX(gx)]:0;
@@ -110,6 +131,6 @@ NVp.limites=limites;
 NVp.LADO=LADO; NVp.BIOMAS=BIOMAS; NVp.panel=panel; NVp.panelDe=panelDe;
 NVp.nombreDe=nombreDe; NVp.desdeNombre=desdeNombre;
 NVp.sueloEn=sueloEn; NVp.solidoEn=solidoEn; NVp.sombraEn=sombraEn;
-NVp.fuegoEn=fuegoEn; NVp.flujoEn=flujoEn;
+NVp.fuegoEn=fuegoEn; NVp.flujoEn=flujoEn; NVp.calorEn=calorEn; NVp.calorCerca=calorCerca;
 NVp.objetosEn=objetosEn; NVp.olvidarObjetos=olvidarObjetos;
 NVp.recalcularSombras=recalcularSombras; NVp.cachePaneles=cache;

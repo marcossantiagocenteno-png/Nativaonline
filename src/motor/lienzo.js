@@ -77,10 +77,25 @@ function layout(){
 }
 
 
+/* El calor de un fuego sobre el OBJETO que se está dibujando. Se activa con
+   NV.tinteFuego(k, filaDeLaBase) antes de dibujarlo y se apaga después, y
+   entonces cada glifo que escribe recibe su parte de naranja. Una hoguera al
+   nivel del suelo alumbra el pie de un tronco, no la copa: a la altura
+   TINTE_ALT el calor ya vale la mitad y sigue cayendo con el cuadrado. */
+let tK=0, tBr=0;
+const TINTE_ALT=1.8;                       // metros
+NV.tinteFuego=(k,filaBase)=>{ tK=k||0; tBr=filaBase||0; };
 function put(c,r,code,col){
   if(c<0||r<0||c>=cols||r>=rowsN) return;
   const i=r*cols+c;
   if(fbG[i]&&fbL[i]>layer) return;
+  if(tK){
+    const h=(tBr-r)/HPM, q=h>0?h/TINTE_ALT:0, k=tK/(1+q*q);
+    if(k>0.02){
+      const w=k>1.2?1.2:k;
+      col=packc(((col>>16)&255)+168*w, ((col>>8)&255)+84*w, (col&255)+22*w);
+    }
+  }
   fbG[i]=code; fbC[i]=col; fbL[i]=layer;
 }
 const packc=(r,g,b)=>(clamp(r|0,0,255)<<16)|(clamp(g|0,0,255)<<8)|clamp(b|0,0,255);

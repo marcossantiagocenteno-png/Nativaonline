@@ -67,7 +67,9 @@ NV.posPersonaje=function(p,ahora){
    calor anaranjado de lo que esté ardiendo cerca. */
 NV.luzPersonaje=function(p,px,py,t){
   const L=NV.luz;
-  const fg=NV.fuegoEn?NV.fuegoEn(Math.round(px),Math.round(py)):0;
+  /* continuo: al cruzar de un metro a otro la luz cambia de a poco, no de golpe.
+     px,py son casillas; el personaje está en el centro de la suya. */
+  const fg=NV.calorEn?NV.calorEn(px+0.5,py+0.5):(NV.fuegoEn?NV.fuegoEn(Math.round(px),Math.round(py)):0);
   const tit=NV.titilar?NV.titilar(t):1;
   /* cuanto más oscuro está todo, más se nota el fuego */
   const crudo = fg ? fg*(1.55-Math.min(1,L.amb)*0.95)*tit : 0;

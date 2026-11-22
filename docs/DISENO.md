@@ -220,6 +220,35 @@ Su luz alcanza dieciséis metros a la redonda y **se suma a la del cielo**: de d
 se nota, de noche cerrada es lo único que ves. No solo aclara, entibia: lo que
 alcanza se corre hacia el ámbar. No se puede caminar sobre ella.
 
+**La luz del fuego es continua, y le llega a todo.** El campo de calor vive en
+una grilla de un valor por metro (`fuegoEn`), y dibujado tal cual la luz sale en
+anillos cuadrados: con dieciocho casillas por metro, cada salto de metro movía el
+rojo unos veinticinco niveles de golpe. Por eso hay dos formas de leerlo y no hay
+que confundirlas:
+
+- `fuegoEn(gx,gy)` es el dato: un valor por metro. Es lo que escribirá el fuego
+  cuando se propague.
+- `calorEn(wx,wy)` es lo que se dibuja: interpola entre los centros de los metros
+  vecinos. En el centro de un metro da exactamente lo mismo que `fuegoEn`.
+  `calorCerca(gx,gy)` es el descarte barato: solo los metros con una hoguera a la
+  vista pagan la interpolación.
+
+El **suelo** la calcula casilla por casilla (`prepararFuego` y `afinar` en
+`dibujar.js`: nueve valores por metro, interpolación bilineal por casilla). Lo
+que se **levanta del suelo** —árboles, rocas, muros— recibe el calor medido donde
+pisa, y se lo da `put` a cada glifo que escribe mientras `NV.tinteFuego` está
+activo. Cae con la altura: una hoguera a ras del suelo alumbra el pie de un
+tronco, no la copa. A `TINTE_ALT` (1,8 m) vale la mitad y sigue cayendo con el
+cuadrado. La hoguera no se tiñe a sí misma, y el personaje (ver más abajo) usa
+el mismo `calorEn`, así que tampoco ve saltos al caminar.
+
+Lo que **no** hace todavía: la luz no tiene dirección (un tronco se tiñe parejo a
+ambos lados, no más del lado que mira al fuego), nada le hace sombra al fuego, y
+hay una sola hoguera en el mundo. El tinte de los objetos es solo aditivo; el
+suelo, además, sube de escalón de brillo. Cerca del fuego el color ya satura —el
+brillo tiene techo (`TECHO`, 1,18) y el aditivo también (1,2)—, así que el
+desnivel se ve en el tramo de transición, más allá de unos nueve metros.
+
 **Pendiente:** el mundo todavía no tiene costas, así que la marea se calcula pero
 no hay agua que suba.
 
@@ -740,7 +769,8 @@ familia. Sin ganancia el personaje queda la mitad de brillante que el pasto y
 se lee como una sombra. No es aclararlo: es compensar que compite contra una
 paleta que ya está en su escalón más alto.
 
-**La del fuego.** Se mira qué arde en su casilla y se suma luz anaranjada, con
+**La del fuego.** Se mira el calor donde está parado —continuo, con `calorEn`, así
+que caminando no salta al cruzar de un metro a otro— y se suma luz anaranjada, con
 tope. El calor crudo llega a 2,4 al lado de la hoguera; sumado tal cual
 multiplicaría la luz por más de uno y medio. Medido: de noche, al lado de la
 hoguera el rojo pasa de 0,21 a 0,83, y queda casi el doble que el azul.

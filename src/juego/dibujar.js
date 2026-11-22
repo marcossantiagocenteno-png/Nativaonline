@@ -134,6 +134,28 @@ function titilar(t){
   return 0.80 + 0.20*Math.sin(t*9.3) + 0.14*Math.sin(t*23.7+1.4) + 0.08*Math.sin(t*41.1);
 }
 
+/* ---------- LA LUZ DEL FUEGO, CASILLA POR CASILLA ----------
+   El suelo se dibuja por metros, y a cada metro le tocaba un solo valor de
+   calor: la hoguera salía en anillos cuadrados. Los metros que tienen fuego a
+   la vista guardan acá los nueve valores de su vecindad y cada casilla
+   interpola el suyo. Los demás metros no pagan nada. */
+const _fa=new Float32Array(9);
+let _fL0=0,_fGF=1,_fFam='',_fAg=1, _lz=0,_cal=0,_col=0;
+function prepararFuego(mx,my,light0,ganancia,fam,agua){
+  for(let j=0;j<3;j++) for(let i=0;i<3;i++) _fa[j*3+i]=NV.fuegoEn(mx-1+i,my-1+j);
+  _fL0=light0; _fGF=ganancia; _fFam=fam; _fAg=agua;
+}
+/* El metro ocupa [1,2) en la vecindad de 3×3 y los valores viven en los
+   centros (0.5, 1.5, 2.5): una casilla en (u,v) del metro cae en 0.5+u. */
+function afinar(k,sy){
+  const x=0.5+(k+0.5)/CPM, y=0.5+(sy+0.5)/RPM;
+  const i=x|0, j=y|0, fx=x-i, fy=y-j, o=j*3+i;
+  const f=(_fa[o]*(1-fx)+_fa[o+1]*fx)*(1-fy)+(_fa[o+3]*(1-fx)+_fa[o+4]*fx)*fy;
+  _cal=f*_fGF;
+  _lz=clamp(_fL0+_cal*0.85,0,2.0);
+  _col=packs(_fFam,_lz*_fAg,_cal*0.75);
+}
+
 /* Lluvia: cada gota tiene su columna, su velocidad y su desvío. Cae de verdad,
    se tuerce con la ráfaga y revienta contra el suelo. Tres intensidades. */
 function dibujarLluvia(t){
@@ -351,13 +373,18 @@ function drawGroundRow(my,rBase,haze,t){
       lp *= 0.30;
     }
     let light=clamp(sh*lp*haze,0,1.3);
-    /* resplandor de la hoguera: más fuerte cuanto más oscuro esté todo */
+    const light0=light;
+    /* resplandor de la hoguera: más fuerte cuanto más oscuro esté todo.
+       Los metros con fuego cerca lo recalculan casilla por casilla (afinar). */
+    const gananciaFuego=(1.55-Math.min(1,NV.luz.amb)*0.95)*titilar(t);
+    const cerca=NV.calorCerca(mx,my);
     const fg0=NV.fuegoEn(mx,my);
-    const calor = fg0 ? fg0*(1.55-Math.min(1,NV.luz.amb)*0.95)*titilar(t) : 0;
+    let calor = fg0 ? fg0*gananciaFuego : 0;
     if(calor) light=clamp(light+calor*0.85,0,2.0);
     const w=windAt(mx,my,t); wsum+=w; wn++;
     const bend = w>1.02?2 : w>0.66?1 : 0;
-    const colG=packs(fam,light*(mt.agua||1),calor*0.75);
+    let colG=packs(fam,light*(mt.agua||1),calor*0.75);
+    if(cerca) prepararFuego(mx,my,light0,gananciaFuego,fam,mt.agua||1);
     const base=(mx-camX)*CPM;
     const grass=!!mt.mata;
     const mezclar=tocaOtro(mx-_f0,type);
@@ -374,6 +401,7 @@ function drawGroundRow(my,rBase,haze,t){
           const wy2=my+(sy+0.5)/RPM, v=(sy+0.5)/RPM;
           for(let k=0;k<CPM;k++){
             const u=(k+0.5)/CPM, cx=mx*CPM+k, cyb=my*RPM+sy;
+            if(cerca){ afinar(k,sy); light=_lz; calor=_cal; colG=_col; }
             const tc=vecinoDe(mx-_f0,type,u,v,cx,cyb);
             const mc=(tc===type)?mt:(MAT[tc]||mt);
             if(mc.mata) continue;                  // el pasto lo pone su propia pasada
@@ -386,6 +414,7 @@ function drawGroundRow(my,rBase,haze,t){
           const est = mt.ola==='mar' ? estadoDelMar() : mt.ola;
           const wy=my+(sy+0.5)/RPM;
           for(let k=0;k<CPM;k++){
+            if(cerca){ afinar(k,sy); light=_lz; calor=_cal; colG=_col; }
             const o=celdaOla(est, mx+(k+0.5)/CPM, wy, t);
             put(base+k,rb,o.g,packs(o.fam,clamp(o.lz*light,0,1.4),calor*0.75));
           }
@@ -396,6 +425,7 @@ function drawGroundRow(my,rBase,haze,t){
            suelo en el diccionario. */
         const wy=my+(sy+0.5)/RPM;
         for(let k=0;k<CPM;k++){
+          if(cerca){ afinar(k,sy); light=_lz; calor=_cal; colG=_col; }
           const wx=mx+(k+0.5)/CPM, cx=mx*CPM+k, cyb=my*RPM+sy;
           let dens=0.42+0.52*tex2(wx,wy,0.50);
           let g=null, lz=light;
@@ -441,6 +471,7 @@ function drawGroundRow(my,rBase,haze,t){
         const wy2=my+(sy+0.5)/RPM, v=(sy+0.5)/RPM;
         for(let k=0;k<CPM;k++){
           const u=(k+0.5)/CPM, cx=mx*CPM+k, cyb=my*RPM+sy;
+          if(cerca){ afinar(k,sy); light=_lz; calor=_cal; colG=_col; }
           const tc=vecinoDe(mx-_f0,type,u,v,cx,cyb);
           if(tc===type) continue;
           const mc=MAT[tc];
@@ -453,6 +484,7 @@ function drawGroundRow(my,rBase,haze,t){
         const cyb=my*RPM+sy;
         const wyn=my+(sy+0.5)/RPM;
         for(let k=0;k<CPM;k++){
+          if(cerca){ afinar(k,sy); light=_lz; calor=_cal; colG=_col; }
           const cx=mx*CPM+k, wxn=mx+(k+0.5)/CPM;
           if(tex2(wxn,wyn,0.9)<mt.manto){
             const d=clamp(0.3+tex2(wxn+2,wyn,0.26)*0.8,0,1);
@@ -464,6 +496,7 @@ function drawGroundRow(my,rBase,haze,t){
       /* alfombra dispersa en TODAS las franjas: no hay línea de base */
       if(!mt.manto) for(let k=0;k<CPM;k+=2){
         if(tex2(mx+(k+0.5)/CPM,my+(sy+0.5)/RPM,0.34)*densMata<0.34) continue;
+        if(cerca){ afinar(k,sy); light=_lz; calor=_cal; colG=_col; }
         put(base+k,rb,mt.largo||type==='G'?124:176,colG);
       }
       /* briznas: base repartida en la profundidad, altura mayor que el paso
@@ -471,11 +504,12 @@ function drawGroundRow(my,rBase,haze,t){
       const largo=mt.largo||type==='G';
       const nPer=Math.max(2,Math.round(CPM*(largo?0.15:0.09)*calidad));
       const n=Math.round(nPer*clamp(0.20+densMata*1.10,0.12,1.7));
-      const colT=packs(mt.fam2||mt.fam,light*1.1);
-      const colM=packs(mt.fam,light*0.95);
+      let colT=packs(mt.fam2||mt.fam,light*1.1);
+      let colM=packs(mt.fam,light*0.95);
       for(let b=0;b<n;b++){
         const hb=hash3(mx*997+b,my*131+sy*37,7);
         const c0=base+((hb%(CPM*8))/8|0);
+        if(cerca){ afinar(c0-base,sy); colT=packs(mt.fam2||mt.fam,_lz*1.1); colM=packs(mt.fam,_lz*0.95); }
         const mAlto=(largo?0.45:0.13)+(((hb>>5)%100)/100)*(largo?0.80:0.27);
         const alto=Math.max(2,Math.round(mAlto*HPM));
         const own=((((hb>>9)%9)-4)/4)*0.95;
@@ -500,6 +534,7 @@ function drawGroundRow(my,rBase,haze,t){
       if(mt.extra){
         for(let k=0;k<CPM;k+=2){
           const hc=hash3(mx*CPM+k,my*RPM+sy,23);
+          if(cerca){ afinar(k,sy); light=_lz; }
           if((hc%100)<4) put(base+k,rb-1-((hc>>7)%2),mt.extra.charCodeAt(0),packs(mt.efam||mt.fam,light*1.1));
         }
       }
@@ -965,7 +1000,17 @@ function drawArbol(tr,haze,t){
   }
 }
 
+/* Lo que se levanta del suelo —árboles, rocas, muros— también recibe el calor
+   de un fuego cercano. Se mide donde pisa y decae hacia arriba (ver put). */
 function drawTree(tr,haze,t){
+  if(tr.k==='hoguera'||!NV.calorCerca(tr.x,tr.y)){ drawObjeto(tr,haze,t); return; }
+  const f=NV.calorEn(tr.x+0.5,tr.y+0.9);
+  const k=f*(1.55-Math.min(1,NV.luz.amb)*0.95)*titilar(t)*0.75;
+  if(k<0.02){ drawObjeto(tr,haze,t); return; }
+  NV.tinteFuego(k,(tr.y-camY)*RPM+RPM-1);
+  try{ drawObjeto(tr,haze,t); } finally{ NV.tinteFuego(0,0); }
+}
+function drawObjeto(tr,haze,t){
   const bc=(tr.x-camX)*CPM+Math.floor(CPM/2), br=(tr.y-camY)*RPM+RPM-1;
   if(tr.k==='muro'){ drawMuro(tr,haze,t); return; }
   if(tr.k==='roca'){ drawRoca(tr,haze,t); return; }
