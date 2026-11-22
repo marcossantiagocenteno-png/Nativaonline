@@ -115,9 +115,24 @@ sobre el horizonte y de su tamaño aparente. Hay noches de oscuridad completa, s
 ninguna luna arriba, y noches en que se ve casi todo. Con poca luz la vista se
 cierra a unos metros.
 
+**Eclipses.** No basta con que una luna esté nueva o llena: tiene que pasar cerca de
+uno de sus nodos, los dos puntos donde su órbita cruza el plano del planeta. Los
+nodos retroceden —180 días Calavera, 360 Madre—, así que las temporadas de eclipse
+se corren a lo largo del año. Se distinguen totales, anulares, parciales y
+penumbrales según la geometría.
+
 Cuando Calavera eclipsa, el mundo entero se tiñe de **rojo**; cuando lo hace Madre,
-de un **blanco pálido**. El origen de esos colores es deliberadamente desconocido y
-el juego no lo explica.
+de un **blanco pálido y frío**. En un eclipse doble gana el de mayor magnitud, por
+regla fija, nunca al azar. El origen de esos colores es deliberadamente desconocido
+y el juego no lo explica.
+
+**Problema abierto: los eclipses son demasiado frecuentes.** Con los números
+actuales, Calavera produce unos 108 eclipses de sol y 286 de luna por año: trece
+episodios por día real. Madre, unos 39 al año. No es un error de cálculo, es
+consecuencia de la geometría: una luna de 3° de ancho que orbita cada 1,37 días,
+con solo 8° de inclinación, se cruza con la estrella todo el tiempo. Si los
+eclipses tienen que ser un presagio y no una rutina, la palanca es la **inclinación
+orbital**: con 25° o 30°, Calavera bajaría a unos diez al año. Pendiente de decidir.
 
 **Supuestos tomados**, por no estar definidos, ambos configurables en `NV.ASTRO`:
 Calavera está nueva en el origen del tiempo (día 1), Madre está nueva el día 27 del

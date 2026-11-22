@@ -24,7 +24,7 @@ const cielo = {
   elev:40, azimut:140,
   sombra:{dx:-1, dy:0, porMetro:1.7},
   luz:{amb:1, r:1, g:1, b:1},
-  lunas:null, brilloLunar:0, nombre:'mañana'
+  lunas:null, brilloLunar:0, nombre:'mañana', eclipse:null, rojo:0, blanco:0
 };
 
 function actualizarCielo(ms){
@@ -59,13 +59,46 @@ function actualizarCielo(ms){
     const m=Math.min(1,lunar);
     r=entre(r,0.78,m*0.5); g=entre(g,0.84,m*0.5); b=entre(b,1.00,m*0.5);
   }
+  /* ---------- eclipses ----------
+     Calavera tiñe el mundo de rojo; Madre, de un blanco pálido.
+     El juego no explica por qué. */
+  let ecl=null, rojo=0, blanco=0;
+  for(const k in a.lunas){
+    const E=a.lunas[k].eclipse;
+    if(!E) continue;
+    /* un eclipse de sol solo se nota de día; uno de luna, de noche y con la luna arriba */
+    const peso = E.tipo==='solar' ? (a.deDia?1:0)
+                                  : (!a.deDia && a.lunas[k].altura>0 ? 1 : 0);
+    if(!peso) continue;
+    const fuerza=E.magnitud*peso;
+    if(k==='calavera') rojo=Math.max(rojo,fuerza); else blanco=Math.max(blanco,fuerza);
+    if(!ecl||fuerza>ecl.fuerza) ecl={luna:a.lunas[k].nombre,...E,fuerza};
+  }
+  if(rojo||blanco){
+    const f=Math.max(rojo,blanco);
+    if(ecl.tipo==='solar'){
+      amb*=1-0.80*f;                       // el día se apaga
+      cielo.sombra.porMetro*=1-0.85*f;     // y las sombras se deshacen
+    } else {
+      amb*=1-0.55*f;                       // la luna eclipsada deja de alumbrar
+    }
+    if(rojo>=blanco){ r=entre(r,1.35,rojo); g=entre(g,0.26,rojo); b=entre(b,0.20,rojo); }
+    else            { r=entre(r,0.86,blanco); g=entre(g,1.02,blanco); b=entre(b,1.28,blanco); }
+  }
+  cielo.eclipse=ecl; cielo.rojo=rojo; cielo.blanco=blanco;
+
   cielo.luz.amb=amb; cielo.luz.r=r*amb; cielo.luz.g=g*amb; cielo.luz.b=b*amb;
-  cielo.nombre = t<0.5 ? p.n : q.n;
+  cielo.nombre = ecl ? (ecl.luna==='Calavera'?'la luz se vuelve roja':'una claridad blanca')
+                     : (t<0.5 ? p.n : q.n);
   return cielo;
 }
 
 /* El cielo en palabras, sin un solo número. */
 function cieloEnPalabras(){
+  const E=cielo.eclipse;
+  if(E) return E.luna==='Calavera'
+    ? 'Calavera está delante de la luz y todo se ha teñido de rojo. Nadie sabe por qué.'
+    : 'Madre está delante de la luz y el bosque se ha vuelto de un blanco pálido, sin explicación.';
   if(!cielo.deNoche){
     const alto = cielo.elev>45?'alto':cielo.elev>20?'a media altura':'bajo, rasante';
     return 'El sol está '+alto+', '+(cielo.fase<0.5?'al este':'al oeste')+'.';

@@ -12,7 +12,10 @@ const ASTRO = {
   horasDia: 24,             // día solar del planeta
   inclinacionAxial: 23.4,
   excentricidad: 0,
-  gravedad: 4.17,           // veces la terrestre. Todavía no afecta a nada.
+  gravedad: 1,              // descartada: no afecta a nada
+  radioPlaneta: 15290,      // km (2,4 radios terrestres)
+  solAparente: 0.475,       // grados que mide la estrella en el cielo, a 1,116 UA
+  ventanaFase: 0.055,       // cuán cerca de nueva o llena hace falta estar
 
   /* un día del calendario jugable dura un día real */
   msPorDiaCalendario: 24*60*60*1000,
@@ -51,6 +54,37 @@ for(const k in ASTRO.lunas) ASTRO.lunas[k].sinodico = sinodico(ASTRO.lunas[k]);
 const FASES=['nueva','creciente fina','cuarto creciente','gibosa creciente',
              'llena','gibosa menguante','cuarto menguante','menguante fina'];
 
+/* ---------- eclipses ----------
+   No basta con estar nueva o llena: la luna tiene que pasar cerca de uno de sus
+   nodos, que son los dos puntos donde su órbita cruza el plano del planeta.
+   Los nodos retroceden con el tiempo, así que las temporadas de eclipse se
+   corren a lo largo del año. */
+function radioAparente(l){ return Math.atan(l.diametro/2/l.distancia)*180/Math.PI; }
+function radioUmbra(l){    // sombra del planeta a la distancia de la luna
+  return Math.atan(ASTRO.radioPlaneta/l.distancia)*180/Math.PI - ASTRO.solAparente/2;
+}
+function eclipse(l,t,fase){
+  const lonLuna = t/l.sideral;                       // vueltas
+  const nodo = l.nodo0 - t/l.nodal;                  // retrógrado
+  const u = (lonLuna-nodo)*TAU;                      // ángulo desde el nodo
+  const beta = Math.abs(l.inclinacion*Math.sin(u));  // separación del plano, en grados
+  const rL=radioAparente(l), rS=ASTRO.solAparente/2, rU=radioUmbra(l);
+  const aNueva=Math.min(fase,1-fase), aLlena=Math.abs(fase-0.5);
+
+  if(aNueva<ASTRO.ventanaFase && beta<rL+rS){        // la luna tapa la estrella
+    const mag=1-beta/(rL+rS);
+    const suave=Math.min(1,mag*(1-aNueva/ASTRO.ventanaFase)*1.6);
+    return {tipo:'solar', clase: beta<Math.abs(rL-rS)?(rL>rS?'total':'anular'):'parcial',
+            magnitud:suave, beta};
+  }
+  if(aLlena<ASTRO.ventanaFase && beta<rU+rL){        // el planeta tapa la luna
+    const mag=1-beta/(rU+rL);
+    const suave=Math.min(1,mag*(1-aLlena/ASTRO.ventanaFase)*1.6);
+    return {tipo:'lunar', clase: beta<rU-rL?'total':'parcial', magnitud:suave, beta};
+  }
+  return null;
+}
+
 /* ---------- tiempo ---------- */
 function tiempoAstro(ms){ return ms/msPorDiaAstro; }     // días astronómicos continuos
 
@@ -77,8 +111,9 @@ function estadoLuna(l,t){
   const altura = Math.cos(hLuna);                          // 1 cenit, 0 horizonte, −1 bajo tierra
   /* nodo, con precesión retrógrada */
   const nodo = ((l.nodo0 - t/l.nodal)%1+1)%1;
+  const ecl = eclipse(l,t,fase);
   return {
-    nombre:l.nombre, fase, ilum, altura,
+    nombre:l.nombre, fase, ilum, altura, eclipse:ecl,
     sobreHorizonte: altura>0,
     grados: Math.asin(Math.max(-1,Math.min(1,altura)))*180/Math.PI,
     nombreFase: FASES[Math.floor(((fase+1/16)%1)*8)],
@@ -111,6 +146,7 @@ function proximaFase(clave,objetivo,ms){
   return {enDiasAstro:falta*l.sinodico, enHorasReales:falta*l.sinodico*msPorDiaAstro/3600000};
 }
 
+NVa.eclipse=eclipse; NVa.radioAparente=radioAparente; NVa.radioUmbra=radioUmbra;
 NVa.ASTRO=ASTRO; NVa.astroEn=astroEn; NVa.tiempoAstro=tiempoAstro;
 NVa.calendario=calendario; NVa.proximaFase=proximaFase;
 NVa.msPorDiaAstro=msPorDiaAstro; NVa.FASES=FASES;
