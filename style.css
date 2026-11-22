@@ -1,21 +1,4 @@
 
-#astros{position:absolute;left:10px;top:10px;display:none;z-index:31;width:270px;
-  max-height:84%;overflow:auto;background:#060b08f2;border:1px solid var(--line);
-  border-radius:6px;padding:8px 10px;font-size:11px;line-height:1.35}
-#astros.show{display:block}
-#astros .ah{color:var(--acc);text-transform:uppercase;letter-spacing:1.5px;font-size:9px;
-  margin:9px 0 3px;opacity:.8}
-#astros .ah:first-child{margin-top:0}
-#astros .ax{display:grid;grid-template-columns:18px 1fr auto;gap:2px 6px;align-items:baseline;
-  padding:2px 0;border-bottom:1px solid #14201a}
-#astros .ax b{font-size:15px;color:#e8f3ea;grid-row:span 2;text-align:center}
-#astros .an{color:var(--ink)}
-#astros .af{color:var(--dim);font-size:10px}
-#astros .ax i{grid-column:2/4;color:var(--dim);font-style:normal;font-size:10px}
-#astros .ax u{color:#e07a2e;text-decoration:none}
-#astros .ab{color:#3f6a4c;font-size:10px;letter-spacing:1px;padding:1px 0 3px 24px}
-#astros .ae{color:var(--ink);padding:2px 0 2px 2px;border-bottom:1px solid #121c16}
-#astros .ae i{color:var(--dim);font-style:normal;float:right;font-size:10px}
 
 /* Barra de día y noche: dónde estamos dentro del día del planeta */
 #reloj{position:absolute;left:0;right:0;top:0;height:6px;z-index:29;
@@ -29,6 +12,15 @@
   line-height:13px;text-align:center;font-size:11px;color:#fff;
   text-shadow:0 0 5px #000;transition:left .4s linear;pointer-events:none}
 
-#astros .luna{vertical-align:-4px}
-#astros .ax b.sol{font-size:17px;color:#f0e2b0}
-#astros .ae .luna{vertical-align:-3px;margin-right:2px}
+
+/* Resumen del cielo, dentro del mapa */
+#mapCab{display:flex;align-items:center;gap:5px;padding:1px 1px 4px;
+  border-bottom:1px solid #1b2a21;margin-bottom:4px}
+#mapCab .ml{display:inline-flex;border-radius:50%;padding:1px;line-height:0}
+#mapCab .ml.cal{box-shadow:0 0 0 1px #c4702e}
+#mapCab .ml.mad{box-shadow:0 0 0 1px #c9d3d8}
+#mapCab .ml.ecl{animation:lat 1.4s infinite}
+@keyframes lat{50%{box-shadow:0 0 6px 2px #e0603a}}
+#mapCab .mh{margin-left:auto;font-size:9px;color:var(--dim);letter-spacing:.3px}
+#map .mpie{display:flex;justify-content:space-between;gap:6px;font-size:9px;
+  color:var(--dim);padding-top:4px;border-top:1px solid #1b2a21;margin-top:4px}

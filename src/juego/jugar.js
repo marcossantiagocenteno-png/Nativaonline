@@ -118,8 +118,11 @@ async function connect(){
 
 /* ---------- mapa ---------- */
 let mapOn=false;
+let mapTimer=null;
 function toggleMap(v){
   mapOn = v===undefined?!mapOn:v;
+  if(mapTimer){ clearInterval(mapTimer); mapTimer=null; }
+  if(mapOn) mapTimer=setInterval(drawMap,5000);
   $('map').classList.toggle('show',mapOn);
   $('bMap').classList.toggle('on',mapOn);
   if(mapOn) drawMap();
@@ -150,6 +153,8 @@ function drawMap(){
     out+=line+'\n';
   }
   el.innerHTML=out;
+  const cab=$('mapCab');
+  if(cab) cab.innerHTML = NV.resumenCielo?NV.resumenCielo():'';
 }
 
 /* ---------- leyenda ---------- */
@@ -216,7 +221,7 @@ function init(){
     else if(k==='arrowright'||k==='d'){ move(1,0); e.preventDefault(); }
     else if(k==='e'||k===' '){ look(); e.preventDefault(); }
     else if(k==='m'){ toggleMap(); e.preventDefault(); }
-    else if(k==='c'){ NV.toggleAstros(); e.preventDefault(); }
+
     else if(k==='r'&&e.shiftKey){ olvidarGuardado(); me=NV.findSpawn(world);
       bubble('Volvés al claro de partida.'); requestDraw(); e.preventDefault(); }
     else if(k==='+'||k==='='){ setZoom(1); e.preventDefault(); }
@@ -246,7 +251,7 @@ function init(){
   cv.addEventListener('touchend',()=>{ pinch=0; },{passive:true});
   $('bAnim').addEventListener('click',()=>{ animOn=!animOn; $('bAnim').classList.toggle('on',animOn); restartAnim(); draw(); });
   $('bMap').addEventListener('click',()=>toggleMap());
-  $('bAstros').addEventListener('click',()=>NV.toggleAstros());
+
 
   for(const b of document.querySelectorAll('[data-close]')) b.addEventListener('click',closeModals);
 }

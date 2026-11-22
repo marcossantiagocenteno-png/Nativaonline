@@ -15,7 +15,6 @@
   </span>
   <button id="bAnim" class="on" title="Viento">~</button>
   <button id="bMap">mapa</button>
-  <button id="bAstros">astros</button>
   <span class="sp"></span>
 </header>
 
@@ -24,8 +23,7 @@
     <canvas id="cv"></canvas>
     <div id="compass">N<br><span>&#9650;</span></div>
     <div id="reloj"><span id="relojM"></span><span id="relojS"></span></div>
-    <div id="map"><pre id="mapTx"></pre></div>
-    <div id="astros"><div id="astrosTx"></div></div>
+    <div id="map"><div id="mapCab"></div><pre id="mapTx"></pre></div>
     <div id="bubble"></div>
     <div id="pad">
       <button class="e"></button><button data-mv="n">&#9650;</button><button class="e"></button>
@@ -52,15 +50,6 @@
   <div class="acts"><button data-close class="on">Cerrar</button></div>
 </div></div>
 
-<div class="modal" id="mdLeg"><div class="box">
-  <h3>Diccionario de glifos</h3>
-  <div id="legend"></div>
-  <div style="font-size:11px;color:var(--dim);margin-top:8px;line-height:1.5">
-    Regla general: <b>may&uacute;scula</b> = grande, cerca o denso. <b>min&uacute;scula</b> = chico, lejos o ralo.
-    Cada material es una rampa de ralo a tupido; la luz y la sombra eligen el escal&oacute;n.
-  </div>
-  <div class="acts"><button data-close class="on">Cerrar</button></div>
-</div></div>
 
 <div id="toast"></div>
 <script>

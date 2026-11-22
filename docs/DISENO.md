@@ -178,14 +178,18 @@ noche cerrada el fogonazo muestra el bosque completo por un instante.
 Las nubes apagan la luz y le quitan color. La lluvia, además, **cierra la vista**:
 la cortina tapa la distancia aunque sea mediodía.
 
-**Ventana ASTROS.** `src/juego/astros.js`, botón *astros* o tecla `C`. Muestra el
-estado del cielo, las dos lunas, la marea con su barra, el clima y los próximos
-fenómenos en orden. Sin un solo número: discos, barras y palabras.
+**El cielo vive dentro del mapa**, no en una ventana aparte: se abre con el botón
+*mapa* o la tecla `M` y se refresca solo. Arriba, las dos lunas dibujadas y la hora
+en palabras; abajo, la estación, la fecha, el tiempo y la marea.
 
-Cada luna se **dibuja**, no se nombra con un carácter: un disco oscuro y encima la
-parte iluminada, recortada por una elipse que se aplasta según la fase. En cuarto
-la elipse vale cero y queda media luna exacta; en llena ocupa el disco entero. El
-lado iluminado cambia de este a oeste al pasar la llena, como corresponde.
+Cada luna se **dibuja**: un disco oscuro y encima la parte iluminada, recortada por
+una elipse que se aplasta según la fase. En cuarto la elipse vale cero y queda
+media luna exacta; en llena ocupa el disco entero, y el lado iluminado cambia de
+este a oeste al pasar la llena.
+
+**El borde dice cuál es cuál**, y sigue el color de su eclipse: ámbar para
+Calavera, pálido para Madre. Así el dibujo comunica la fase y el borde la
+identidad, sin repetir información. Cuando una está eclipsando, su borde late.
 
 **El tiempo también se ve sin abrir nada:** una franja arriba de la escena es el
 día entero del planeta, con los tramos de noche oscuros y el amanecer y el ocaso
