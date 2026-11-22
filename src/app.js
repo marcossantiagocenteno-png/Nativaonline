@@ -1,8 +1,10 @@
-/* Bosque ASCII 2.5D — rampas de densidad, viento del este, sol al este. */
+/* Nativa Online — motor del bosque.
+   Proyección oblicua, rampas de densidad, sol y viento al este.
+   Las reglas están en docs/DISENO.md; ese documento manda sobre este archivo. */
 
 const MONO='ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace';
 
-/* proyección: 6 caracteres por metro E-O, 2 filas por metro N-S, 3.4 filas por metro de altura */
+
 /* Cada nivel tiene su propia resolución: de lejos menos caracteres por metro,
    de cerca más. Así la cámara puede alejarse sin que la pantalla reviente. */
 const LODS=[
