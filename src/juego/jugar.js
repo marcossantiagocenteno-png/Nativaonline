@@ -12,6 +12,17 @@ const patch=makeNoise(mulberry(41099));
 const gustN=makeNoise(mulberry(7717));
 
 /* ---------- movimiento ---------- */
+/* Dónde está el personaje AHORA MISMO, entre la casilla de la que salió y a la
+   que va. Camina de a un metro, pero dibujarlo saltando un metro entero son
+   dieciocho columnas de un cuadro al otro: no camina, aparece más allá. */
+NV.posDibujo=function(ahora){
+  const pm=NV.pasoMs||PASO_MS;
+  const tp=Math.max(0,Math.min(1,(ahora-(NV.ultimoPaso||0))/pm));
+  const x0=(NV.desdeX===undefined?me.x:NV.desdeX);
+  const y0=(NV.desdeY===undefined?me.y:NV.desdeY);
+  return {x:x0+(me.x-x0)*tp, y:y0+(me.y-y0)*tp, tp:tp};
+};
+
 function move(dx,dy){
   facing=dy<0?'norte':dy>0?'sur':dx>0?'este':'oeste';
   const nx=me.x+dx,ny=me.y+dy;
@@ -25,11 +36,13 @@ function move(dx,dy){
     return; }
   if(gq==='A') bubble('El agua te llega a los tobillos y arrastra.');
   else if(gq==='a') bubble('Pisás el arroyo; apenas te moja las botas.');
+  /* De dónde viene y cuándo salió. El personaje se MUEVE POR CASILLAS de un
+     metro, pero no se puede DIBUJAR saltando un metro entero: a este zoom son
+     dieciocho columnas de golpe, y lo que se ve es que desaparece y reaparece
+     más allá. Guardando de dónde viene, el dibujo lo interpola. */
+  NV.desdeX=me.x; NV.desdeY=me.y;
   me.x=nx; me.y=ny;
-  /* Cuánto se lleva andado y cuándo fue el último paso. La animación de
-     caminar avanza por DISTANCIA y no por reloj: atada al reloj, las piernas
-     van a su ritmo mientras el personaje patina por el pasto. */
-  NV.andado=(NV.andado||0)+1; NV.ultimoPaso=Date.now();
+  NV.andado=(NV.andado||0)+1; NV.ultimoPaso=Date.now(); NV.pasoMs=PASO_MS;
   hide(); animarSuave(); drawMap(); guardar();
 }
 function look(){
@@ -65,7 +78,10 @@ function animarSuave(){
   const paso=t=>{
     const zoomando=NV.acercarZoom();
     if(t-ultCuadro>26){ ultCuadro=t; draw(); }
-    if(zoomando || !NV.camQuieta) lazo=requestAnimationFrame(paso);
+    /* mientras el personaje está entre dos casillas hay que seguir dibujando,
+       aunque la cámara ya haya llegado */
+    const enPaso=Date.now()-(NV.ultimoPaso||0) < (NV.pasoMs||PASO_MS)+40;
+    if(zoomando || !NV.camQuieta || enPaso) lazo=requestAnimationFrame(paso);
     else { lazo=null; draw(); }
   };
   lazo=requestAnimationFrame(paso);

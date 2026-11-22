@@ -714,6 +714,19 @@ un personaje y no los sesenta mil de la pantalla.
 cada 2,4 metros. Atada al reloj, las piernas van a su ritmo mientras el
 personaje patina por el pasto.
 
+**El personaje se dibuja entre casillas.** Camina de a un metro, pero dibujarlo
+saltando un metro entero son dieciocho columnas de un cuadro al otro: no camina,
+desaparece y reaparece más allá. Se guarda de qué casilla salió y el dibujo
+interpola con el tiempo transcurrido del paso. Medido: a lo largo de un paso se
+dibuja en once columnas distintas, con saltos de 1,7 columnas en vez de 18.
+
+Y la fase de la animación incluye esa misma fracción. Contando sólo los metros
+enteros, la pose se congelaba 186 ms y después saltaba una pose y media de
+golpe: eso era el pie que se teletransportaba a la pierna extendida.
+
+El lazo de dibujo sigue corriendo mientras el personaje está entre dos
+casillas, aunque la cámara ya haya llegado.
+
 **Un cuadro se funde con el siguiente.** La fase es continua, no un número de
 cuadro: el motor dibuja la pose de ahora entera y la siguiente con
 transparencia. Un sprite salta de pose en pose, y a esta resolución eso se lee
@@ -742,11 +755,11 @@ El ciclo dura catorce segundos y el 74% es el primer cuadro, sin moverse. El
 pack viene con ocho cuadros de reposo pensados para encadenarse a cinco por
 segundo, y así se lee como si girara sobre sí misma.
 
-**A poca altura se muestran menos cuadros.** A doce filas, los movimientos
-chicos del reposo —el balanceo de la capa, el peso que cambia de pie— se
-redondean a celdas enteras: en vez de un balanceo sale un parpadeo de celdas y
-la figura tiembla quieta. De treinta filas para arriba van los ocho cuadros; de
-doce para abajo, uno solo si está quieta y dos si camina.
+**Los ocho cuadros se usan casi siempre.** Se habían recortado a dos y cuatro
+para matar el temblor que daban los movimientos chicos del reposo al redondearse
+a celdas enteras, pero eso lo resuelve la fundición: fundidos, las celdas se
+encienden y se apagan de a poco en vez de prender y apagar. Sólo por debajo de
+doce filas se recortan, donde ni fundiendo alcanza.
 
 **La sombra del personaje** es una mancha a los pies que se estira al oeste
 sobre varias filas y se afina con la distancia. De una sola fila y tres metros

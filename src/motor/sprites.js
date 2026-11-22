@@ -166,10 +166,12 @@ NV.dibujarArte=function(nombre,anim,fase,bc,br,altoM,luz){
    balanceo suave salen celdas que prenden y apagan, y la figura tiembla. Chica,
    menos cuadros; quieta y chica, uno solo. */
 NV.cuadrosUtiles=function(nombre,filas,quieta){
-  if(filas>=30) return 8;
-  if(filas>=20) return 4;
-  if(filas>=14) return quieta?2:4;
-  return quieta?1:2;
+  /* Con la fundición entre cuadros ya no hace falta recortarlos para matar el
+     temblor: fundidos, las celdas se encienden y se apagan de a poco en vez de
+     prender y apagar. Sólo muy chica se recortan, donde ni fundiendo alcanza. */
+  if(filas>=12) return 8;
+  if(filas>=8) return 4;
+  return quieta?2:4;
 };
 NV.filasDe=altoM=>Math.max(3,Math.round(altoM*NV.HPM()));
 NV.hayArte=n=>!!(_arte[n]&&_arte[n].listo);

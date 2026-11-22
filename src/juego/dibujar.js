@@ -1085,7 +1085,13 @@ function drawTree(tr,haze,t){
 function drawPlayer(haze){
   const H=Math.max(6,Math.round(1.75*HPM));          // 1,75 m de alto
   const Wc=Math.max(3,Math.round(0.55*CPM));         // 55 cm de ancho
-  const bc=(me.x-camX)*CPM+Math.floor(CPM/2), br=(me.y-camY)*RPM+RPM-1;
+  /* Dónde está AHORA MISMO, entre la casilla de la que salió y a la que va. El
+     personaje camina de a un metro, pero dibujarlo saltando un metro es
+     dieciocho columnas de un cuadro al otro: no camina, aparece más allá. */
+  const pm=NV.pasoMs||186;
+  const P=NV.posDibujo?NV.posDibujo(Date.now()):{x:me.x,y:me.y,tp:1};
+  const tp=P.tp, px=P.x, py=P.y;
+  const bc=Math.round((px-camX)*CPM+CPM/2), br=Math.round((py-camY)*RPM+RPM-1);
   /* La sombra: una mancha a los pies que se estira al oeste y se desvanece.
      Antes era una sola fila de tres metros de largo, y a cualquier zoom se leía
      como una barra gris tirada en el pasto. Ahora ocupa varias filas, se afina
@@ -1116,7 +1122,7 @@ function drawPlayer(haze){
   const ALTO_M=1.85;                                 // una mujer alta
   const dir = facing==='norte'?'back' : facing==='sur'?'front'
             : facing==='este'?'right' : 'left';
-  const andando = Date.now()-(NV.ultimoPaso||0) < 260;
+  const andando = Date.now()-(NV.ultimoPaso||0) < pm+120;
   /* a poca altura no se muestran los ocho cuadros: ver cuadrosUtiles */
   const nf = NV.cuadrosUtiles ? NV.cuadrosUtiles('myrella',NV.filasDe(ALTO_M),!andando) : 8;
   const salto = 8/nf;
@@ -1124,8 +1130,12 @@ function drawPlayer(haze){
      cuadro con el siguiente y el movimiento deja de ser un salto. */
   let fase;
   if(andando){
-    /* una zancada entera cada 5,1 metros: un 30% más lento que antes */
-    fase = salto*(((NV.andado||0)/(0.64*salto))%nf);
+    /* Una zancada entera cada 5,1 metros. La distancia incluye la fracción del
+       paso en curso: contando sólo los metros enteros, la pose se congelaba
+       186 ms y después saltaba una pose y media de golpe. Eso era el pie que
+       se teletransportaba a la pierna extendida. */
+    const rec=(NV.andado||0)-1+tp;
+    fase = salto*(((rec/(0.64*salto))%nf)+nf)%8;
   } else {
     /* EN REPOSO SE ESTÁ QUIETA, y cada tanto se mueve. Una persona parada no
        se balancea sin parar: se queda quieta un rato largo y de golpe cambia el

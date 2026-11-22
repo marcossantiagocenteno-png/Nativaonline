@@ -48,6 +48,7 @@ global.Image=function(){ this.set=null;
 const m=cargar(`module.exports={
   NV:window.NV, celdasArte, RAMPA_ARTE, cargarArte,
   estado:()=>({fbG,fbC,cols,rowsN,CPM,RPM,HPM}),
+  ponerMe:(x,y)=>{ me.x=x; me.y=y; },
   limpiar:()=>{fbG.fill(0);fbL.fill(0);}, capa:v=>{layer=v;},
   fondos:()=>nArteLeido
 };`);
@@ -211,12 +212,31 @@ console.log('\n=== quieta y chica, no tiembla ===');
    enteras: en vez de un balanceo suave salen celdas que prenden y apagan. A
    ese tamaño se muestra un solo cuadro. */
 {
-  for(const [filas,quieta,esp] of [[12,true,1],[12,false,2],[16,true,2],[24,false,4],[40,true,8]]){
+  for(const [filas,quieta,esp] of [[6,true,2],[9,false,4],[12,true,8],[19,false,8],[40,true,8]]){
     const n=NV.cuadrosUtiles('myrella',filas,quieta);
     console.log('  '+String(filas).padStart(2)+' filas '+(quieta?'quieta':'andando')
                 +' → '+n+' cuadro'+(n>1?'s':''));
     probar('a '+filas+' filas '+(quieta?'quieta':'andando')+' usa '+esp, n===esp);
   }
+}
+
+console.log('\n=== el personaje no salta de casilla en casilla ===');
+/* Camina de a un metro, que a este zoom son dieciocho columnas. Dibujado en la
+   casilla, desaparecía y reaparecía más allá. Se mira dónde se dibuja a lo
+   largo de un paso: tiene que recorrerlo, no saltarlo. */
+{
+  const st=m.estado();
+  NV.ultimoPaso=1000; NV.pasoMs=186; NV.desdeX=50; NV.desdeY=50;
+  m.ponerMe(51,50);
+  const cols=[];
+  for(let ms=1000;ms<=1186;ms+=18) cols.push(NV.posDibujo(ms).x);
+  const salto=Math.max(...cols.map((v,i)=>i?Math.abs(v-cols[i-1]):0));
+  const distintos=new Set(cols.map(v=>Math.round(v*st.CPM))).size;
+  console.log('  a lo largo del paso se dibuja en '+distintos+' columnas distintas'
+              +' · salto mayor '+(salto*st.CPM).toFixed(1)+' columnas');
+  probar('recorre el paso en vez de saltarlo', distintos>=6);
+  probar('ningún salto llega a media casilla', salto<0.5);
+  NV.desdeX=undefined; NV.desdeY=undefined;
 }
 
 console.log('\n=== el personaje no se satura a blanco ===');
