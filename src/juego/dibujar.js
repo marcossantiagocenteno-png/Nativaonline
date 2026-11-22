@@ -251,6 +251,213 @@ function drawGroundRow(my,rBase,haze,t){
   if(wn) wind=wsum/wn;
 }
 
+/* ---------- ÁRBOLES ----------
+   Un modelo por árbol, de los tres que tiene su especie en el diccionario. El
+   modelo está medido en fracciones del alto, así que se estira solo: el mismo
+   modelo sirve para un pino joven y para uno del bosque viejo.
+
+   El orden de dibujo es lo que hace el trabajo, sin llevar cuenta de nada:
+   dentro de una capa lo último que se escribe tapa lo anterior. Así que primero
+   va el tronco de arriba y las ramas, después el follaje —que los tapa donde es
+   tupido y los deja asomar por sus huecos, que es como se ve el esqueleto de un
+   árbol— y al final el tronco de abajo de la horqueta y los nudos, que no los
+   tapa nada porque son lo que sostiene al árbol. */
+const _ramas=[], _manchas=[];                 // se reusan: hay muchos por cuadro
+/* El follaje es el lazo más caliente del juego: una copa son miles de celdas y
+   hay decenas de copas por cuadro. Tres tablas lo sacan de encima:
+
+   _CAIDA  : cómo baja la densidad del centro al borde. Se indexa con la
+             distancia AL CUADRADO, así se evita una raíz por celda.
+   _GAMMA  : la curva de cada especie, ya resuelta. Antes eran dos Math.pow por
+             celda, que es lo que más costaba.
+   _UI,_RU : el perfil de la mancha y el azar de los huecos, calculados una vez
+             por mancha y por fila en vez de una vez por celda. */
+const _CAIDA=new Float32Array(66), _GAMMA={};
+for(let k=0;k<=65;k++) _CAIDA[k]=1-Math.pow(Math.min(1,k/64),1.05);
+function tablaGamma(g){
+  const t=new Float32Array(66);
+  for(let k=0;k<=65;k++) t[k]=Math.pow(Math.min(1,k/64),g);
+  return t;
+}
+let _UI=new Float32Array(256), _RU=new Float32Array(256);
+
+function drawArbol(tr,haze,t){
+  const sp=SPECIES[tr.sp], M=NV.MODELOS[tr.sp];
+  const m=M[tr.s%M.length];
+  const bc=(tr.x-camX)*CPM+Math.floor(CPM/2), br=(tr.y-camY)*RPM+RPM-1;
+  const h=tr.h, grosor=m.grosor*h, ancho=m.ancho*h;
+  const yH=h*m.horqueta, yT=h*(m.lider||m.horqueta), yPie=h*0.045;
+  /* el viento dobla la copa y deja el pie quieto */
+  const viento=windAt(tr.x,tr.y,t*0.8)*sp.sway;
+  const aC=(x,y)=>bc+Math.round(x*CPM+viento*1.1*Math.pow(clamp(y/h,0,1),1.3));
+  const aR=y=>br-Math.round(y*HPM);
+  const bandaAlto=tr.sp==='alamo'?7:4;
+  const famCort=sp.corteza;
+
+  function troncoHW(y){
+    const u=clamp(y/h,0,1);
+    let hw=(grosor*(1-0.46*Math.pow(u,0.7)))/2;
+    if(m.lider && y>yH) hw*=Math.max(0.22,1-(y-yH)/Math.max(0.01,yT-yH)*0.78);
+    if(y<yPie) hw*=1+(yPie-y)/yPie*0.55;        // el pie se abre en raíces
+    return hw;
+  }
+  /* --- tronco: la corteza son CRESTAS VERTICALES, no ruido ---
+     el glifo lo elige la columna y se mantiene varias filas; el surco va más
+     oscuro que la cresta */
+  function pintarTronco(desde,hasta){
+    for(let r=aR(desde);r>=aR(hasta);r--){
+      const y=(br-r)/HPM;
+      if(y<desde-0.04||y>hasta+0.04) continue;
+      if(r<-4||r>=rowsN+4) continue;
+      const cx=m.inclina*y, ci=Math.max(0,Math.round(troncoHW(y)*CPM));
+      const banda=Math.floor(r/bandaAlto), c0=aC(cx,y);
+      for(let c=-ci;c<=ci;c++){
+        const este=ci?c/ci:0;
+        const hh=hash3(tr.s+c*31,banda,1), cresta=hash3(tr.s+c*31,0,5)%3;
+        let g;
+        if(ci<=1) g=sp.placa[(hh>>6)%sp.placa.length];   // tronco fino: por bandas
+        else{ g=sp.placa[(cresta+((hh>>6)%2))%sp.placa.length];
+              if(cresta===2&&este<0.55) g=sp.veta; }
+        if(tr.sp==='alamo'&&(hash3(tr.s+c,r,3)%37)===0) g='-';   // lenticela
+        const luz=(0.26+0.80*((este+1)/2))*sp.luzC*(g===sp.veta?0.74:1)
+                 *(0.94+0.12*((hash3(tr.s,banda,c+9)%100)/100));
+        put(c0+c,r,g.charCodeAt(0),packs(famCort,luz*haze));
+      }
+      if(y<yPie*0.8){
+        put(c0-ci-1,r,47,packs(famCort,0.34*haze));
+        put(c0+ci+1,r,92,packs(famCort,0.92*haze));
+      }
+    }
+  }
+  /* --- una rama, con grosor que se afina --- */
+  function trazar(x0,y0,x1,y1,gr,seca){
+    const dx=x1-x0, dy=y1-y0;
+    const pasos=Math.max(3,Math.round(Math.hypot(dx*CPM,dy*HPM)));
+    const pend=Math.abs(dy*HPM)/Math.max(1,Math.abs(dx*CPM));
+    const gl = pend>2.2?124 : pend<0.40?45 : ((dx>0)===(dy>0)?47:92);
+    for(let i=1;i<=pasos;i++){
+      const u=i/pasos;
+      const x=x0+dx*u, y=y0+dy*(seca?u:Math.pow(u,1.3));
+      const rr=aR(y);
+      if(rr<-4||rr>=rowsN+4) continue;
+      const cc=aC(x,y);
+      const luz=(seca?0.56:0.24+0.78*((dx>0?2:0)/2))*(1-u*0.20)*sp.luzC;
+      put(cc,rr,seca&&u>0.72?46:gl,packs(seca?'hoja':famCort,luz*haze));
+      const g2=gr*(1-u*0.86);
+      if(!seca&&g2>0.42){
+        const ancha=pend>1.6;
+        put(cc+(ancha?1:0),rr+(ancha?0:1),gl,packs(famCort,luz*0.58*haze));
+        if(g2>0.92) put(cc-(ancha?1:0),rr-(ancha?0:1),gl,packs(famCort,luz*0.74*haze));
+      }
+    }
+  }
+  /* --- el reparto de ramas y manchas, propio de cada especie --- */
+  _ramas.length=0; _manchas.length=0;
+  if(m.pisos){                                     /* pino: ramas en pisos */
+    const P=m.pisos, sep=h*(0.95-P.desde)/Math.max(1,P.n-1);
+    for(let i=0;i<P.n;i++){
+      const u=i/(P.n-1), y=h*(P.desde+(0.95-P.desde)*u);
+      const largo=(ancho/2)*Math.pow(1-u,P.p)*(0.82+0.30*((hash3(tr.s,i,2)%100)/100));
+      if(largo<h*0.02) continue;
+      const cx=m.inclina*y;
+      for(const lado of [-1,1]){
+        const L=largo*(lado>0?0.92+0.20*((hash3(tr.s,i,3)%100)/100):1);
+        _ramas.push(cx,y,cx+lado*L,y-L*P.cae,0.8-u*0.5,0);
+        _manchas.push(cx+lado*L*0.60,y-L*P.cae*0.55,L*0.72,L*0.34,1);
+      }
+      /* la masa del eje llega hasta el piso de arriba: si no, el tronco se veía
+         entero entre piso y piso como una línea trazada con regla */
+      _manchas.push(cx,y+sep*0.30,largo*0.46,Math.max(largo*0.26,sep*0.62),0.9);
+    }
+    _manchas.push(m.inclina*h,h*0.95,ancho*0.10,h*0.05,1);          // la punta
+  } else if(m.manchas){                            /* encino: una por lóbulo */
+    for(let i=0;i<m.manchas.length;i++){
+      const Mn=m.manchas[i], mx=Mn[0]*h, my=Mn[1]*h, mr=Mn[2]*h;
+      _ramas.push(m.inclina*yH,yH,mx*0.92,my-mr*0.18,1.25-i*0.12,0);
+      _manchas.push(mx,my,mr,mr*0.82,1);
+    }
+  } else {                                         /* álamo: cortas y paradas */
+    const Q=m.columna;
+    for(let i=0;i<Q.n;i++){
+      const u=i/(Q.n-1), y=h*(Q.desde+(0.95-Q.desde)*u);
+      let rx=(ancho/2)*(Q.llama
+            ? Math.sqrt(Math.max(0.06,1-Math.pow(u*1.8-0.80,2)*0.92))
+            : Math.sqrt(Math.max(0.06,1-u*u*0.58)));
+      rx*=0.84+0.30*((hash3(tr.s,i,8)%100)/100);
+      const cx=m.inclina*y, lado=i%2?1:-1;
+      _ramas.push(cx,y-h*0.035,cx+lado*rx*0.55,y+h*0.02,0.45,0);
+      _manchas.push(cx+lado*rx*0.14,y,rx,rx*1.05,Q.rala||1);
+    }
+  }
+  /* 1. el tronco de la horqueta para arriba, y las ramas */
+  if(yT>yH) pintarTronco(yH,yT);
+  for(let i=0;i<_ramas.length;i+=6)
+    trazar(_ramas[i],_ramas[i+1],_ramas[i+2],_ramas[i+3],_ramas[i+4],false);
+  for(const hm of (m.muertas||[])){
+    const y=h*hm, lado=(hash3(tr.s,Math.round(hm*100),8)%100)>50?1:-1;
+    trazar(m.inclina*y,y,m.inclina*y+lado*(ancho/2)*0.80,y-h*0.055,0.5,true);
+  }
+  /* 2. el follaje, en manchas con cielo entre medio */
+  const tg=_GAMMA[tr.sp]||(_GAMMA[tr.sp]=tablaGamma(sp.gamma));
+  const umb=sp.umbral, gb=sp.grumo, copa=sp.copa, borde=sp.borde;
+  const nC=copa.length-1, nB=borde.length-1;
+  const famSol=sp.fam, famSom=sp.famS;
+  for(let k=0;k<_manchas.length;k+=5){
+    const mx=_manchas[k], my=_manchas[k+1], rx=_manchas[k+2], ry=_manchas[k+3], dd=_manchas[k+4];
+    const r0=aR(my), ri=Math.max(1,Math.round(rx*CPM)), rj=Math.max(1,Math.round(ry*HPM));
+    if(r0+rj<0||r0-rj>=rowsN) continue;
+    const c0=aC(mx,my);
+    /* sólo las columnas que están en pantalla: lo de afuera no se calcula */
+    let i0=-ri, i1=ri;
+    if(c0+i0<0) i0=-c0; if(c0+i1>=cols) i1=cols-1-c0;
+    if(i1<i0) continue;
+    const n=i1-i0+1;
+    if(_UI.length<n){ _UI=new Float32Array(n+64); _RU=new Float32Array(n+64); }
+    for(let i=i0;i<=i1;i++){ const u=i/ri; _UI[i-i0]=u*u; }
+    const sem=tr.s*3;
+    for(let j=-rj;j<=rj;j++){
+      const r=r0+j;
+      if(r<0||r>=rowsN) continue;
+      const vj=(j/rj)*(j/rj);
+      if(vj>1) continue;
+      const arriba=-j/rj, subida=arriba>0?0.38*arriba:0;
+      /* el azar de los huecos se sortea por bloque, no por celda */
+      const fb_=r>>gb;
+      let ult=-99999;
+      for(let i=i0;i<=i1;i++){
+        const bi=(c0+i)>>gb;
+        if(bi!==ult){ ult=bi; _RU[i-i0]=0.42+0.96*((hash3(sem+bi,fb_,9)%100)/100); }
+        else _RU[i-i0]=_RU[i-i0-1];
+      }
+      for(let i=i0;i<=i1;i++){
+        const un=_UI[i-i0]+vj;
+        if(un>1) continue;
+        let d=_CAIDA[(un*64)|0]*dd*_RU[i-i0];
+        d=tg[d>1?64:(d*64)|0];
+        if(d<umb) continue;
+        const c=c0+i, este=i/ri, hh=hash3(tr.s+c,r,2);
+        const luz=(0.26+0.28*(este+1)+subida)*(0.86+0.28*(((hh>>5)%100)/100));
+        const g = un>0.49 ? borde[(d*nB+0.5)|0] : copa[(d*nC+0.5)|0];
+        if(g===' ') continue;
+        put(c,r,g.charCodeAt(0),
+            packs((este<-0.12||arriba<-0.40)?famSom:famSol, luz*haze));
+      }
+    }
+  }
+  /* 3. el tronco de abajo y los nudos: no los tapa nada */
+  pintarTronco(0,yH);
+  for(const hn of (m.nudos||[])){
+    const y=h*hn, cx=m.inclina*y;
+    const lado=(hash3(tr.s,Math.round(hn*100),7)%100)>50?1:-1;
+    const ci=Math.max(1,Math.round(troncoHW(y)*CPM));
+    const c0=aC(cx,y)+lado*Math.max(0,ci-1), r0=aR(y);
+    /* el bulto: oscuro en el centro, con un reborde claro arriba donde pega la luz */
+    put(c0,r0,  sp.nudo[0].charCodeAt(0), packs(famCort,(lado>0?0.44:0.22)*haze));
+    put(c0,r0-1,126, packs(famCort,(lado>0?1.18:0.62)*haze));
+    put(c0,r0+1,95,  packs(famCort,0.20*haze));
+  }
+}
+
 function drawTree(tr,haze,t){
   const bc=(tr.x-camX)*CPM+Math.floor(CPM/2), br=(tr.y-camY)*RPM+RPM-1;
   if(tr.k==='roca'){
@@ -326,6 +533,9 @@ function drawTree(tr,haze,t){
     }
     return;
   }
+  /* las tres especies del bosque tienen modelo; el místico del lago y los
+     arbustos siguen por el camino viejo */
+  if(tr.k==='arbol' && NV.MODELOS[tr.sp]){ drawArbol(tr,haze,t); return; }
   const sp=SPECIES[tr.sp]||SPECIES.encino;
   const isB=tr.k==='arbusto';
   const tall=Math.max(3,Math.round(tr.h*HPM));

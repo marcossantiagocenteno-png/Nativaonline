@@ -418,9 +418,17 @@ su rampa de densidad.
 | roca madre | `. : ^ A M` más `# %` y vetas `/ \` | estratos horizontales y dos tonos de piedra en manchas |
 | tierra | `. , - _ =` con terrones `o` y guijas `°` | grano grueso |
 | el vacío | casi nada: `.` y `:` sueltos sobre negro | la caída del acantilado |
-| tronco en pie | `t h H` | `H` grueso, `h` medio, `t` fino |
+| tronco en pie | `t h H` | el camino viejo: árbol místico y arbustos |
 | ramas | `y Y` | |
 | tronco caído | `h H` | tendido de este a oeste |
+
+**Corteza** (una por especie; es el extremo denso y por eso es exclusiva)
+
+| especie | placa | surco | nudo | refleja |
+|---|---|---|---|---|
+| pino | `H # %` | `\|` | `0 o` | normal |
+| encino | `H % #` | `\|` | `@ 0` | menos: es oscura |
+| álamo | `l \| I` | `-` | `o 0` | más: es lisa y clara, con lenticelas `-` |
 
 **Copas**
 
@@ -429,6 +437,69 @@ su rampa de densidad.
 | pino | `. : ; * A #` | `. : ^` | cónica, por pisos |
 | encino | `. , o e 8 @` | `. , \` o` | ancha y redonda |
 | álamo | `. " v o 8` | `. " v` | columnar, se mece mucho |
+
+**Problema abierto**: el álamo y el encino comparten `8` en el extremo denso, y
+la regla 3 pide que el extremo denso sea exclusivo dentro de la capa. Viene de
+cuando se eligieron las rampas. `pruebas/arboles.js` lo informa en cada corrida.
+Cambiarlo cambia la textura del álamo tupido, que Marcos ya aprobó, así que la
+decisión es suya: queda anotado, no arreglado a escondidas.
+
+### Los nueve modelos de árbol
+
+Cada especie tiene **tres modelos**, y el árbol elige el suyo por su semilla.
+Están en `MODELOS`, en el diccionario, y se miden en **fracciones del alto**, no
+en metros: el generador sortea la altura y el modelo se estira solo, así el
+mismo modelo sirve para un pino joven y para uno del bosque viejo.
+
+| especie | los tres |
+|---|---|
+| pino | joven cerrado hasta abajo · adulto de fuste limpio · viejo descopado |
+| encino | copa en dos lóbulos · bifurcado desde abajo · viejo de copa despareja |
+| álamo | columnar joven · adulto de copa en llama · ladeado por el viento |
+
+Un modelo dice: el grosor del tronco al pie, cuánto mide la copa a lo ancho,
+hasta dónde sube el tronco antes de abrirse (la **horqueta**), hasta dónde sigue
+la guía central afinándose, cuánto se corre el eje, a qué alturas quedaron
+**nudos** —cicatrices de ramas caídas— y a qué alturas hay una **rama seca**.
+Después, según la especie: el pino reparte sus ramas en **pisos** que caen, el
+encino lleva una rama y una mancha de follaje por **lóbulo**, y el álamo apila
+manchas angostas en **columna**.
+
+Cuatro cosas hacen el realismo:
+
+**La corteza son crestas verticales.** El glifo lo elige la columna, no la
+celda, y se mantiene varias filas seguidas; cada tanto se corta y empieza otra.
+Antes se sorteaba celda por celda y salía estática. El surco va más oscuro que
+la cresta. Medido: la corteza repite el glifo de su columna en el 58% de las
+filas en el álamo y el 84% en el pino; con ruido celda por celda eso daría un
+tercio.
+
+**Los nudos** llevan reborde: oscuro en el centro, con un filo claro arriba
+donde pega la luz y una sombra abajo. Es lo que los hace leer como bulto.
+
+**Las ramas tienen grosor que se afina**: dos o tres celdas junto a la horqueta,
+una en la punta. Entran en la mancha de follaje y mueren adentro, así lo que
+queda a la vista por debajo de la copa es corto y no un abanico de barras.
+
+**El follaje son manchas separadas con cielo entre medio**, y los huecos se
+agrupan por bloques en vez de salir salpicados como sal y pimienta. Cada especie
+tiene su densidad: la aguja del pino es masa tupida y oscura, la hoja del álamo
+es rala. Medido, la caja de la copa queda llena entre el 30% y el 46% según la
+especie.
+
+**El orden de dibujo hace el trabajo sin llevar cuenta de nada.** Dentro de una
+capa, lo último que se escribe tapa lo anterior. Así que primero va el tronco de
+arriba de la horqueta y las ramas; después el follaje, que los tapa donde es
+tupido y los deja asomar por sus huecos —y eso es exactamente cómo se ve el
+esqueleto de un árbol—; y al final el tronco de abajo de la horqueta y los
+nudos, que no los tapa nada porque son lo que sostiene al árbol.
+
+El follaje es el lazo más caliente del juego: una copa son miles de celdas y hay
+decenas de copas por cuadro. Sin cuidado costaba 31 ms por cuadro contra los
+16 de antes. Tres tablas lo bajaron a 19: la caída de densidad indexada por la
+distancia **al cuadrado** (se evita una raíz por celda), la curva de cada
+especie resuelta de antemano (eran dos `Math.pow` por celda, lo que más costaba)
+y el azar de los huecos sorteado por bloque y por fila en vez de por celda.
 
 **Reservado** (acordado, fuera del mundo actual): musgo `° o`, tierra `° *`,
 hojarasca `v u`, charco `- = ~`, helecho `f F`, zarza `x X`, hongos `n m`,
