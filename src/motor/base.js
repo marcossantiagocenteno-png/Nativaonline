@@ -34,6 +34,10 @@ const FAM={
   pino:        ['#10281c','#17402a','#215c3b','#2f7c50'],
   alamo:       ['#3b5620','#577f31','#7aa743','#a0c660'],
   cortezaClara:['#4e4e46','#737266','#9c9b8c','#c2c1b1'],
+  honda:  ['#10212b','#1b3a4a','#2a5a6e','#3d7e94'],
+  espuma: ['#5b7b86','#93b0ba','#c6dce2','#eef7fa'],
+  nieve:  ['#6e7b84','#9fadb6','#ccd8de','#f0f6f9'],
+  hueso:  ['#45412f','#6b6450','#968d72','#c6bb9c'],
   piel:   ['#8d9a93','#b9c6bd','#dfe9e2','#f4faf5']
 };
 

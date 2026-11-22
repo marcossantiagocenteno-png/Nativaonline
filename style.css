@@ -23,3 +23,4 @@
 @keyframes lat{50%{box-shadow:0 0 6px 2px #e0603a}}
 #mapCab .mh{margin-left:auto;font-size:9px;color:var(--dim);letter-spacing:.3px}
 #mapCab .mh{font-family:inherit;letter-spacing:0}
+#mapCab .mcoord{width:100%;font-size:9px;color:#5f8f6c;letter-spacing:.3px;padding-top:2px}

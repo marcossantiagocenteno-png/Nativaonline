@@ -2,7 +2,7 @@
 const fs=require('fs');
 const R='/home/claude/nativaonline/';
 const ORDEN=['src/motor/base.js','src/mundo/diccionario.js','src/mundo/generar.js',
-  'src/mundo/astro.js','src/mundo/cielo.js','src/mundo/mareas.js','src/mundo/clima.js','src/motor/lienzo.js','src/juego/interfaz.js','src/juego/dibujar.js','src/juego/astros.js','src/juego/jugar.js'];
+  'src/mundo/paneles.js','src/mundo/astro.js','src/mundo/cielo.js','src/mundo/mareas.js','src/mundo/clima.js','src/motor/lienzo.js','src/juego/interfaz.js','src/juego/dibujar.js','src/juego/astros.js','src/juego/jugar.js'];
 const ctx={font:'',textBaseline:'',textAlign:'',fillStyle:'',letterSpacing:'0px',
   measureText:t=>({width:6*(t?t.length:1)}),setTransform(){},fillRect(){},fillText(){},
   createRadialGradient(){return{addColorStop(){}}}};

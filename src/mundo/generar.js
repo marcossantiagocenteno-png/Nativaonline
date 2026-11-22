@@ -1,213 +1,299 @@
-/* Nativa Online — generación del mundo.
-   Reglas en docs/DISENO.md. Sin dependencias ni compilación:
-   los módulos se cargan en orden y comparten el objeto global NV. */
+/* Nativa Online — generación del terreno, panel por panel.
+   El ruido se muestrea en coordenadas del mundo, no del panel, así que el
+   terreno continúa de un panel al siguiente sin costura. */
 
-/* ---------- mundo ---------- */
-function build(cfg){
-  const rnd=mulberry(hashStr(cfg.seed)), n=makeNoise(rnd);
-  const W=cfg.w,H=cfg.h;
-  const ground=[], mid=[];
-  for(let y=0;y<H;y++){
-    let row='', mr='';
-    for(let x=0;x<W;x++){
-      row += n(x,y,4,0.055)>0.50?'G':'g';
-      mr+=' ';
-    }
-    ground.push(row); mid.push(mr);
-  }
-  const put=(arr,x,y,c)=>{ if(x<0||y<0||x>=W||y>=H) return; arr[y]=arr[y].slice(0,x)+c+arr[y].slice(x+1); };
+const NVg = window.NV;
 
-  /* objetos: árboles, piedras grandes y troncos caídos */
-  const trees=[], occ=new Uint8Array(W*H), cx=W/2, cy=H/2;
-  for(let y=1;y<H-1;y++) for(let x=1;x<W-1;x++){
-    let f=n(x+90,y+90,3,0.035);
-    if(cfg.clearing){ const d=Math.hypot(x-cx,y-cy); f-=Math.max(0,1-d/22)*0.55; }
-    if(f<0.46) continue;
-    if(rnd()>cfg.treeDensity*(0.5+f)*6) continue;
-    const gq=ground[y][x];
-    if(gq!=='g'&&gq!=='G') continue;
-    let near=false;
-    for(let j=-1;j<=1&&!near;j++) for(let i=-1;i<=1;i++) if(occ[(y+j)*W+(x+i)]){ near=true; break; }
-    if(near) continue;
-    occ[y*W+x]=1;
-    const wet=n(x+3000,y+3000,3,0.040), alt=n(x+770,y+120,2,0.030);
-    const sp = wet>0.58?'alamo' : alt>0.54?'pino' : 'encino';
-    const A=SPECIES[sp].alto;
-    trees.push({x,y,h:A[0]+rnd()*(A[1]-A[0]),k:'arbol',sp,s:(rnd()*1e6)|0});
-  }
-  for(let i=0;i<34;i++){
-    const x=2+((rnd()*(W-4))|0), y=2+((rnd()*(H-4))|0);
-    if(occ[y*W+x]) continue;
-    occ[y*W+x]=1;
-    trees.push({x,y,h: rnd()<0.35?1.2+rnd()*0.9:0.5+rnd()*0.5, k:'roca', s:(rnd()*1e6)|0});
-  }
-  for(let i=0;i<12;i++){
-    const L=2+((rnd()*3)|0), x=3+((rnd()*(W-8))|0), y=2+((rnd()*(H-4))|0);
-    let ok=true;
-    for(let k=0;k<L;k++) if(occ[y*W+x+k]) ok=false;
-    if(!ok) continue;
-    for(let k=0;k<L;k++) occ[y*W+x+k]=1;
-    trees.push({x,y,h:0.6,k:'caido',len:L,s:(rnd()*1e6)|0});
-  }
-  /* río de norte a sur, con un brazo al este y un remanso */
-  const flow=new Uint8Array(W*H);
-  const ejeX=[], anchoY=[];
-  for(let y=0;y<H;y++){
-    ejeX.push(W*0.34 + n(y*3,0,3,0.020)*26 - 13 + Math.sin(y*0.07)*4);
-    anchoY.push(1.4 + n(0,y*5,2,0.03)*1.9);
-  }
-  const bifY=Math.round(H*0.46);
-  const ejeY=[], anchoX=[];
-  for(let x=0;x<W;x++){
-    ejeY.push(bifY + n(x*4,900,3,0.022)*18 - 9);
-    anchoX.push(1.1 + n(x*6,300,2,0.035)*1.6);
-  }
-  const remX=Math.round(ejeX[bifY]), remY=bifY, remR=6.0;
-  const prof=new Float32Array(W*H);
-  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
-    let p=0;
-    const d1=Math.abs(x-ejeX[y]), w1=anchoY[y];
-    if(d1<w1+3.8) p=Math.max(p,1-d1/(w1+3.8));
-    if(x>=remX-1){
-      const d2=Math.abs(y-ejeY[x]), w2=anchoX[x];
-      if(d2<w2+3.4&&1-d2/(w2+3.4)>p){ p=1-d2/(w2+3.4); flow[y*W+x]=1; }
-    }
-    const dr=Math.hypot(x-remX,(y-remY)*1.25);
-    if(dr<remR) p=Math.max(p,(1-dr/remR)*0.72);
-    prof[y*W+x]=p;
-  }
-  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
-    const p=prof[y*W+x];
-    if(p<=0) continue;
-    const c = p>0.58?'A' : p>0.34?'a' : p>0.12?'s' : 'k';
-    put(ground,x,y,c);
-  }
-  /* grandes rocas en el remanso y en las orillas */
-  for(let i=0;i<22;i++){
-    const ang=rnd()*Math.PI*2, rad=remR*(0.35+rnd()*0.95);
-    const x=Math.round(remX+Math.cos(ang)*rad), y=Math.round(remY+Math.sin(ang)*rad*0.8);
-    if(x<1||y<1||x>=W-1||y>=H-1) continue;
-    if(occ[y*W+x]) continue;
-    occ[y*W+x]=1;
-    trees.push({x,y,h:1.1+rnd()*1.5,k:'roca',s:(rnd()*1e6)|0});
-  }
-  for(let i=0;i<90;i++){
-    const y=1+((rnd()*(H-2))|0);
-    const lado=rnd()<0.5?-1:1;
-    const x=Math.round(ejeX[y]+lado*(anchoY[y]+1.6+rnd()*2));
-    if(x<1||x>=W-1||occ[y*W+x]) continue;
-    const gg=ground[y][x];
-    if(gg!=='k'&&gg!=='s'&&gg!=='g'&&gg!=='G') continue;
-    occ[y*W+x]=1;
-    trees.push({x,y,h:0.4+rnd()*0.7,k:'roca',s:(rnd()*1e6)|0});
-  }
-  trees.sort((a,b)=>a.y-b.y);
+/* un solo campo de ruido para todo el mundo */
+const semillaMundo = NVg.hashStr(NVg.CONFIG.seed);
+const ruidoA = NVg.makeNoise(NVg.mulberry(semillaMundo));
+const ruidoB = NVg.makeNoise(NVg.mulberry(semillaMundo^0x9e37));
+const ruidoC = NVg.makeNoise(NVg.mulberry(semillaMundo^0x5f1d));
 
-  /* una hoguera en el claro, a unos pasos del punto de partida */
-  const inicio=buscarClaro({w:W,h:H,ground,occ});
-  let hog=null;
-  for(const [dx,dy] of [[3,-2],[-3,-2],[3,2],[-3,2],[0,-4],[0,4],[5,0],[-5,0]]){
-    const x=inicio.x+dx, y=inicio.y+dy;
-    if(x<2||y<2||x>=W-2||y>=H-2) continue;
-    if(occ[y*W+x]) continue;
-    const g=ground[y][x];
-    if(g!=='g'&&g!=='G') continue;
-    hog={x,y}; break;
-  }
-  if(hog){
-    occ[hog.y*W+hog.x]=1;
-    trees.push({x:hog.x,y:hog.y,h:0.9,k:'hoguera',s:4242});
-    trees.sort((a,b)=>a.y-b.y);   // el dibujo recorre por profundidad: sin esto no se ve
-  }
-  /* resplandor del fuego, guardado por casilla */
-  const fuego=new Float32Array(W*H);
-  if(hog){
-    const R=16;                       // metros que alcanza el resplandor
-    for(let j=-R;j<=R;j++) for(let i=-R;i<=R;i++){
-      const x=hog.x+i, y=hog.y+j;
-      if(x<0||y<0||x>=W||y>=H) continue;
-      const d=Math.hypot(i,j*1.25);
-      if(d>R) continue;
-      fuego[y*W+x]=Math.pow(1-d/R,1.5)*2.4;
-    }
-  }
+/* El arroyo baja de norte a sur por el tercio oeste del claro y echa un brazo
+   al este. Como se define en coordenadas del mundo, el panel de al lado lo
+   continúa solo. */
+const ejeArroyo = gy => 34 + ruidoA(gy*3,0,3,0.020)*26-13 + Math.sin(gy*0.07)*4;
+const anchoArroyo = gy => 1.4 + ruidoA(0,gy*5,2,0.03)*1.9;
+const BIFY = 46;                                   // altura del brazo al este
+const ejeBrazo = gx => BIFY + ruidoA(gx*4,900,3,0.022)*18-9;
 
-  /* mapa general: un glifo por objeto, el pasto no se dibuja */
-  const mapG=[];
-  for(let y=0;y<H;y++) mapG.push(' '.repeat(W));
-  for(const t of trees){
-    if(t.k==='arbol') put(mapG,t.x,t.y,'T');
-    else if(t.k==='roca') put(mapG,t.x,t.y,'o');
-    else if(t.k==='caido') for(let k=0;k<(t.len||2);k++) put(mapG,t.x+k,t.y,'=');
-  }
-  const shade=new Float32Array(W*H).fill(1);
-  return {name:cfg.name,w:W,h:H,ground,mid,trees,shade,occ,mapG,flow,fuego,hoguera:hog,cfg};
+function nuevoPanel(L){
+  return {ground:[], occ:new Uint8Array(L*L), trees:[],
+          flow:new Uint8Array(L*L), fuego:new Float32Array(L*L),
+          shade:new Float32Array(L*L).fill(1)};
 }
-function calcularSombras(Wd){
-  const W=Wd.w,H=Wd.h, shade=Wd.shade, S=NV.cielo?NV.cielo.sombra:{dx:-1,dy:0,porMetro:1.7};
-  shade.fill(1);
-  if(S.porMetro<=0.02){                      // de noche no hay sombra proyectada
-    for(const t of Wd.trees){ const i=t.y*W+t.x; shade[i]=Math.min(shade[i],0.5); }
+const poner=(p,L,x,y,c)=>{ if(x<0||y<0||x>=L||y>=L) return;
+  p.ground[y]=p.ground[y].slice(0,x)+c+p.ground[y].slice(x+1); };
+const libre=(p,L,x,y)=>{
+  if(x<1||y<1||x>=L-1||y>=L-1) return false;
+  if(p.occ[y*L+x]) return false;
+  const g=p.ground[y][x];
+  return g==='g'||g==='G'||g==='N'||g==='D'||g==='k';
+};
+
+/* ---------- el claro, 0:0 ---------- */
+function bioClaro(p,L,ox,oy,rnd){
+  for(let y=0;y<L;y++){
+    let fila='';
+    for(let x=0;x<L;x++) fila += ruidoA(ox+x,oy+y,4,0.055)>0.50?'G':'g';
+    p.ground.push(fila);
+  }
+  arroyo(p,L,ox,oy,true);
+  arboles(p,L,ox,oy,rnd,{densidad:0.009, claro:true});
+  piedrasYtroncos(p,L,ox,oy,rnd,34,12);
+}
+
+/* ---------- oeste, -1:0 — bosque viejo, lago, ruinas y la pared de roca ---------- */
+function bioOeste(p,L,ox,oy,rnd){
+  const lago={x:46,y:52,r:19};
+  for(let y=0;y<L;y++){
+    let fila='';
+    for(let x=0;x<L;x++){
+      const gx=ox+x;
+      /* el borde oeste del mundo es roca viva: no se pasa */
+      const pared = 16 - ruidoB(gx,oy+y,3,0.07)*9;
+      if(x < pared){ fila += 'M'; continue; }
+      if(x < pared+4 && ruidoB(gx+7,oy+y,2,0.12)>0.45){ fila += 'M'; continue; }
+      const d=Math.hypot(x-lago.x,(y-lago.y)*1.2);
+      if(d<lago.r-3) { fila+='P'; continue; }
+      if(d<lago.r)   { fila+= d<lago.r-1?'a':'k'; continue; }
+      if(d<lago.r+2) { fila+='s'; continue; }
+      fila += ruidoA(gx,oy+y,4,0.05)>0.44?'G':'g';
+    }
+    p.ground.push(fila);
+  }
+  arboles(p,L,ox,oy,rnd,{densidad:0.016, viejos:true});
+  /* el árbol místico, solo, al borde del lago */
+  for(const [dx,dy] of [[22,-4],[24,6],[20,10],[26,-10]]){
+    const x=lago.x+dx, y=lago.y+dy;
+    if(!libre(p,L,x,y)) continue;
+    p.occ[y*L+x]=1;
+    p.trees.push({x,y,h:8.2,k:'arbol',sp:'mistico',s:777});
+    break;
+  }
+  /* ruinas: cuatro muros caídos de piedra */
+  for(let i=0;i<4;i++){
+    const rx=24+((rnd()*52)|0), ry=14+((rnd()*70)|0);
+    const an=4+((rnd()*7)|0), al=3+((rnd()*5)|0);
+    for(let j=0;j<al;j++) for(let k=0;k<an;k++){
+      const borde=(j===0||k===0||j===al-1||k===an-1);
+      if(!borde || rnd()<0.35) continue;            // muros rotos, no cajas
+      const x=rx+k, y=ry+j;
+      if(x<1||y<1||x>=L-1||y>=L-1) continue;
+      if(p.ground[y][x]==='P'||p.ground[y][x]==='M') continue;
+      poner(p,L,x,y,'R'); p.occ[y*L+x]=1;
+    }
+  }
+  piedrasYtroncos(p,L,ox,oy,rnd,46,16);
+}
+
+/* ---------- este, 1:0 — el río ancho, el acantilado y el mar ---------- */
+function bioEste(p,L,ox,oy,rnd){
+  const borde=62;                                   // dónde empieza el acantilado
+  for(let y=0;y<L;y++){
+    let fila='';
+    for(let x=0;x<L;x++){
+      const gx=ox+x, gy=oy+y;
+      if(x>borde+3){ fila += x>borde+6?'P':'E'; continue; }   // mar y rompiente
+      if(x>borde)  { fila += 'M'; continue; }                 // el filo del acantilado
+      /* el río, que viene del brazo del claro y se ensancha hacia el mar */
+      const eje=ejeBrazo(gx);
+      const ancho=2.2 + (x/borde)*7.5 + ruidoA(gx*6,300,2,0.035)*2;
+      const d=Math.abs(y-eje);
+      if(d<ancho*0.55){ fila+='P'; p.flow[y*L+x]=1; continue; }
+      if(d<ancho)     { fila+='A'; p.flow[y*L+x]=1; continue; }
+      if(d<ancho+1.6) { fila+='a'; continue; }
+      if(d<ancho+3.4) { fila+='s'; continue; }
+      if(d<ancho+5)   { fila+='k'; continue; }
+      fila += ruidoA(gx,gy,4,0.05)>0.52?'G':'g';
+    }
+    p.ground.push(fila);
+  }
+  arboles(p,L,ox,oy,rnd,{densidad:0.007, hasta:borde-6});
+  piedrasYtroncos(p,L,ox,oy,rnd,30,8);
+}
+
+/* ---------- norte, 0:1 — bosque frondoso y corte seco al desierto ---------- */
+function bioNorte(p,L,ox,oy,rnd){
+  for(let y=0;y<L;y++){
+    let fila='';
+    for(let x=0;x<L;x++){
+      const gx=ox+x, gy=oy+y;
+      /* el corte no es recto: serpentea, pero es abrupto */
+      const corte = 44 + ruidoC(gx,0,3,0.03)*26-13;
+      if(y < corte){ fila += ruidoB(gx+9,gy,2,0.10)>0.72?'k':'D'; continue; }   // duna, con algún pedregal
+      if(y < corte+2){ fila += 's'; continue; }                  // la franja donde el bosque se corta
+      fila += ruidoA(gx,gy,4,0.05)>0.38?'G':'g';
+    }
+    p.ground.push(fila);
+  }
+  arboles(p,L,ox,oy,rnd,{densidad:0.030, desde:'corte'});
+  piedrasYtroncos(p,L,ox,oy,rnd,26,10);
+}
+
+/* ---------- sur, 0:-1 — pinos que se separan, frío y nieve ---------- */
+function bioSur(p,L,ox,oy,rnd){
+  for(let y=0;y<L;y++){
+    let fila='';
+    for(let x=0;x<L;x++){
+      const gx=ox+x, gy=oy+y;
+      const nieve = (y-30)/70 + ruidoC(gx,gy,3,0.04)*0.45-0.22;
+      if(nieve>0.52){ fila+='N'; continue; }
+      if(nieve>0.34){ fila+= ruidoB(gx,gy,2,0.09)>0.5?'N':'g'; continue; }
+      fila += ruidoA(gx,gy,4,0.05)>0.56?'G':'g';
+    }
+    p.ground.push(fila);
+  }
+  arboles(p,L,ox,oy,rnd,{densidad:0.020, soloPino:true, raleando:true});
+  piedrasYtroncos(p,L,ox,oy,rnd,24,14);
+}
+
+/* ---------- piezas comunes ---------- */
+function arroyo(p,L,ox,oy,conBrazo){
+  for(let y=0;y<L;y++) for(let x=0;x<L;x++){
+    const gx=ox+x, gy=oy+y;
+    let pr=0, este=false;
+    const d1=Math.abs(gx-ejeArroyo(gy)), w1=anchoArroyo(gy);
+    if(d1<w1+3.8) pr=1-d1/(w1+3.8);
+    if(conBrazo && gx>=34){
+      const d2=Math.abs(gy-ejeBrazo(gx)), w2=1.1+ruidoA(gx*6,300,2,0.035)*1.6;
+      if(d2<w2+3.4 && 1-d2/(w2+3.4)>pr){ pr=1-d2/(w2+3.4); este=true; }
+    }
+    if(pr<=0) continue;
+    poner(p,L,x,y, pr>0.58?'A' : pr>0.34?'a' : pr>0.12?'s' : 'k');
+    if(pr>0.34) p.flow[y*L+x]=este?1:0;
+  }
+}
+function arboles(p,L,ox,oy,rnd,op){
+  const cx=L/2, cy=L/2;
+  for(let y=1;y<L-1;y++) for(let x=1;x<L-1;x++){
+    const gx=ox+x, gy=oy+y;
+    let f=ruidoA(gx+90,gy+90,3,0.035);
+    if(op.claro){ const d=Math.hypot(x-cx,y-cy); f-=Math.max(0,1-d/22)*0.55; }
+    if(op.hasta && x>op.hasta) continue;
+    if(op.raleando) f -= (y/L)*0.45;                 // hacia el sur, cada vez menos
+    if(f<0.46) continue;
+    const g=p.ground[y][x];
+    if(g!=='g'&&g!=='G'&&!(op.soloPino&&g==='N')) continue;
+    if(rnd()>op.densidad*(0.5+f)*6) continue;
+    let cerca=false;
+    for(let j=-1;j<=1&&!cerca;j++) for(let i=-1;i<=1;i++) if(p.occ[(y+j)*L+(x+i)]){ cerca=true; break; }
+    if(cerca) continue;
+    p.occ[y*L+x]=1;
+    let sp;
+    if(op.soloPino) sp='pino';
+    else {
+      const hum=ruidoB(gx+3000,gy+3000,3,0.040), alt=ruidoC(gx+770,gy+120,2,0.030);
+      sp = hum>0.58?'alamo' : alt>0.54?'pino' : 'encino';
+    }
+    const A=NVg.SPECIES[sp].alto;
+    let h=A[0]+rnd()*(A[1]-A[0]);
+    if(op.viejos) h*=1.55;                           // el bosque viejo es alto
+    p.trees.push({x,y,h,k:'arbol',sp,s:(rnd()*1e6)|0});
+  }
+}
+function piedrasYtroncos(p,L,ox,oy,rnd,nPiedras,nTroncos){
+  for(let i=0;i<nPiedras;i++){
+    const x=2+((rnd()*(L-4))|0), y=2+((rnd()*(L-4))|0);
+    if(!libre(p,L,x,y)) continue;
+    p.occ[y*L+x]=1;
+    p.trees.push({x,y,h: rnd()<0.35?1.2+rnd()*0.9:0.5+rnd()*0.5, k:'roca', s:(rnd()*1e6)|0});
+  }
+  for(let i=0;i<nTroncos;i++){
+    const len=2+((rnd()*3)|0), x=3+((rnd()*(L-8))|0), y=2+((rnd()*(L-4))|0);
+    let ok=true;
+    for(let k=0;k<len;k++) if(!libre(p,L,x+k,y)) ok=false;
+    if(!ok) continue;
+    for(let k=0;k<len;k++) p.occ[y*L+x+k]=1;
+    p.trees.push({x,y,h:0.6,k:'caido',len,s:(rnd()*1e6)|0});
+  }
+}
+
+/* ---------- entrada ---------- */
+function generarPanel(pi,pj,def,L){
+  const rnd=NVg.mulberry(NVg.hashStr(NVg.CONFIG.seed+':'+pi+','+pj));
+  const p=nuevoPanel(L);
+  const ox=pi*L, oy=pj*L;
+  ({claro:bioClaro, oeste:bioOeste, este:bioEste, norte:bioNorte, sur:bioSur}[def.bioma])(p,L,ox,oy,rnd);
+
+  /* la hoguera, solo en el claro */
+  if(def.bioma==='claro'){
+    const c=buscarClaro(p,L);
+    for(const [dx,dy] of [[3,-2],[-3,-2],[3,2],[-3,2],[0,-4],[0,4],[5,0]]){
+      const x=c.x+dx, y=c.y+dy;
+      if(!libre(p,L,x,y)) continue;
+      p.occ[y*L+x]=1;
+      p.trees.push({x,y,h:0.9,k:'hoguera',s:4242});
+      p.hoguera={x,y};
+      const R=16;
+      for(let j=-R;j<=R;j++) for(let i=-R;i<=R;i++){
+        const fx=x+i, fy=y+j;
+        if(fx<0||fy<0||fx>=L||fy>=L) continue;
+        const d=Math.hypot(i,j*1.25);
+        if(d<=R) p.fuego[fy*L+fx]=Math.pow(1-d/R,1.5)*2.4;
+      }
+      break;
+    }
+    p.inicio=c;
+  }
+  p.trees.sort((a,b)=>a.y-b.y);
+
+  /* mapa general: un glifo por objeto */
+  p.mapG=[];
+  for(let y=0;y<L;y++) p.mapG.push(' '.repeat(L));
+  const pm=(x,y,c)=>{ if(x<0||y<0||x>=L||y>=L) return;
+    p.mapG[y]=p.mapG[y].slice(0,x)+c+p.mapG[y].slice(x+1); };
+  for(const t of p.trees){
+    if(t.k==='arbol') pm(t.x,t.y,t.sp==='mistico'?'Y':'T');
+    else if(t.k==='hoguera') pm(t.x,t.y,'f');
+  }
+  calcularSombras(p,L);
+  return p;
+}
+
+/* Sombras del panel. El sol las mueve; de noche no hay. */
+function calcularSombras(p,L){
+  const S=NVg.cielo?NVg.cielo.sombra:{dx:-1,dy:0,porMetro:1.7};
+  p.shade.fill(1);
+  if(S.porMetro<=0.02){
+    for(const t of p.trees){ const i=t.y*L+t.x; p.shade[i]=Math.min(p.shade[i],0.5); }
     return;
   }
-  for(const t of Wd.trees){
-    const L=Math.max(1,Math.round(t.h*S.porMetro));
+  for(const t of p.trees){
+    const largo=Math.max(1,Math.round(t.h*S.porMetro));
     const ancho=t.k==='arbol'?1:0, span=t.k==='caido'?(t.len||1):1;
-    for(let sx=0;sx<span;sx++) for(let d=0;d<=L;d++){
+    for(let sx=0;sx<span;sx++) for(let d=0;d<=largo;d++){
       const x=Math.round(t.x+sx+S.dx*d), y=Math.round(t.y+S.dy*d);
-      if(x<0||y<0||x>=W||y>=H) break;
-      const str=0.32+0.58*(d/L);
+      if(x<0||y<0||x>=L||y>=L) break;
+      const str=0.32+0.58*(d/largo);
       for(let j=-ancho;j<=ancho;j++){
-        const yy=y+j; if(yy<0||yy>=H) continue;
-        const v=j===0?str:str+0.22, i=yy*W+x;
-        if(v<shade[i]) shade[i]=v;
+        const yy=y+j; if(yy<0||yy>=L) continue;
+        const v=j===0?str:str+0.22, i=yy*L+x;
+        if(v<p.shade[i]) p.shade[i]=v;
       }
     }
-    const i0=t.y*W+t.x; shade[i0]=Math.min(shade[i0],0.28);
+    const i0=t.y*L+t.x; p.shade[i0]=Math.min(p.shade[i0],0.28);
   }
 }
 
-function buscarClaro(Wd){
-  const cx=Math.round(Wd.w/2), cy=Math.round(Wd.h/2);
-  const libre=(x,y)=>{
-    if(x<4||y<4||x>=Wd.w-4||y>=Wd.h-4) return false;
-    const g=Wd.ground[y][x];
-    if(g!=='g'&&g!=='G') return false;
+function buscarClaro(p,L){
+  const cx=Math.round(L/2), cy=Math.round(L/2);
+  const bien=(x,y)=>{
+    if(!libre(p,L,x,y)) return false;
     for(let j=-3;j<=3;j++) for(let i=-3;i<=3;i++){
       const xx=x+i, yy=y+j;
-      if(xx<0||yy<0||xx>=Wd.w||yy>=Wd.h) continue;
-      if(Wd.occ[yy*Wd.w+xx]) return false;
+      if(xx<0||yy<0||xx>=L||yy>=L) continue;
+      if(p.occ[yy*L+xx]) return false;
     }
     return true;
   };
-  for(let r=0;r<Math.max(Wd.w,Wd.h);r++)
-    for(let j=-r;j<=r;j++) for(let i=-r;i<=r;i++){
-      if(Math.max(Math.abs(i),Math.abs(j))!==r) continue;
-      if(libre(cx+i,cy+j)) return {x:cx+i,y:cy+j};
-    }
+  for(let r=0;r<L;r++) for(let j=-r;j<=r;j++) for(let i=-r;i<=r;i++){
+    if(Math.max(Math.abs(i),Math.abs(j))!==r) continue;
+    if(bien(cx+i,cy+j)) return {x:cx+i,y:cy+j};
+  }
   return {x:cx,y:cy};
 }
-function findSpawn(Wd){
-  const cx=Math.round(Wd.w/2), cy=Math.round(Wd.h/2);
-  const libre=(x,y)=>{
-    if(x<2||y<2||x>=Wd.w-2||y>=Wd.h-2) return false;
-    const g=Wd.ground[y][x];
-    if(g!=='g'&&g!=='G') return false;
-    for(let j=-3;j<=3;j++) for(let i=-3;i<=3;i++){
-      const xx=x+i, yy=y+j;
-      if(xx<0||yy<0||xx>=Wd.w||yy>=Wd.h) continue;
-      if(Wd.occ[yy*Wd.w+xx]) return false;
-    }
-    return true;
-  };
-  for(let r=0;r<Math.max(Wd.w,Wd.h);r++)
-    for(let j=-r;j<=r;j++) for(let i=-r;i<=r;i++){
-      if(Math.max(Math.abs(i),Math.abs(j))!==r) continue;
-      if(libre(cx+i,cy+j)) return {x:cx+i,y:cy+j};
-    }
-  return {x:cx,y:cy};
-}
-const solidAt=(x,y)=>(!world||x<0||y<0||x>=world.w||y>=world.h)?true:!!world.occ[y*world.w+x];
-const groundAt=(x,y)=>(x<0||y<0||x>=world.w||y>=world.h)?'g':world.ground[y][x];
 
-NV.build=build; NV.buscarClaro=buscarClaro; NV.calcularSombras=calcularSombras; NV.findSpawn=findSpawn; NV.solidAt=solidAt; NV.groundAt=groundAt;
+NVg.generarPanel=generarPanel; NVg.calcularSombras=calcularSombras;
+NVg.buscarClaro=buscarClaro; NVg.ejeArroyo=ejeArroyo;

@@ -2,7 +2,7 @@
 const cargar=require('./cargar.js');
 const NV=cargar();
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
-const w=NV.build(NV.CONFIG);
+const w=NV.panel(0,0);
 NV.actualizarCielo(Date.now());
 
 console.log('=== niebla por hora del día (suma sobre el tercio oeste) ===');
@@ -25,7 +25,7 @@ probar('el banco de niebla se desplaza', Math.abs(a-b)>0.02);
 
 console.log('\n=== hoguera ===');
 const h=w.trees.filter(t=>t.k==='hoguera');
-const sp=NV.findSpawn(w);
+const sp=w.inicio;
 console.log('  hoguera en', JSON.stringify(w.hoguera), '· partida en', JSON.stringify(sp),
             '· distancia', Math.round(Math.hypot(w.hoguera.x-sp.x,w.hoguera.y-sp.y)), 'm');
 let celdas=0, maxg=0;
@@ -34,7 +34,7 @@ console.log('  resplandor sobre', celdas, 'casillas · máximo', maxg.toFixed(2)
 probar('hay una sola hoguera', h.length===1);
 probar('está cerca del punto de partida', Math.hypot(w.hoguera.x-sp.x,w.hoguera.y-sp.y)<8);
 probar('alumbra alrededor', celdas>80 && maxg>1);
-probar('no se puede caminar sobre el fuego', NV.solidAt(w.hoguera.x,w.hoguera.y));
+probar('no se puede caminar sobre el fuego', NV.solidoEn(w.hoguera.x,w.hoguera.y));
 
 console.log('\n=== la llama late, no parpadea al azar ===');
 const vals=[]; for(let i=0;i<40;i++) vals.push(NV.titilar? NV.titilar(i*0.05):null);
@@ -47,12 +47,12 @@ if(vals[0]!==null){
 // La hoguera tiene que terminar DIBUJADA, no solo existir en los datos.
 // (Se agregó tras descubrir que se añadía al mundo después de ordenar por profundidad.)
 {
-  const m=require('./cargar.js')('module.exports={draw_, fbG:()=>fbG, fbC:()=>fbC, tictac, world:()=>world};');
+  const m=require('./cargar.js')('module.exports={draw_, fbG:()=>fbG, fbC:()=>fbC, tictac};');
   m.tictac(); m.draw_();
   const g=m.fbG(), c=m.fbC(); let llama=0;
   for(let i=0;i<g.length;i++){ if(!g[i]) continue; const v=c[i];
     if(((v>>16)&255)>200 && ((v>>8)&255)>100 && (v&255)<120) llama++; }
-  const t=m.world().trees; let ord=true;
+  const t=NV.panel(0,0).trees; let ord=true;
   for(let i=1;i<t.length;i++) if(t[i].y<t[i-1].y) ord=false;
   console.log('\n=== la hoguera en pantalla ===');
   console.log('  glifos de llama dibujados:', llama, '· objetos ordenados por profundidad:', ord?'sí':'no');

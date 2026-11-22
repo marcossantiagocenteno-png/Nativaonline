@@ -244,11 +244,36 @@ sabiendo algo— construye mitología.
 
 ## 7. El mapa por paneles
 
-El mundo es una cuadrícula de paneles, como un tablero de ajedrez. Cada panel se
-genera de una semilla y guarda **solo lo que cambió**. Si el ruido es continuo
-entre paneles, las costuras no se ven y el bosque puede ser enorme.
+El mundo es una cuadrícula de paneles de **100 × 100 metros**. El claro es el
+**0:0**. Se nombran con ejes cartesianos: **x crece al este, y crece al norte**.
 
-Prueba de fuego: **10 × 10 paneles**. Si eso corre bien, se amplía.
+```
+              (0:1) norte
+   (-1:0) oeste   [0:0] claro   (1:0) este
+              (0:-1) sur
+```
+
+Hacia adentro del código la y crece al sur, que es como se dibuja la pantalla.
+Las dos coordenadas conviven y se traducen en un solo lugar: `src/mundo/paneles.js`.
+
+**El ruido se muestrea en coordenadas del mundo, no del panel**, así que el
+terreno cruza las costuras sin un escalón. Medido en el borde oeste del claro:
+cero cambios de tipo en 27 puntos de la juntura.
+
+Los cinco paneles de prueba:
+
+| | nombre | qué hay |
+|---|---|---|
+| **0:0** | El claro | pasto, arroyo con brazo al este, la hoguera |
+| **-1:0** | El bosque viejo | árboles un 55% más altos, un lago, cuatro ruinas de muro, el árbol místico, y una pared de roca viva en el borde oeste que cierra el mundo |
+| **1:0** | El acantilado | el brazo del arroyo se ensancha y ahonda hasta el filo; abajo el mar, con rompiente que late al ritmo de la marea |
+| **0:1** | El filo del desierto | bosque frondoso y un corte abrupto, serpenteante, a dunas |
+| **0:-1** | Los pinos fríos | pinos que ralean hacia el sur —148 en la mitad norte contra 3 en la sur— y nieve que gana terreno |
+
+Cada panel se genera de su propia semilla derivada de la del mundo, y queda en
+memoria. Todavía no guarda lo que cambia: eso llega cuando haya algo que cambiar.
+
+Siguiente paso cuando el mundo esté listo: **10 × 10 paneles**.
 
 ---
 

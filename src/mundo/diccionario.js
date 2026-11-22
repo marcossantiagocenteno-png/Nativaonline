@@ -16,7 +16,13 @@ const MAT={                                   // capa SUELO, en uso
   s:{n:'arena de río',fam:'arena',  ramp:['.','.',':','\u00b0',':']},
   k:{n:'guijarral',   fam:'piedra', ramp:['.',':','\u00b0','o','c']},
   a:{n:'agua somera', fam:'agua',   ramp:[' ','.','-','~','-'], agua:1.22},
-  A:{n:'corriente',   fam:'agua',   ramp:['-','~','~','=','~'], agua:1.00}
+  A:{n:'corriente',   fam:'agua',   ramp:['-','~','~','=','~'], agua:1.00},
+  P:{n:'agua honda',  fam:'honda',  ramp:['~','=','_','_','_'], agua:0.62, solido:true},
+  E:{n:'espuma',      fam:'espuma', ramp:['-','~','=','*','#'], agua:1.25},
+  M:{n:'roca madre',  fam:'piedra', ramp:['.','^','A','M','M'], solido:true},
+  R:{n:'ruina',       fam:'piedra', ramp:['.',':','#','%','#'], solido:true},
+  N:{n:'nieve',       fam:'nieve',  ramp:[' ','.','\u00b0','*','*']},
+  D:{n:'duna',        fam:'arena',  ramp:['.','.',':',';',':']}
 };
 const MID={};                                 // sotobosque: vacío por ahora
 /* Reservado: acordado, fuera del mundo actual. */
@@ -26,6 +32,9 @@ const RESERVA={
 };
 /* Tres especies, cada una con su silueta, su rampa de follaje y su corteza. */
 const SPECIES={
+  mistico:{n:'árbol místico', fam:'hueso', corteza:'hueso',
+          copa:[' ','.','/','\\','|','Y','y'], borde:[' ','.','/','\\'],
+          w:1.35, troncoFrac:0.30, tiers:0, sway:0.3, alto:[7,9], seco:true},
   pino:{  n:'pino',   fam:'pino',   corteza:'corteza',
           copa:[' ','.',':',';','*','A','#'], borde:[' ','.',':','^'],
           w:0.42, troncoFrac:0.46, tiers:4, sway:0.5, alto:[4.5,6.5]},

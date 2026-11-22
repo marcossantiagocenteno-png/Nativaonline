@@ -15,10 +15,15 @@ const gustN=makeNoise(mulberry(7717));
 function move(dx,dy){
   facing=dy<0?'norte':dy>0?'sur':dx>0?'este':'oeste';
   const nx=me.x+dx,ny=me.y+dy;
-  if(nx<0||ny<0||nx>=world.w||ny>=world.h){ bubble('El claro termina acá.'); return; }
-  if(solidAt(nx,ny)){ bubble('Algo sólido te corta el paso.'); return; }
-  const gq=groundAt(nx,ny);
-  if(gq==='A') bubble('El agua te llega a los tobillos y arrastra para el sur.');
+  const gq=NV.sueloEn(nx,ny);
+  if(!gq){ bubble('Más allá no hay nada todavía: el mundo termina acá.'); return; }
+  if(NV.solidoEn(nx,ny)){
+    bubble(gq==='M'?'Pared de roca: por acá no se pasa.'
+         : gq==='R'?'Un muro caído te corta el paso.'
+         : gq==='P'?'El agua es honda. No se cruza.'
+         : 'Algo sólido te corta el paso.');
+    return; }
+  if(gq==='A') bubble('El agua te llega a los tobillos y arrastra.');
   else if(gq==='a') bubble('Pisás el arroyo; apenas te moja las botas.');
   me.x=nx; me.y=ny; hide(); requestDraw(); drawMap(); guardar();
 }
@@ -54,7 +59,7 @@ function guardar(forzar){
   ultGuardado=ahora; guardadoPendiente=false;
   try{
     localStorage.setItem(CLAVE, JSON.stringify({
-      semilla:world.cfg.seed, x:me.x, y:me.y, mirando:facing,
+      semilla:NV.CONFIG.seed, x:me.x, y:me.y, mirando:facing,
       zoom:zi, mapa:mapOn, ts:ahora
     }));
   }catch(e){}
@@ -62,9 +67,9 @@ function guardar(forzar){
 function cargarGuardado(){
   let d=null;
   try{ d=JSON.parse(localStorage.getItem(CLAVE)||'null'); }catch(e){}
-  if(!d||d.semilla!==world.cfg.seed) return null;
-  if(!(d.x>=0&&d.y>=0&&d.x<world.w&&d.y<world.h)) return null;
-  if(NV.solidAt(d.x,d.y)) return null;
+  if(!d||d.semilla!==NV.CONFIG.seed) return null;
+  if(!NV.sueloEn(d.x,d.y)) return null;
+  if(NV.solidoEn(d.x,d.y)) return null;
   return d;
 }
 function olvidarGuardado(){ try{ localStorage.removeItem(CLAVE); }catch(e){} }
@@ -78,9 +83,11 @@ function tictac(){
   if(sol){ sol.style.left=(c.fase*100).toFixed(2)+'%'; sol.textContent=c.deNoche?'(':'*'; }
   if(world && Math.abs(c.fase-ultSol)>0.004){      // cada ~30 s reales
     ultSol=c.fase;
-    NV.calcularSombras(world);
+    NV.recalcularSombras();
   }
   if(guardadoPendiente) guardar(true);            // nada se pierde por el freno
+  const p=NV.panelDe(me.x,me.y);
+  if(p&&p!==world){ world=p; $('wname').textContent=p.nombre; NV.olvidarObjetos(); }
   return c;
 }
 function restartAnim(){
@@ -133,28 +140,32 @@ function toggleMap(v){
 const MAPW=26, MAPH=16;
 function drawMap(){
   if(!mapOn||!world) return;
+  const P=world, L=NV.LADO;
+  const lx=((me.x%L)+L)%L, ly=((me.y%L)+L)%L;
   const el=$('mapTx');
-  const sx=world.w/MAPW, sy=world.h/MAPH;
-  const px=Math.floor(me.x/sx), py=Math.floor(me.y/sy);
+  const sx=L/MAPW, sy=L/MAPH;
+  const px=Math.floor(lx/sx), py=Math.floor(ly/sy);
   let out='';
   for(let r=0;r<MAPH;r++){
     let line='';
     for(let c=0;c<MAPW;c++){
       if(c===px&&r===py){ line+='<b>X</b>'; continue; }
-      let hay=false;
-      const y0=Math.floor(r*sy), y1=Math.min(world.h,Math.ceil((r+1)*sy));
-      const x0=Math.floor(c*sx), x1=Math.min(world.w,Math.ceil((c+1)*sx));
-      for(let y=y0;y<y1&&!hay;y++){
-        const row=world.mapG[y];
-        for(let x=x0;x<x1;x++) if(row[x]==='T'){ hay=true; break; }
+      let hay=' ';
+      const y0=Math.floor(r*sy), y1=Math.min(L,Math.ceil((r+1)*sy));
+      const x0=Math.floor(c*sx), x1=Math.min(L,Math.ceil((c+1)*sx));
+      for(let y=y0;y<y1;y++){
+        const row=P.mapG[y];
+        for(let x=x0;x<x1;x++) if(row[x]!==' '){ hay=row[x]; break; }
+        if(hay!==' ') break;
       }
-      line += hay?'T':'\u00b7';
+      line += hay===' '?'\u00b7':hay;
     }
     out+=line+'\n';
   }
   el.innerHTML=out;
   const cab=$('mapCab');
-  if(cab) cab.innerHTML = NV.resumenCielo?NV.resumenCielo():'';
+  if(cab) cab.innerHTML = (NV.resumenCielo?NV.resumenCielo():'')+
+    '<div class="mcoord">'+P.nombre+' &middot; '+P.coord+'</div>';
 }
 
 
@@ -164,11 +175,11 @@ function init(){
   if(matchMedia('(pointer:coarse)').matches) document.body.classList.add('touch');
   applyLOD();
   for(const b of document.querySelectorAll('.zb')) b.classList.toggle('on',+b.dataset.z===zi);
-  world=NV.build(CONFIG);
   tictac();
-  NV.calcularSombras(world);
-  $('wname').textContent=world.name;
-  me=NV.findSpawn(world);
+  const claro=NV.panel(0,0);
+  me={x:claro.inicio.x, y:claro.inicio.y};
+  world=claro;                                  // el panel donde está el jugador
+  $('wname').textContent=claro.nombre;
   const g=cargarGuardado();
   if(g){
     me={x:g.x,y:g.y}; facing=g.mirando||facing;
@@ -195,7 +206,7 @@ function init(){
     else if(k==='e'||k===' '){ look(); e.preventDefault(); }
     else if(k==='m'){ toggleMap(); e.preventDefault(); }
 
-    else if(k==='r'&&e.shiftKey){ olvidarGuardado(); me=NV.findSpawn(world);
+    else if(k==='r'&&e.shiftKey){ olvidarGuardado(); const c=NV.panel(0,0); me={x:c.inicio.x,y:c.inicio.y};
       bubble('Volvés al claro de partida.'); requestDraw(); e.preventDefault(); }
     else if(k==='+'||k==='='){ setZoom(1); e.preventDefault(); }
     else if(k==='-'||k==='_'){ setZoom(-1); e.preventDefault(); }

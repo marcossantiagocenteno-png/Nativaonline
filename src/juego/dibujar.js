@@ -18,20 +18,22 @@ function draw_(){
   if(!world||!ctx) return;
   const t0=performance.now();
   const colsM=Math.ceil(cols/CPM), rowsM=Math.ceil(rowsN/RPM);
-  camX=clamp(Math.round(me.x-colsM/2),0,Math.max(0,world.w-colsM));
-  camY=clamp(Math.round(me.y-rowsM/2),0,Math.max(0,world.h-rowsM));
+  const LIM=NV.limites();
+  camX=clamp(Math.round(me.x-colsM/2),LIM.x0,Math.max(LIM.x0,LIM.x1-colsM));
+  camY=clamp(Math.round(me.y-rowsM/2),LIM.y0,Math.max(LIM.y0,LIM.y1-rowsM));
   fbG.fill(0); fbL.fill(0);
-  const t=frame*0.11, W=world.w;
-  const lastRow=Math.min(world.h-1,camY+rowsM+22);
-  let ti=0; while(ti<world.trees.length&&world.trees[ti].y<camY) ti++;
+  const t=frame*0.11;
+  const lastRow=Math.min(LIM.y1-1,camY+rowsM+22);
+  const objetos=NV.objetosEn(camX-2, camY-2, camX+colsM+2, lastRow+2);
+  let ti=0; while(ti<objetos.length&&objetos[ti].y<camY-4) ti++;
 
   for(let my=camY;my<=lastRow;my++){
     const rBase=(my-camY)*RPM+RPM-1;                       // fila del suelo
     const haze=0.60+0.40*((my-camY)/Math.max(1,rowsM));
     layer=0;
-    if(my<camY+rowsM) drawGroundRow(my,rBase,haze,t,W);
+    if(my<camY+rowsM) drawGroundRow(my,rBase,haze,t);
     layer=2;
-    while(ti<world.trees.length&&world.trees[ti].y===my){ drawTree(world.trees[ti],haze,t); ti++; }
+    while(ti<objetos.length&&objetos[ti].y===my){ drawTree(objetos[ti],haze,t); ti++; }
     layer=3;
     if(my===me.y) drawPlayer(haze);
   }
@@ -122,18 +124,19 @@ function dibujarLluvia(t){
   layer=0;
 }
 
-function drawGroundRow(my,rBase,haze,t,W){
+function drawGroundRow(my,rBase,haze,t){
   const colsM=Math.ceil(cols/CPM);
   let wsum=0,wn=0;
   const top=rBase-(RPM-1);                 // un metro de fondo ocupa RPM filas
   for(let mx=camX;mx<=camX+colsM;mx++){
-    if(mx<0||mx>=W) continue;
-    const type=groundAt(mx,my), mt=MAT[type]||MAT.g;
-    const sh=world.shade[my*W+mx];
+    const type=NV.sueloEn(mx,my);
+    if(!type) continue;                         // más allá del mundo conocido
+    const mt=MAT[type]||MAT.g;
+    const sh=NV.sombraEn(mx,my);
     const lp=0.84+patch(mx,my,3,0.08)*0.40;
     let light=clamp(sh*lp*haze,0,1.3);
     /* resplandor de la hoguera: más fuerte cuanto más oscuro esté todo */
-    const fg0=world.fuego?world.fuego[my*W+mx]:0;
+    const fg0=NV.fuegoEn(mx,my);
     const calor = fg0 ? fg0*(1.55-Math.min(1,NV.luz.amb)*0.95)*titilar(t) : 0;
     if(calor) light=clamp(light+calor*0.85,0,2.0);
     const w=windAt(mx,my,t); wsum+=w; wn++;
@@ -150,8 +153,15 @@ function drawGroundRow(my,rBase,haze,t,W){
           const hc=hash3(mx*CPM+k,my*RPM+sy,5);
           const jit=0.80+((hc>>3)%100)/100*0.42;
           let dens=clamp(0.34+light*jit*0.78,0,1);
-          if(mt.agua){
-            const este=world.flow[my*W+mx]===1;
+          if(type==='E'){
+            /* la rompiente: olas que llegan al acantilado con el ritmo de la
+               marea, más altas y más seguidas cuando el agua está crecida */
+            const m=NV.cielo.clima?NV.cielo.clima.marea:{amplitud:0.5};
+            const ritmo=1.1+m.amplitud*2.4;
+            const rip=0.5+0.5*Math.sin(t*ritmo-(mx*CPM+k)*0.20+sy*0.45);
+            dens=clamp(0.14+Math.pow(rip,2.4)*(0.7+m.amplitud*0.9),0,1);
+          } else if(mt.agua){
+            const este=NV.flujoEn(mx,my)===1;
             const fase=este ? (mx*CPM+k)*0.09 : (my*RPM+sy)*0.26;
             const rip=0.5+0.5*Math.sin(t*2.2-fase+(este?sy*0.3:k*0.05));
             dens=clamp(0.30+rip*0.65,0,1);
