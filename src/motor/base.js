@@ -8,14 +8,10 @@ NV.luz = NV.luz || {amb:1, r:1, g:1, b:1};   // el módulo cielo la reemplaza
 const MONO='ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace';
 
 
-/* Cada nivel tiene su propia resolución: de lejos menos caracteres por metro,
-   de cerca más. Así la cámara puede alejarse sin que la pantalla reviente. */
-const LODS=[
-  {cpm:9,  rpm:3,  fs:5},    // 1 · muy lejos
-  {cpm:18, rpm:6,  fs:6},    // 2 · media
-  {cpm:36, rpm:12, fs:8}     // 3 · cerca
-];
-let CPM=18, RPM=6, HPM=10.2;
+/* La escala es continua: el zoom no salta entre niveles. CPM y RPM —caracteres
+   y filas por metro— los recalcula el lienzo a partir de cuánto mundo se quiere
+   ver a lo ancho. Ver aplicarEscala en motor/lienzo.js. */
+let CPM=13, RPM=4, HPM=6.8;
 
 const CONFIG={ name:'Claro del norte', seed:'bosque-02', w:100, h:100,
                treeDensity:0.009, clearing:true, sunElev:30 };
@@ -70,7 +66,7 @@ function step(fam,s){ /* s 0..1 -> escalón 0..3 */
 }
 function pick(ramp,t){ return ramp[clamp(Math.round(t*(ramp.length-1)),0,ramp.length-1)]; }
 
-NV.MONO=MONO; NV.LODS=LODS; NV.CONFIG=CONFIG;
+NV.MONO=MONO; NV.CONFIG=CONFIG;
 NV.FAM=FAM; NV.RGB=RGB; NV.step=step; NV.pick=pick;
 NV.clamp=clamp; NV.esc=esc; NV.$=$;
 NV.hashStr=hashStr; NV.mulberry=mulberry; NV.hash3=hash3; NV.makeNoise=makeNoise;
