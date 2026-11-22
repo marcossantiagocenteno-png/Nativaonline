@@ -414,7 +414,9 @@ su rampa de densidad.
 
 | material | glifos | nota |
 |---|---|---|
-| piedra grande | `# % 8 0` al sol, `c o :` en sombra, `/ \ _` cantos | perfil escalonado |
+| piedra, cuatro texturas | granito `o 0 8 % #` · arenisca `- : o 8 %` · pulido `: o 0 8` · basalto `c o % # H` | en sombra cada una tiene su rampa propia |
+| estrato | `=` y `~`, con filo `°` arriba y socavón `_` abajo | exclusivo: la arenisca perdió el `=` del grano para no tapárselo |
+| grieta | `\| !` casi negro | |
 | roca madre | `. : ^ A M` más `# %` y vetas `/ \` | estratos horizontales y dos tonos de piedra en manchas |
 | tierra | `. , - _ =` con terrones `o` y guijas `°` | grano grueso |
 | el vacío | casi nada: `.` y `:` sueltos sobre negro | la caída del acantilado |
@@ -443,6 +445,74 @@ la regla 3 pide que el extremo denso sea exclusivo dentro de la capa. Viene de
 cuando se eligieron las rampas. `pruebas/arboles.js` lo informa en cada corrida.
 Cambiarlo cambia la textura del álamo tupido, que Marcos ya aprobó, así que la
 decisión es suya: queda anotado, no arreglado a escondidas.
+
+### Los quince modelos de piedra
+
+Un árbol es tronco más follaje. Una roca es otra cosa: **masa con caras
+planas**. Lo que la hace leer como piedra y no como globo es que cada cara
+reciba su propia luz —constante dentro de la cara— y que el filo entre dos caras
+se vea. Un degradado suave da un almohadón; un escalón da una piedra.
+
+| medida | los tres |
+|---|---|
+| chicas, medio metro o menos | canto rodado · lajas apiladas · piedra angulosa partida |
+| medias, uno a uno y medio | bloque facetado con liquen · piedra hendida en dos · canto medio enterrado |
+| grandes, dos a tres | bloque errático de techo plano · roca en voladizo · peñasco de estratos inclinados |
+| gigantes del pie de monte, cuatro a siete y medio | torreón de grietas verticales · mole de lomo pulido · amontonamiento de bloques |
+| acantilados de la costa | estratos horizontales · columnas fracturadas · repisas y derrumbe |
+
+La categoría la elige la altura y la variante la semilla. Las doce primeras
+llevan **silueta**: un perfil que va de la base izquierda, sube por arriba y
+baja a la base derecha, en fracciones del alto.
+
+**La silueta se parte en cadena izquierda y cadena derecha.** El punto más alto
+la corta en dos y para cada fila se interpola una x en cada cadena. Tomar el
+mínimo y el máximo de todos los cortes, que es lo primero que se hizo, rellena
+las concavidades y mata el voladizo. Con cadenas el voladizo existe: medido, la
+masa de la roca en voladizo mide 29 celdas en lo más ancho y 20 al pie.
+
+**El grano va en dos octavas**: un manchón grande que le da forma y un temblor
+celda a celda que lo desarma. Con una sola octava en bloques, la piedra salía a
+cuadros, con tiradas de tres glifos iguales seguidos. Medido, el largo medio de
+una tirada quedó entre 1,55 y 1,69 celdas.
+
+**La silueta se lee por el color, no por un contorno.** Antes se dibujaba con un
+paréntesis en cada fila y salía un caño. Ahora el oeste va casi negro y el este
+encendido: medido, el tercio este de una piedra es tres veces más brillante que
+el oeste.
+
+**El filo entre caras se quiebra fila a fila.** Derecho era una raya de regla.
+
+Las gigantes **ocupan lo que miden**: una de seis metros es casi ocho de ancho,
+así que se marca todo su pie como macizo y no se puede pasar por adentro. En un
+bosque cerrado casi nunca hay ocho metros libres seguidos, así que se insiste
+hasta diez veces por cada gigante que se quiera plantar.
+
+#### El acantilado: muro sintetizado
+
+Los acantilados no llevan silueta dibujada a mano. Un muro de dieciséis metros
+son más de doscientos caracteres de ancho, y una silueta a mano ahí da un panel
+plano con tres bandas. Se sintetizan, y se dibujan en **tajadas**: una por cada
+metro de norte a sur, cada una subiendo los metros que le toca. El ruido se
+muestrea en coordenadas **del mundo** a lo largo del eje del filo, así que dos
+tajadas vecinas calzan y la cara sale continua, sin que se note el molde —medido,
+el salto mayor entre vecinas es de 0 a 6 filas sobre paredes de 7 a 12 metros—.
+Donde el ruido sube hay un contrafuerte que recibe luz, donde baja hay una
+canaleta en sombra: eso es lo que le da volumen a una pared.
+
+Estratos y repisas van a altura **absoluta**. Atados a una fracción del borde de
+arriba, que varía tajada a tajada, se corrían de fila en fila y se deshacían en
+una franja de basura.
+
+**Problema abierto: no hay dónde ponerlos todavía.** El dibujo está hecho y
+probado, pero el filo de la costa corre norte-sur, y la cámara mira al norte: de
+cualquier pared norte-sur se ve el canto este o el oeste, nunca la cara. Y la
+cara del acantilado de la costa queda **por debajo** del filo, así que desde la
+meseta no se ve: se ve el borde de roca y después el vacío. Una cara de
+acantilado sólo se ve en esta proyección si mira al **sur**, hacia la cámara, lo
+que pide una de dos cosas: que la costa doble y haya un tramo que corra
+este-oeste, o que se pueda caminar por la playa al pie del paredón. Las dos son
+decisiones de mundo, de Marcos, no de código.
 
 ### Los nueve modelos de árbol
 

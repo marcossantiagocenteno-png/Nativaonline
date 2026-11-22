@@ -130,5 +130,134 @@ const RAMP={
   tronco: WOOD.tronco, rama: WOOD.rama
 };
 /* 4 escalones de luz por familia, nada de degradado continuo */
+/* ---------- PIEDRA ----------
+   Un árbol es tronco más follaje. Una roca es otra cosa: masa con caras planas.
+   Lo que la hace leer como piedra y no como globo es que cada cara reciba su
+   propia luz —constante dentro de la cara— y que el filo entre dos caras se
+   vea. Un degradado suave da un almohadón; un escalón da una piedra.
+
+   Cuatro texturas, cada una una rampa de ralo a tupido como manda la regla 2.
+   Cinco escalones y no cuatro, y la cara clara arranca en un glifo liviano: con
+   cuatro glifos todos densos la cara iluminada salía como un panel macizo sin
+   grano. La arenisca pierde el '=' del grano porque ése queda reservado al
+   estrato: con el mismo glifo en los dos, la repisa se perdía adentro de la
+   textura. 'grano' es de cuántas celdas son los manchones. */
+const TEX={
+  /* Cinco escalones, no cuatro, y la cara clara arranca en un glifo liviano:
+     con cuatro glifos todos densos la cara iluminada salía como un panel macizo
+     sin grano. El manchón necesita rango tonal para verse. */
+  granito:  {claro:['o','0','8','%','#'], oscuro:['.',':','o','c','%'], fam:'piedra', grano:1},
+  /* La arenisca pierde el '=' del grano: ése queda reservado al estrato. Con el
+     mismo glifo en los dos, la repisa se perdía adentro de la textura. */
+  arenisca: {claro:['-',':','o','8','%'], oscuro:['.','.',':','-','o'], fam:'roca2',  grano:3},
+  pulido:   {claro:[':','o','0','0','8'], oscuro:['.','.',':','o','o'], fam:'piedra', grano:3},
+  basalto:  {claro:['c','o','%','#','H'], oscuro:['.',':','c','o','%'], fam:'piedra', grano:1}
+};
+const LIQUEN={glifos:['°','°','*','*'], fam:'musgo'};
+/* Los quince modelos de piedra. Las chicas, medias y grandes y las gigantes del
+   pie de monte llevan silueta: 'perfil' va de la base izquierda, sube por
+   arriba y baja a la base derecha, en fracciones del alto. 'caras' dice dónde
+   se corta esa silueta en caras verticales y qué luz tiene cada una; el salto
+   de luz entre dos caras es el filo. 'estrat' son repisas que cruzan la piedra,
+   'grietas' polilíneas oscuras, 'liquen' manchas que sólo agarran en la cara
+   que da al sol, y 'pie' cuánto derrumbe hay al pie.
+
+   Los acantilados no llevan silueta: se sintetizan, porque un muro de dieciséis
+   metros son más de doscientos caracteres de ancho y una silueta a mano ahí da
+   un panel plano. Llevan en cambio cuánto relieve tiene la cara, cada cuántos
+   metros hay una canaleta, cuánto se quiebra el borde de arriba, cada cuánto
+   hay un estrato, de qué ancho son las columnas fracturadas y a qué alturas hay
+   repisas. */
+const ROCAS={
+ pequena:[
+  {id:'peq-1', n:'Canto rodado', alto:0.45, tex:'pulido',
+   perfil:[[-1.10,0],[-1.16,0.42],[-0.72,0.88],[0,1],[0.76,0.86],[1.14,0.40],[1.08,0]],
+   caras:[[-1.2,0.44],[-0.2,0.78],[0.5,1.06]], estrat:[], grietas:[],
+   liquen:[[-0.45,0.72,0.30]], pie:0},
+  {id:'peq-2', n:'Lajas apiladas', alto:0.55, tex:'arenisca',
+   perfil:[[-1.30,0],[-1.34,0.34],[-0.96,0.40],[-1.02,0.72],[-0.50,0.80],
+           [0.62,1],[1.20,0.92],[1.26,0.30],[1.18,0]],
+   caras:[[-1.4,0.40],[0.1,0.86],[0.7,1.12]],
+   estrat:[], grietas:[], liquen:[], pie:0.3}   /* medio metro: la repisa no cabe */,
+  {id:'peq-3', n:'Piedra angulosa partida', alto:0.40, tex:'granito',
+   perfil:[[-1.25,0],[-0.95,0.62],[-0.30,1],[0.28,0.94],[0.60,0.52],[1.30,0.22],[1.22,0]],
+   caras:[[-1.3,0.34],[-0.3,0.72],[0.3,1.14]], estrat:[],
+   grietas:[[[-0.30,1],[-0.10,0.30]]], liquen:[], pie:0.2}
+ ],
+ media:[
+  {id:'med-1', n:'Bloque facetado con liquen', alto:1.15, tex:'granito',
+   perfil:[[-1.05,0],[-1.12,0.50],[-0.80,0.90],[-0.10,1],[0.62,0.96],[1.00,0.58],[0.96,0]],
+   caras:[[-1.2,0.38],[-0.25,0.80],[0.45,1.14]], estrat:[],
+   grietas:[[[-0.45,0.95],[-0.20,0.22]]],
+   liquen:[[0.40,0.70,0.34],[0.10,0.86,0.22]], pie:0.35},
+  {id:'med-2', n:'Piedra hendida en dos', alto:1.30, tex:'basalto',
+   perfil:[[-1.00,0],[-1.06,0.56],[-0.62,0.94],[-0.16,0.74],[-0.04,0.98],
+           [0.46,1],[0.92,0.62],[0.88,0]],
+   caras:[[-1.1,0.36],[-0.10,0.72],[0.40,1.16]], estrat:[],
+   grietas:[[[-0.10,0.86],[-0.06,0.10]]], liquen:[], pie:0.4},
+  {id:'med-3', n:'Canto grande medio enterrado', alto:0.95, tex:'pulido',
+   perfil:[[-1.45,0],[-1.40,0.46],[-0.88,0.86],[0.05,1],[0.95,0.84],[1.42,0.42],[1.38,0]],
+   caras:[[-1.5,0.42],[-0.1,0.84],[0.6,1.10]], estrat:[], grietas:[],
+   liquen:[[-0.70,0.62,0.36]], pie:0.7}
+ ],
+ grande:[
+  {id:'gra-1', n:'Bloque errático de techo plano', alto:2.40, tex:'granito',
+   perfil:[[-0.92,0],[-0.98,0.62],[-0.86,0.96],[-0.20,1],[0.58,0.98],[0.86,0.66],[0.82,0]],
+   caras:[[-1.0,0.30],[-0.30,0.74],[0.35,1.16]], estrat:[],
+   grietas:[[[-0.55,0.96],[-0.42,0.14]],[[0.30,0.98],[0.46,0.40]]],
+   liquen:[[0.00,0.90,0.30]], pie:0.45},
+  {id:'gra-2', n:'Roca en voladizo', alto:2.80, tex:'basalto',
+   perfil:[[-0.58,0],[-0.66,0.42],[-1.10,0.66],[-1.16,0.92],[-0.30,1],
+           [0.52,0.96],[0.70,0.54],[0.52,0]],
+   caras:[[-1.2,0.26],[-0.35,0.66],[0.25,1.18]], estrat:[],
+   grietas:[[[-0.70,0.92],[-0.55,0.46]]], liquen:[[-0.60,0.84,0.26]], pie:0.5},
+  {id:'gra-3', n:'Peñasco de estratos inclinados', alto:2.10, tex:'arenisca',
+   perfil:[[-1.20,0],[-1.26,0.40],[-0.95,0.78],[-0.35,1],[0.70,0.82],[1.12,0.44],[1.08,0]],
+   caras:[[-1.3,0.38],[-0.20,0.78],[0.50,1.12]],
+   /* tres repisas y poca inclinación: con cinco y 0,085 las líneas se cruzaban
+      entre ellas y no se leía ninguna */
+   estrat:[0.28,0.52,0.78], inclinaEstrat:0.05,
+   grietas:[], liquen:[], pie:0.6}
+ ],
+ gigante:[
+  {id:'gig-1', n:'Torreón de grietas verticales', alto:6.00, tex:'basalto',
+   perfil:[[-0.46,0],[-0.52,0.34],[-0.44,0.72],[-0.50,0.94],[-0.12,1],
+           [0.34,0.96],[0.44,0.70],[0.38,0.30],[0.42,0]],
+   caras:[[-0.55,0.26],[-0.18,0.66],[0.18,1.18]], estrat:[],
+   grietas:[[[-0.30,0.98],[-0.26,0.06]],[[0.10,0.94],[0.16,0.20]],
+            [[-0.05,0.70],[-0.02,0.10]]],
+   liquen:[[-0.30,0.40,0.14]], pie:0.9},
+  {id:'gig-2', n:'Mole de lomo pulido', alto:7.50, tex:'pulido',
+   perfil:[[-0.74,0],[-0.80,0.30],[-0.66,0.64],[-0.34,0.92],[0.08,1],
+           [0.50,0.88],[0.70,0.56],[0.72,0.24],[0.66,0]],
+   caras:[[-0.85,0.34],[-0.20,0.80],[0.30,1.20]], estrat:[],
+   grietas:[[[-0.20,0.90],[-0.10,0.40]]],
+   liquen:[[-0.50,0.50,0.22],[-0.30,0.74,0.16]], pie:0.7},
+  {id:'gig-3', n:'Amontonamiento de bloques', alto:5.20, tex:'granito',
+   perfil:[[-1.05,0],[-1.10,0.32],[-0.72,0.44],[-0.80,0.70],[-0.34,0.80],
+           [-0.40,1],[0.18,0.98],[0.26,0.72],[0.72,0.64],[0.66,0.34],[0.98,0.26],[0.94,0]],
+   caras:[[-1.15,0.30],[-0.30,0.72],[0.25,1.16]],
+   estrat:[], grietas:[[[-0.72,0.44],[-0.78,0.68]],[[-0.34,0.80],[-0.38,0.99]],
+            [[0.26,0.72],[0.70,0.65]],[[0.66,0.34],[0.96,0.27]]],
+   liquen:[[0.40,0.46,0.20]], pie:1.0}
+ ],
+ /* Los acantilados NO llevan silueta dibujada a mano: se sintetizan. Un muro
+    de dieciséis metros son más de doscientos caracteres de ancho, y una silueta
+    a mano ahí da un panel plano con tres bandas. Un acantilado es borde
+    superior quebrado, contrafuertes y canaletas, estratos y derrumbe al pie,
+    repetible a lo largo de toda la costa. */
+ acantilado:[
+  {id:'aca-1', n:'Acantilado de estratos horizontales', muro:1, alto:9, ancho:16,
+   tex:'arenisca', relieve:0.34, canaleta:5.0, cresta:0.13, crestaEsc:3.2,
+   estratoCada:1.05, estratoTilt:0.012, columnas:0, repisas:[], pie:0.55},
+  {id:'aca-2', n:'Acantilado de columnas fracturadas', muro:1, alto:12, ancho:14,
+   tex:'basalto', relieve:0.22, canaleta:3.0, cresta:0.07, crestaEsc:1.4,
+   estratoCada:0, estratoTilt:0, columnas:0.95, repisas:[], pie:0.40},
+  {id:'aca-3', n:'Acantilado con repisas y derrumbe', muro:1, alto:7, ancho:18,
+   tex:'granito', relieve:0.44, canaleta:6.5, cresta:0.17, crestaEsc:4.0,
+   estratoCada:0, estratoTilt:0, columnas:0, repisas:[0.34,0.62,0.84], pie:1.30}
+ ]
+};
+NV.TEX=TEX; NV.LIQUEN=LIQUEN; NV.ROCAS=ROCAS;
 NV.MAT=MAT; NV.MID=MID; NV.RESERVA=RESERVA; NV.SPECIES=SPECIES; NV.WOOD=WOOD; NV.RAMP=RAMP;
 NV.MODELOS=MODELOS;

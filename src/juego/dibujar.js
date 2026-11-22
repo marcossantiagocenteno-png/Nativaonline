@@ -251,6 +251,240 @@ function drawGroundRow(my,rBase,haze,t){
   if(wn) wind=wsum/wn;
 }
 
+/* ---------- PIEDRA ----------
+   La categoría la elige la altura y la variante la semilla, igual que los
+   árboles. Los modelos están medidos en fracciones del alto, así que se estiran
+   solos. Ver la sección de piedra en el diccionario. */
+function categoriaRoca(h){
+  return h<0.75?'pequena' : h<1.75?'media' : h<3.5?'grande' : 'gigante';
+}
+/* La silueta se parte en CADENA IZQUIERDA y CADENA DERECHA: el perfil viene de
+   la base izquierda, sube por arriba y baja a la base derecha, así que el punto
+   más alto lo corta en dos. Tomar el mínimo y el máximo de todos los cortes
+   rellena las concavidades y mata el voladizo; con cadenas el voladizo existe. */
+const _cad=new Map();
+function cadenas(perfil){
+  let ch=_cad.get(perfil);
+  if(ch) return ch;
+  let k=0; for(let i=1;i<perfil.length;i++) if(perfil[i][1]>perfil[k][1]) k=i;
+  ch={izq:perfil.slice(0,k+1), der:perfil.slice(k).reverse()};
+  _cad.set(perfil,ch); return ch;
+}
+function enCadena(c,y){
+  for(let i=0;i<c.length-1;i++){
+    const a=c[i], b=c[i+1];
+    if((a[1]<=y&&b[1]>=y)||(b[1]<=y&&a[1]>=y)){
+      const d=b[1]-a[1];
+      return Math.abs(d)<1e-9?b[0]:a[0]+(b[0]-a[0])*(y-a[1])/d;
+    }
+  }
+  return null;
+}
+function drawRoca(tr,haze,t){
+  const R=NV.ROCAS[categoriaRoca(tr.h)];
+  const m=R[tr.s%R.length], tex=NV.TEX[m.tex], h=tr.h;
+  const bc=(tr.x-camX)*CPM+Math.floor(CPM/2), br=(tr.y-camY)*RPM+RPM-1;
+  const sem=tr.s, med=(h/2)*CPM;
+  const aC=x=>bc+Math.round(x*med);
+  const aR=y=>br-Math.round(y*h*HPM);
+  const filas=Math.max(2,Math.round(h*HPM));
+  const CH=cadenas(m.perfil);
+  const span=y=>{
+    const a=enCadena(CH.izq,y), b=enCadena(CH.der,y);
+    return (a===null||b===null)?null:(a<b?[a,b]:[b,a]);
+  };
+  const claro=tex.claro, oscuro=tex.oscuro, b2=tex.grano+2, b1=tex.grano+1;
+  /* --- derrumbe al pie: va primero, lo tapa la piedra --- */
+  if(m.pie){
+    const n=Math.round(m.pie*h*CPM*0.9);
+    for(let i=0;i<n;i++){
+      const hh=hash3(sem+i,7,1);
+      put(aC((-1+2*((hh%1000)/1000))*1.14),
+          br-Math.round((((hh>>10)%100)/100)*m.pie*0.45*h*HPM),
+          GUIJA[(hh>>5)%5], packs('piedra',(0.30+0.5*((hh>>17)%100)/100)*haze));
+    }
+  }
+  /* --- la masa, fila por fila --- */
+  for(let f=0;f<=filas;f++){
+    const y=f/filas, sp=span(y);
+    if(!sp) continue;
+    const r=aR(y);
+    if(r<-2||r>=rowsN+2) continue;
+    const spA=span(y+1/filas<=1?y+1/filas:1);
+    const cI=aC(sp[0]), cD=aC(sp[1]);
+    const cAI=spA?aC(spA[0]):0, cAD=spA?aC(spA[1]):-1;
+    /* el filo entre caras se quiebra fila a fila: derecho era una raya de regla */
+    const tiemble=((hash3(sem,r,21)%100)/100-0.5)*0.07;
+    for(let c=cI;c<=cD;c++){
+      if(c<0||c>=cols) continue;
+      const xr=(c-bc)/med;
+      let luz=m.caras[0][1];
+      for(let k=0;k<m.caras.length;k++) if(xr>=m.caras[k][0]+tiemble) luz=m.caras[k][1];
+      /* el grano va en dos octavas: un manchón que le da forma y un temblor
+         celda a celda que lo desarma. En una sola octava salía a cuadros. */
+      const v=clamp((hash3(sem+((c/b2)|0),(r/b1)|0,2)%100)*0.007
+                   +(hash3(sem+c,r,12)%100)*0.003,0,1);
+      let lz=luz*(0.88+0.24*v);
+      const rampa=luz>0.62?claro:oscuro;
+      let g=rampa[clamp(Math.round(v*(rampa.length-1)),0,rampa.length-1)];
+      if(!spA||c<cAI||c>cAD){                       // el filo de arriba
+        const dIz=spA?Math.abs(cAI-cI):9, dDe=spA?Math.abs(cAD-cD):9;
+        g=(c<cI+1&&dIz>1)?'/':(c>cD-1&&dDe>1)?'\\':((hash3(sem+c,r,4)%5)?'_':'-');
+        lz=luz*1.34;
+      }
+      /* la silueta se lee por el color, no por un paréntesis en cada fila */
+      else if(c<=cI+1) lz=luz*0.46;
+      else if(c>=cD-1) lz=luz*1.22;
+      put(c,r,g.charCodeAt(0),packs(tex.fam,lz*haze));
+    }
+  }
+  /* --- estratos: una repisa con su filo encendido y su socavón --- */
+  const tilt=m.inclinaEstrat||0, pasos=Math.round(h*CPM);
+  for(let ie=0;ie<(m.estrat||[]).length;ie++){
+    const e=m.estrat[ie];
+    for(let k=0;k<=pasos;k++){
+      const xr=-1.2+2.4*k/Math.max(1,pasos), y=e+tilt*xr;
+      if(y<=0.02||y>=0.99) continue;
+      const sp=span(y);
+      if(!sp||xr<sp[0]+0.02||xr>sp[1]-0.02) continue;
+      const c=aC(xr), r=aR(y), hh=hash3(sem+c,Math.round(e*100),3);
+      if((hh%100)<14) continue;
+      let luz=m.caras[0][1];
+      for(let q=0;q<m.caras.length;q++) if(xr>=m.caras[q][0]) luz=m.caras[q][1];
+      put(c,r,(hh>>7)%4?61:126,packs(tex.fam,luz*0.46*haze));
+      if(luz>0.62&&(hh>>9)%3) put(c,r-1,176,packs(tex.fam,luz*1.28*haze));
+      if((hh>>11)%3===0) put(c,r+1,95,packs(tex.fam,luz*0.30*haze));
+    }
+  }
+  /* --- grietas --- */
+  for(const gr of (m.grietas||[])){
+    for(let k=0;k<gr.length-1;k++){
+      const a=gr[k], b=gr[k+1];
+      const n=Math.max(2,Math.round(Math.abs(b[1]-a[1])*h*HPM));
+      for(let i=0;i<=n;i++){
+        const u=i/n;
+        const x=a[0]+(b[0]-a[0])*u+((hash3(sem+i,3,4)%100)/100-0.5)*0.04;
+        const y=a[1]+(b[1]-a[1])*u, sp=span(y);
+        if(!sp||x<sp[0]+0.03||x>sp[1]-0.03) continue;
+        put(aC(x),aR(y),(hash3(sem+i,5,6)%4)?124:33,packs(tex.fam,0.13*haze));
+      }
+    }
+  }
+  /* --- liquen: agarra en la cara que da al sol --- */
+  for(const lq of (m.liquen||[])){
+    const ri=Math.max(1,Math.round(lq[2]*med)), rj=Math.max(1,Math.round(lq[2]*h*HPM*0.8));
+    const c0=aC(lq[0]), r0=aR(lq[1]);
+    for(let j=-rj;j<=rj;j++){
+      const r=r0+j;
+      if(r<0||r>=rowsN) continue;
+      for(let i=-ri;i<=ri;i++){
+        const u=Math.hypot(i/ri,j/rj);
+        if(u>1) continue;
+        const hh=hash3(sem+c0+i,r,8);
+        if((1-u)*(0.5+0.9*((hh%100)/100))<0.42) continue;
+        const y=(br-r)/(h*HPM), sp=span(clamp(y,0,1));
+        if(!sp) continue;
+        const x=(c0+i-bc)/med;
+        if(x<sp[0]+0.04||x>sp[1]-0.04) continue;
+        put(c0+i,r,LIQ[(hh>>6)%LIQ.length],
+            packs('musgo',(0.42+0.5*((hh>>11)%100)/100)*haze));
+      }
+    }
+  }
+  /* --- la sombra al pie, cortada: lo que la apoya en el suelo --- */
+  const sp0=span(0.004);
+  if(sp0) for(let c=aC(sp0[0]);c<=aC(sp0[1]);c++){
+    const hh=hash3(sem+c,0,9);
+    if((hh%100)<26) continue;
+    put(c,br+1,(hh>>5)%3?95:46,packs(tex.fam,0.11*haze));
+  }
+}
+const GUIJA=[46,58,176,111,99];                      // . : ° o c
+const LIQ=[176,176,42,42];                           // ° ° * *
+
+/* ---------- EL ACANTILADO ----------
+   El filo de la costa corre norte-sur, así que el muro se dibuja en TAJADAS:
+   una por cada metro de norte a sur, y cada tajada sube los metros que le toca.
+   El ruido se muestrea en coordenadas DEL MUNDO a lo largo del eje del filo, así
+   que dos tajadas vecinas calzan y la cara sale continua, sin que se note el
+   molde. Donde el ruido sube hay un contrafuerte que recibe luz, donde baja hay
+   una canaleta en sombra: eso es lo que le da volumen a una pared. */
+function ruido1(s,x,esc){
+  const u=x/esc, i=Math.floor(u), f=u-i;
+  const a=(hash3(s,i,13)%1000)/1000, b=(hash3(s,i+1,13)%1000)/1000;
+  return a+(b-a)*(f*f*(3-2*f));
+}
+function drawMuro(tr,haze,t){
+  const A=NV.ROCAS.acantilado, m=A[tr.mod%A.length], tex=NV.TEX[m.tex];
+  const h=tr.h, sem=m.id.length*131+((h*10)|0), eje=tr.y;      // el eje: mundo
+  const bc=(tr.x-camX)*CPM+Math.floor(CPM/2), br=(tr.y-camY)*RPM+RPM-1;
+  const cima=h*(1-m.cresta*(0.62*ruido1(sem,eje,m.crestaEsc)
+                           +0.38*ruido1(sem+3,eje,m.crestaEsc*0.35)));
+  let rel=0.55*ruido1(sem+7,eje,m.canaleta)+0.45*ruido1(sem+9,eje,m.canaleta*0.38);
+  let enGrieta=false;
+  if(m.columnas){                                    // basalto: caras planas
+    const u=eje/m.columnas, cl=Math.floor(u), f=u-cl;
+    rel=rel*0.45+0.55*((hash3(sem+cl,0,17)%100)/100);
+    enGrieta=f<0.10||f>0.90;
+  }
+  const luzCol=0.22+1.00*(rel*(1-m.relieve)+m.relieve*0.5);
+  const filas=Math.round(cima*HPM);
+  const b2=tex.grano+2, b1=tex.grano+1;
+  const anchoC=Math.max(1,CPM);
+  for(let f=0;f<=filas;f++){
+    const y=cima*(f/Math.max(1,filas)), r=br-Math.round(y*HPM);
+    if(r<-2||r>=rowsN+2) continue;
+    const lzBase=luzCol*(0.58+0.42*Math.min(1,y/(h*0.55)));
+    for(let k=0;k<anchoC;k++){
+      const c=bc-Math.floor(anchoC/2)+k;
+      if(c<0||c>=cols) continue;
+      const v=clamp((hash3(sem+((c/b2)|0),(r/b1)|0,2)%100)*0.007
+                   +(hash3(sem+c,r,12)%100)*0.003,0,1);
+      let lz=lzBase;
+      const rampa=lz>0.62?tex.claro:tex.oscuro;
+      let g=rampa[clamp(Math.round(v*(rampa.length-1)),0,rampa.length-1)];
+      if(f===filas){ g=(hash3(sem+c,r,4)%4)?'_':'-'; lz*=1.36; }
+      else if(enGrieta){ g=(hash3(sem+c,r,6)%4)?'|':'!'; lz*=0.22; }
+      put(c,r,g.charCodeAt(0),packs(tex.fam,lz*haze));
+    }
+  }
+  /* estratos y repisas: altura ABSOLUTA. Atadas a una fracción del borde de
+     arriba, que varía tajada a tajada, se corrían de fila en fila. */
+  if(m.estratoCada) for(let e=m.estratoCada;e<cima-0.15;e+=m.estratoCada){
+    const y=e+m.estratoTilt*eje*10;
+    if(y<=0.1||y>=cima-0.1) continue;
+    const r=br-Math.round(y*HPM);
+    for(let k=0;k<anchoC;k++){
+      const c=bc-Math.floor(anchoC/2)+k, hh=hash3(sem+c,Math.round(e*100),3);
+      if((hh%100)<16) continue;
+      put(c,r,(hh>>7)%4?61:126,packs(tex.fam,luzCol*0.46*haze));
+      if(luzCol>0.62&&(hh>>9)%3) put(c,r-1,176,packs(tex.fam,luzCol*1.30*haze));
+    }
+  }
+  for(let ir=0;ir<(m.repisas||[]).length;ir++){
+    if(ruido1(sem+21+ir*5,eje,8.5)<0.38) continue;   // aparece a tramos
+    const y=h*m.repisas[ir]+0.30*(ruido1(sem+31+ir,eje,6.0)-0.5);
+    if(y<=0.2||y>=cima-0.3) continue;
+    const r=br-Math.round(y*HPM);
+    for(let k=0;k<anchoC;k++){
+      const c=bc-Math.floor(anchoC/2)+k, hh=hash3(sem+c,ir,5);
+      put(c,r,(hh%3)?61:45,packs(tex.fam,luzCol*1.34*haze));
+      if((hh>>6)%2) put(c,r+1,95,packs(tex.fam,luzCol*0.24*haze));
+    }
+  }
+  /* derrumbe al pie de la pared */
+  const n=Math.round(m.pie*CPM*1.1);
+  for(let i=0;i<n;i++){
+    const hh=hash3(sem+i+((eje*7)|0),7,1);
+    const sube=Math.pow(((hh>>10)%100)/100,1.8);
+    put(bc-Math.floor(anchoC/2)+((hh%1000)%anchoC),
+        br-Math.round(sube*m.pie*2.2*HPM),
+        sube<0.3?GRUESA[(hh>>5)%4]:GUIJA[(hh>>5)%4],
+        packs(tex.fam,(0.26+0.46*((hh>>17)%100)/100)*haze));
+  }
+}
+const GRUESA=[99,111,37,56];                         // c o % 8
+
 /* ---------- ÁRBOLES ----------
    Un modelo por árbol, de los tres que tiene su especie en el diccionario. El
    modelo está medido en fracciones del alto, así que se estira solo: el mismo
@@ -460,7 +694,9 @@ function drawArbol(tr,haze,t){
 
 function drawTree(tr,haze,t){
   const bc=(tr.x-camX)*CPM+Math.floor(CPM/2), br=(tr.y-camY)*RPM+RPM-1;
-  if(tr.k==='roca'){
+  if(tr.k==='muro'){ drawMuro(tr,haze,t); return; }
+  if(tr.k==='roca'){ drawRoca(tr,haze,t); return; }
+  if(false){
     const hgt=Math.max(3,Math.round(tr.h*HPM*0.85));
     const hw=Math.max(2,(tr.h*CPM*0.95)/2);
     const LUZ=['#','%','8','0'], SOM=['c','o',':','.'], lean=((tr.s%7)-3)/9;

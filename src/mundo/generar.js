@@ -123,6 +123,7 @@ function bioOeste(p,L,ox,oy,rnd){
     }
   }
   piedrasYtroncos(p,L,ox,oy,rnd,46,16);
+  gigantes(p,L,ox,oy,rnd,2);
 }
 
 /* ---------- este, 1:0 — el río ancho, el acantilado y el mar ---------- */
@@ -173,6 +174,7 @@ function bioNorte(p,L,ox,oy,rnd){
   }
   arboles(p,L,ox,oy,rnd,{densidad:0.030, desde:'corte'});
   piedrasYtroncos(p,L,ox,oy,rnd,26,10);
+  gigantes(p,L,ox,oy,rnd,4);
 }
 
 /* ---------- sur, 0:-1 — pinos que se separan, frío y nieve ---------- */
@@ -190,6 +192,7 @@ function bioSur(p,L,ox,oy,rnd){
   }
   arboles(p,L,ox,oy,rnd,{densidad:0.020, soloPino:true, raleando:true});
   piedrasYtroncos(p,L,ox,oy,rnd,24,14);
+  gigantes(p,L,ox,oy,rnd,5);
 }
 
 /* ---------- piezas comunes ---------- */
@@ -241,12 +244,39 @@ function arboles(p,L,ox,oy,rnd,op){
     p.trees.push({x,y,h,k:'arbol',sp,s:(rnd()*1e6)|0});
   }
 }
+/* Las gigantes del pie de monte. Ocupan lo que miden: una de seis metros es
+   casi ocho de ancho, así que se marca todo su pie como macizo y no se puede
+   pasar por adentro. */
+function gigantes(p,L,ox,oy,rnd,n){
+  /* En un bosque cerrado casi nunca hay ocho metros libres seguidos, así que se
+     insiste: hasta diez tiros por cada gigante que se quiera plantar. */
+  let puestas=0;
+  for(let i=0;i<n*10&&puestas<n;i++){
+    const h=4.2+rnd()*3.3;
+    const an=Math.max(2,Math.round(h*0.65));          // medio ancho, en metros
+    const x=an+2+((rnd()*(L-2*an-4))|0), y=3+((rnd()*(L-6))|0);
+    let ok=true;
+    for(let dy=-1;dy<=1&&ok;dy++) for(let dx=-an;dx<=an;dx++)
+      if(!libre(p,L,x+dx,y+dy)) ok=false;
+    if(!ok) continue;
+    for(let dy=-1;dy<=1;dy++) for(let dx=-an;dx<=an;dx++) p.occ[(y+dy)*L+x+dx]=1;
+    p.trees.push({x,y,h:h,k:'roca',s:(rnd()*1e6)|0});
+    puestas++;
+  }
+}
 function piedrasYtroncos(p,L,ox,oy,rnd,nPiedras,nTroncos){
   for(let i=0;i<nPiedras;i++){
     const x=2+((rnd()*(L-4))|0), y=2+((rnd()*(L-4))|0);
     if(!libre(p,L,x,y)) continue;
     p.occ[y*L+x]=1;
-    p.trees.push({x,y,h: rnd()<0.35?1.2+rnd()*0.9:0.5+rnd()*0.5, k:'roca', s:(rnd()*1e6)|0});
+    /* Las tres medidas, cada una con su tanda de modelos en el diccionario:
+       canto chico, piedra media y bloque grande. Antes el sorteo no pasaba de
+       2,1 m y los modelos grandes no salían nunca. */
+    const d=rnd();
+    const h = d<0.55 ? 0.35+rnd()*0.38      // chica
+            : d<0.85 ? 0.80+rnd()*0.90      // media
+                     : 1.90+rnd()*1.40;     // grande
+    p.trees.push({x,y,h:h, k:'roca', s:(rnd()*1e6)|0});
   }
   for(let i=0;i<nTroncos;i++){
     const len=2+((rnd()*3)|0), x=3+((rnd()*(L-8))|0), y=2+((rnd()*(L-4))|0);
@@ -344,6 +374,7 @@ function buscarClaro(p,L){
   return {x:cx,y:cy};
 }
 
+NVg.gigantes=gigantes;
 NVg.sendero=sendero;
 NVg.generarPanel=generarPanel; NVg.calcularSombras=calcularSombras;
 NVg.buscarClaro=buscarClaro; NVg.ejeArroyo=ejeArroyo;
