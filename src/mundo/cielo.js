@@ -24,7 +24,7 @@ const cielo = {
   elev:40, azimut:140,
   sombra:{dx:-1, dy:0, porMetro:1.7},
   luz:{amb:1, r:1, g:1, b:1},
-  lunas:null, brilloLunar:0, nombre:'mañana', eclipse:null, rojo:0, blanco:0
+  lunas:null, brilloLunar:0, nombre:'mañana', eclipse:null, rojo:0, blanco:0, clima:null
 };
 
 function actualizarCielo(ms){
@@ -59,6 +59,16 @@ function actualizarCielo(ms){
     const m=Math.min(1,lunar);
     r=entre(r,0.78,m*0.5); g=entre(g,0.84,m*0.5); b=entre(b,1.00,m*0.5);
   }
+  /* nubes y lluvia: tapan la luz y le quitan color */
+  const cl = NV_.clima ? NV_.clima(a.t) : null;
+  cielo.clima = cl;
+  if(cl){
+    amb *= 1 - 0.46*cl.nubes - 0.16*cl.lluvia;
+    const gris = cl.nubes*0.55 + cl.lluvia*0.25;
+    const med = (r+g+b)/3;
+    r=entre(r,med*0.96,gris); g=entre(g,med*0.99,gris); b=entre(b,med*1.08,gris);
+  }
+
   /* ---------- eclipses ----------
      Calavera tiñe el mundo de rojo; Madre, de un blanco pálido.
      El juego no explica por qué. */
@@ -95,13 +105,15 @@ function actualizarCielo(ms){
 
 /* El cielo en palabras, sin un solo número. */
 function cieloEnPalabras(){
+  const c=cielo.clima;
+  const tiempo = c ? ' '+c.palabras : '';
   const E=cielo.eclipse;
   if(E) return E.luna==='Calavera'
     ? 'Calavera está delante de la luz y todo se ha teñido de rojo. Nadie sabe por qué.'
     : 'Madre está delante de la luz y el bosque se ha vuelto de un blanco pálido, sin explicación.';
   if(!cielo.deNoche){
     const alto = cielo.elev>45?'alto':cielo.elev>20?'a media altura':'bajo, rasante';
-    return 'El sol está '+alto+', '+(cielo.fase<0.5?'al este':'al oeste')+'.';
+    return 'El sol está '+alto+', '+(cielo.fase<0.5?'al este':'al oeste')+'.'+tiempo;
   }
   const arriba=[];
   for(const k in cielo.lunas){
@@ -109,8 +121,8 @@ function cieloEnPalabras(){
     if(L.altura>0.05) arriba.push(L.nombre+' '+L.nombreFase+
       (L.altura>0.75?', en lo más alto':L.altura<0.3?', junto al horizonte':''));
   }
-  if(!arriba.length) return 'No hay lunas en el cielo; la oscuridad es completa.';
-  return (arriba.length>1?'Dos lunas: ':'En el cielo, ')+arriba.join('; ')+'.';
+  if(!arriba.length) return 'No hay lunas en el cielo; la oscuridad es completa.'+tiempo;
+  return (arriba.length>1?'Dos lunas: ':'En el cielo, ')+arriba.join('; ')+'.'+tiempo;
 }
 
 NV_.cielo=cielo; NV_.actualizarCielo=actualizarCielo;

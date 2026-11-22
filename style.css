@@ -1,0 +1,18 @@
+
+#astros{position:absolute;left:10px;top:10px;display:none;z-index:31;width:270px;
+  max-height:84%;overflow:auto;background:#060b08f2;border:1px solid var(--line);
+  border-radius:6px;padding:8px 10px;font-size:11px;line-height:1.35}
+#astros.show{display:block}
+#astros .ah{color:var(--acc);text-transform:uppercase;letter-spacing:1.5px;font-size:9px;
+  margin:9px 0 3px;opacity:.8}
+#astros .ah:first-child{margin-top:0}
+#astros .ax{display:grid;grid-template-columns:18px 1fr auto;gap:2px 6px;align-items:baseline;
+  padding:2px 0;border-bottom:1px solid #14201a}
+#astros .ax b{font-size:15px;color:#e8f3ea;grid-row:span 2;text-align:center}
+#astros .an{color:var(--ink)}
+#astros .af{color:var(--dim);font-size:10px}
+#astros .ax i{grid-column:2/4;color:var(--dim);font-style:normal;font-size:10px}
+#astros .ax u{color:#e07a2e;text-decoration:none}
+#astros .ab{color:#3f6a4c;font-size:10px;letter-spacing:1px;padding:1px 0 3px 24px}
+#astros .ae{color:var(--ink);padding:2px 0 2px 2px;border-bottom:1px solid #121c16}
+#astros .ae i{color:var(--dim);font-style:normal;float:right;font-size:10px}

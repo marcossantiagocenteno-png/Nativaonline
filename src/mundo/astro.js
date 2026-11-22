@@ -146,6 +146,19 @@ function proximaFase(clave,objetivo,ms){
   return {enDiasAstro:falta*l.sinodico, enHorasReales:falta*l.sinodico*msPorDiaAstro/3600000};
 }
 
+/* Próximo eclipse de cualquiera de las dos lunas, mirando hacia adelante. */
+function proximoEclipse(t,limite){
+  for(let d=0.01; d<(limite||60); d+=0.01){
+    for(const k in ASTRO.lunas){
+      const l=ASTRO.lunas[k], tt=t+d;
+      const fase=(((tt-l.epocaNueva)/l.sinodico)%1+1)%1;
+      const e=eclipse(l,tt,fase);
+      if(e&&e.magnitud>0.25) return {enDias:d, luna:l.nombre, tipo:e.tipo, clase:e.clase};
+    }
+  }
+  return null;
+}
+NVa.proximoEclipse=proximoEclipse;
 NVa.eclipse=eclipse; NVa.radioAparente=radioAparente; NVa.radioUmbra=radioUmbra;
 NVa.ASTRO=ASTRO; NVa.astroEn=astroEn; NVa.tiempoAstro=tiempoAstro;
 NVa.calendario=calendario; NVa.proximaFase=proximaFase;

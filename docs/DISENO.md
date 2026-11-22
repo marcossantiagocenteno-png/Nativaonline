@@ -138,8 +138,31 @@ orbital**: con 25° o 30°, Calavera bajaría a unos diez al año. Pendiente de 
 Calavera está nueva en el origen del tiempo (día 1), Madre está nueva el día 27 del
 calendario, y los nodos de ambas arrancan en longitud 0.
 
-**Pendiente:** eclipses con condición nodal, mareas, y la influencia de las mareas
-sobre humedad, niebla y lluvia. El mundo todavía no tiene costas donde aplicarlas.
+**Mareas.** `src/mundo/mareas.js`. No se suman números: se suman direcciones. Cada
+cuerpo tira en dos sentidos opuestos a la vez, así que dos alineados se refuerzan y
+dos en ángulo recto se anulan. Cinco clases —muerta, ordinaria, viva, reforzada,
+excepcional— repartidas a lo largo del año, y una oscilación de dos pleamares por
+día del planeta. Los pesos de la ficha original —205 para Calavera— quedaron
+descartados por cataclísmicos; se conserva el orden, con Calavera mandando, la
+estrella pesando un tercio y Madre acompañando.
+
+**Clima.** `src/mundo/clima.js`. Nada de sorteos sueltos: todo sale del tiempo
+astronómico, de modo que dos sesiones en el mismo instante ven el mismo cielo. La
+estación fija una humedad de base, la marea la empuja, la humedad hace nubes y las
+nubes hacen lluvia, siempre de a poco. Medido sobre un año: llueve el 24% del
+tiempo en otoño y nada en verano; las tormentas ocupan el 0,09%. La marea alta deja
+más humedad que la baja, pero no la decide sola.
+
+Las nubes apagan la luz y le quitan color; la lluvia se dibuja como hilos
+inclinados por el viento, delante de todo.
+
+**Ventana ASTROS.** `src/juego/astros.js`, botón *astros* o tecla `C`. Muestra el
+estado del cielo, las dos lunas con su cara y su fase, la marea con su barra, el
+clima y los próximos fenómenos en orden. Sin un solo número: caras de luna, barras
+y palabras.
+
+**Pendiente:** el mundo todavía no tiene costas, así que la marea se calcula pero
+no hay agua que suba. Falta también la niebla.
 
 La hora se comunica en palabras —*amanece*, *mediodía*, *cae la tarde*, *noche
 cerrada*— nunca en números, igual que todo lo demás.

@@ -14,6 +14,7 @@
   </span>
   <button id="bAnim" class="on" title="Viento">~</button>
   <button id="bMap">mapa</button>
+  <button id="bAstros">astros</button>
   <span class="sp"></span>
 </header>
 
@@ -22,6 +23,7 @@
     <canvas id="cv"></canvas>
     <div id="compass">N<br><span>&#9650;</span></div>
     <div id="map"><pre id="mapTx"></pre></div>
+    <div id="astros"><div id="astrosTx"></div></div>
     <div id="bubble"></div>
     <div id="pad">
       <button class="e"></button><button data-mv="n">&#9650;</button><button class="e"></button>
@@ -62,11 +64,13 @@
 <script src="src/motor/base.js"></script>
 <script src="src/mundo/diccionario.js"></script>
 <script src="src/mundo/generar.js"></script>
-<script src="src/mundo/clima.js"></script>
 <script src="src/mundo/astro.js"></script>
 <script src="src/mundo/cielo.js"></script>
+<script src="src/mundo/mareas.js"></script>
+<script src="src/mundo/clima.js"></script>
 <script src="src/motor/lienzo.js"></script>
 <script src="src/juego/dibujar.js"></script>
+<script src="src/juego/astros.js"></script>
 <script src="src/juego/jugar.js"></script>
 </body>
 </html>

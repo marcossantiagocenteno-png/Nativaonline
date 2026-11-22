@@ -35,6 +35,7 @@ function draw_(){
     layer=3;
     if(my===me.y) drawPlayer(haze);
   }
+  dibujarLluvia(t);
   flush();
   const c=NV.cielo;
   $('st1').textContent=c.nombre+(c.deNoche&&c.brilloLunar>0.55?' · lunas altas':'');
@@ -46,6 +47,25 @@ function draw_(){
   if(lastMs>34&&calidad>0.42) calidad=Math.max(0.42,calidad-0.08);
   else if(lastMs<15&&calidad<1) calidad=Math.min(1,calidad+0.04);
   if(dt>46&&animMs<520){ animMs=Math.min(520,Math.round(animMs*1.4)); restartAnim(); }
+}
+
+/* Lluvia: hilos que caen inclinados por el viento, delante de todo. */
+function dibujarLluvia(t){
+  const cl=NV.cielo&&NV.cielo.clima;
+  if(!cl||cl.lluvia<0.06) return;
+  layer=3;
+  const n=Math.round(cols*rowsN*0.010*cl.lluvia*calidad);
+  const sesgo=cl.tormenta?2:1;
+  const largo=cl.tormenta?4:3;
+  const col=packc(150,178,196), col2=packc(96,120,140);
+  for(let i=0;i<n;i++){
+    const h=hash3(i,0,7);
+    const c0=h%cols;
+    const r0=((h>>7)%rowsN + Math.round(t*42+((h>>3)%17)))%rowsN;
+    for(let k=0;k<largo;k++)
+      put(c0-k*sesgo, r0-k, sesgo>1?92:124, k?col2:col);
+  }
+  layer=0;
 }
 
 function drawGroundRow(my,rBase,haze,t,W){
