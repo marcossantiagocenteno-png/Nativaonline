@@ -354,8 +354,8 @@ function init(){
 
     else if(k==='r'&&e.shiftKey){ olvidarGuardado(); const c=NV.panel(0,0); me={x:c.inicio.x,y:c.inicio.y};
       bubble('Volvés al claro de partida.'); requestDraw(); e.preventDefault(); }
-    else if(k==='+'||k==='='){ NV.zoomRelativo(0.86); animarSuave(); e.preventDefault(); }
-    else if(k==='-'||k==='_'){ NV.zoomRelativo(1.16); animarSuave(); e.preventDefault(); }
+    else if(k==='+'||k==='='){ NV.zoomRelativo(0.90); animarSuave(); e.preventDefault(); }
+    else if(k==='-'||k==='_'){ NV.zoomRelativo(1.11); animarSuave(); e.preventDefault(); }
   });
   addEventListener('keyup',e=>{
     const k=e.key.toLowerCase();
@@ -381,7 +381,7 @@ function init(){
     if(Math.abs(gx-me.x)<=1 && Math.abs(gy-me.y)<=1) look();
     else irHacia(gx,gy);
   });
-  cv.addEventListener('wheel',e=>{ e.preventDefault(); NV.zoomRelativo(e.deltaY<0?0.90:1.11); animarSuave(); },{passive:false});
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); NV.zoomRelativo(e.deltaY<0?0.94:1.064); animarSuave(); },{passive:false});
   let pinch=0;
   cv.addEventListener('touchstart',e=>{
     if(e.touches.length===2) pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,

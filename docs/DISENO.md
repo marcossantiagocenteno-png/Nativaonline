@@ -328,6 +328,30 @@ cuesta más que alejarse.
 | 48 m | 8 | 3 | 59 m |
 | 72 m | 6 | 2 | 99 m |
 
+**Los caracteres por metro son enteros; los píxeles por metro no.** Esa es la
+distinción que hace que el zoom se sienta continuo y no a escalones. Cuántas
+letras se escriben por metro tiene que ser un número entero —media letra no se
+escribe—, pero lo que el ojo mide es cuántos píxeles ocupa un metro, y eso puede
+moverse de a poco.
+
+El error estaba en la **altura** de celda, que se calculaba a partir del ancho.
+Como las filas por metro también se redondean, cuando pasaban de 2 a 3 el metro
+pasaba de medir dos filas a medir tres y el terreno se estiraba un 50% en un
+solo cuadro; después 3→4 era 33%, 4→5 era 25%, y al alejarse esos saltos caen uno
+encima del otro. Ahora la altura de celda se calcula al revés —de los píxeles por
+metro, dividida por las filas por metro—, así la escala vertical del mundo es
+continua y lo que cambia con el redondeo es cuánto se solapan las letras entre
+filas: textura, no geometría. Medido en todo el rango, el salto mayor pasó del
+**18,3% al 1%**.
+
+Dos cuidados más. Los caracteres por metro se eligen con **histéresis**: justo en
+el límite entre dos valores el redondeo iba y venía cuadro a cuadro y la textura
+titilaba. Y el acercamiento se amortigua en **escala logarítmica**, no en metros,
+porque pasar de 40 a 36 metros y de 10 a 9 se sienten igual; con techo de
+velocidad del 4,5% por cuadro, así que por más rápido que se gire la ruedita el
+zoom planea hasta el destino en vez de resolverse de un salto. Catorce clics de
+golpe se recorren en 35 cuadros, y antes se resolvían en 25 con tirones del 15%.
+
 Las filas por metro son siempre un tercio de los caracteres por metro: de ahí
 sale la inclinación de la cámara, y se mantiene igual en todo el rango.
 

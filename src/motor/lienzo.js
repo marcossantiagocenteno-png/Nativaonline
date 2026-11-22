@@ -16,16 +16,34 @@ let metrosVista=28, metrosDestino=28;
 
 /* El zoom no cambia el tamaño de la letra: cambia cuántas letras entran en un
    metro. Así se puede parar en cualquier punto entre el mínimo y el máximo sin
-   saltos de escala, y el carácter se ve siempre igual de grande. */
+   saltos de escala, y el carácter se ve siempre igual de grande.
+
+   Dos cuidados para que no se sientan escalones:
+
+   CPM y RPM tienen que ser enteros —son cuántos caracteres se escriben por
+   metro—, pero lo que el ojo mide es cuántos píxeles ocupa un metro, y eso sí
+   puede ser continuo. El error está en que la ALTURA de celda estaba atada al
+   ancho: cuando RPM pasaba de 2 a 3, el metro pasaba de medir dos filas a medir
+   tres y el terreno se estiraba un 50% en un solo cuadro. Después 3→4 era 33%,
+   4→5 era 25%; al alejarse esos saltos caen uno encima del otro. Ahora la altura
+   de celda se calcula al revés —a partir de los píxeles por metro y dividida por
+   RPM—, así la escala vertical del mundo es continua y lo que cambia con el
+   redondeo es cuánto se solapan las letras, que es textura y no geometría.
+
+   Y CPM se elige con histéresis: justo en el límite entre dos valores, el
+   redondeo iba y venía cuadro a cuadro y la textura titilaba. */
+const TILT=ASPECTO/3;          // píxeles verticales por metro, respecto de los horizontales
+const HIST=0.18;               // cuánto hay que pasarse para que CPM cambie
 function aplicarEscala(anchoPx){
   const tope=metrosMaximos(anchoPx);
   if(metrosDestino>tope) metrosDestino=tope;
   if(metrosVista>tope) metrosVista=tope;
   const pxm=anchoPx/metrosVista;                       // píxeles por metro
-  CPM=clamp(Math.round(pxm/3.2),6,48);
+  const ideal=clamp(pxm/3.2,6,48);
+  if(!CPM || ideal<CPM-0.5-HIST || ideal>CPM+0.5+HIST) CPM=clamp(Math.round(ideal),6,48);
   cw=pxm/CPM;
-  chh=cw*ASPECTO;
   RPM=Math.max(2,Math.round(CPM/3));                   // la inclinación de la cámara
+  chh=pxm*TILT/RPM;
   HPM=RPM*1.7;
   fontSize=cw/(0.6*OVX);
 }
@@ -116,11 +134,26 @@ function flush(){
 NV.layout=layout; NV.aplicarEscala=aplicarEscala;
 NV.zoomAbsoluto=zoomAbsoluto; NV.zoomRelativo=zoomRelativo;
 NV.metrosVista=()=>metrosVista;
+/* Para las pruebas: cuántos píxeles ocupa un metro a lo ancho y a lo alto. Son
+   las dos cifras que tienen que moverse sin saltos cuando se hace zoom. */
+NV.medidas=()=>({metros:metrosVista,CPM:CPM,RPM:RPM,cw:cw,chh:chh,
+                 pxmX:CPM*cw, pxmY:RPM*chh, letra:fontSize});
 NV.metrosMaximos=metrosMaximos;
 /* El zoom se acerca a su destino de a poco: nunca salta. */
+/* El acercamiento se amortigua en escala logarítmica, no en metros: pasar de 40
+   a 36 metros y de 10 a 9 se siente igual, que es como lo lee el ojo. Antes, con
+   un amortiguado lineal, lejos lurcheaba y cerca se arrastraba.
+   Y tiene techo de velocidad: por más rápido que se gire la ruedita, el zoom
+   nunca avanza más de un 4,5% por cuadro. El destino se acumula igual, así que
+   un giro largo se recorre entero pero planeando. */
+const ZCAP=0.045;
 NV.acercarZoom=function(){
-  if(Math.abs(metrosDestino-metrosVista)<0.02){ metrosVista=metrosDestino; return false; }
-  metrosVista += (metrosDestino-metrosVista)*0.24;
+  const d0=Math.log(metrosDestino/metrosVista);
+  if(Math.abs(d0)<0.0025){
+    if(metrosVista!==metrosDestino){ metrosVista=metrosDestino; layout(); }
+    return false;
+  }
+  metrosVista*=Math.exp(clamp(d0*0.20,-ZCAP,ZCAP));
   layout();
   return true;
 }; NV.put=put; NV.flush=flush;
