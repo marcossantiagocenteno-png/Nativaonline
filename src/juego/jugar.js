@@ -33,7 +33,7 @@ function look(){
   const arb = n? ('Hay '+n+' '+(n===1?'árbol':'árboles')+' a menos de seis metros'+
                  (near&&near.t.k==='arbol'?'; el más cercano es un '+((SPECIES[near.t.sp]||SPECIES.encino).n)+' de unos '+Math.round(near.t.h)+' metros.':'.'))
               : 'Alrededor solo hay pasto; las sombras vienen de lejos.';
-  bubble('<b>Mirás alrededor</b>\n'+esc(suelo+' '+arb+' El viento entra por el este.'));
+  bubble('<b>Mirás alrededor</b>\n'+esc(suelo+' '+arb+' '+NV.cieloEnPalabras()));
 }
 function bubble(h){ const b=$('bubble'); b.innerHTML=h.indexOf('<b>')===0?h:esc(h); b.classList.add('show');
   clearTimeout(bubble._t); bubble._t=setTimeout(hide,5200); }
@@ -43,10 +43,19 @@ function requestDraw(){
   pend=true;
   requestAnimationFrame(()=>{ pend=false; draw(); });
 }
+let ultSol=-9;
+function tictac(){
+  const c=NV.actualizarCielo(Date.now());
+  if(world && Math.abs(c.fase-ultSol)>0.004){      // cada ~30 s reales
+    ultSol=c.fase;
+    NV.calcularSombras(world);
+  }
+  return c;
+}
 function restartAnim(){
   if(animTimer) clearInterval(animTimer);
   animTimer=null; if(!animOn) return;
-  animTimer=setInterval(()=>{ if(!document.hidden){ frame++; requestDraw(); } },animMs);
+  animTimer=setInterval(()=>{ if(!document.hidden){ frame++; tictac(); requestDraw(); } },animMs);
 }
 
 /* ---------- nube (solo lectura) ---------- */
@@ -67,7 +76,7 @@ async function connect(){
       if(!d) return;
       const cfg=Object.assign({},CONFIG,d);
       world=build(cfg);
-      me=findSpawn(world);
+      me=NV.findSpawn(world);
       $('wname').textContent=world.name;
       draw();
     };
@@ -146,9 +155,11 @@ function init(){
   if(matchMedia('(pointer:coarse)').matches) document.body.classList.add('touch');
   applyLOD();
   for(const b of document.querySelectorAll('.zb')) b.classList.toggle('on',+b.dataset.z===zi);
-  world=build(CONFIG);
+  world=NV.build(CONFIG);
+  tictac();
+  NV.calcularSombras(world);
   $('wname').textContent=world.name;
-  me=findSpawn(world);
+  me=NV.findSpawn(world);
   layout(); restartAnim(); connect();
 
   addEventListener('resize',()=>{ clearTimeout(init._r); init._r=setTimeout(layout,140); });

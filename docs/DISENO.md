@@ -82,9 +82,29 @@ El jugador tiene un glosario que se llena solo con lo que va deduciendo.
 
 El calendario corre solo, aunque no haya nadie conectado.
 
-**Cosmología: dos lunas y un sol.** A las lunas se les dan períodos que no sean
-múltiplos entre sí; así las conjunciones y los eclipses caen solos, rarísimos, sin
-programar un solo evento.
+**Cosmología: dos lunas y un sol.** Implementado en `src/mundo/cielo.js`.
+
+El sol sale por el este, cruza alto —58° al mediodía— y se pone por el oeste. La
+sombra apunta siempre al lado contrario y se acorta al mediodía:
+
+| hora de juego | sol | sombra |
+|---|---|---|
+| 06:00 | sale por el este | larguísima al oeste |
+| 08:00 | 29° | al oeste, 1,8 m por metro de altura |
+| 12:00 | 58° | al norte, corta |
+| 16:00 | 29° | al este |
+| 18:00 | se pone al oeste | larguísima al este |
+| noche | — | no hay sombra proyectada |
+
+La luna mayor tiene un período de 7,3 días de juego y la menor de 3,1. No son
+múltiplos entre sí, así que las dos coinciden llenas **seis noches por año**, sin
+programar ningún evento. Esas noches el bosque se ve casi como de día.
+
+De noche la luz baja a menos de un quinto y **la vista se cierra**: solo se ve a
+unos metros alrededor. Las lunas llenas la abren un poco.
+
+La hora se comunica en palabras —*amanece*, *mediodía*, *cae la tarde*, *noche
+cerrada*— nunca en números, igual que todo lo demás.
 
 Las estaciones cambian el aspecto del bosque, los recursos disponibles y los
 problemas que aparecen.

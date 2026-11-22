@@ -36,7 +36,9 @@ function draw_(){
     if(my===me.y) drawPlayer(haze);
   }
   flush();
-  $('st1').textContent='x '+me.x+' m · y '+me.y+' m';
+  const c=NV.cielo;
+  $('st1').textContent=c.nombre+(c.deNoche&&c.lunas.brillo>0.75?' · dos lunas altas':'');
+  $('st2').textContent='mirando al '+facing;
   $('st2').textContent='viento '+(wind<0.5?'calmo':wind<0.95?'suave':'racheado');
   const dt=performance.now()-t0;
   lastMs=lastMs*0.7+dt*0.3;

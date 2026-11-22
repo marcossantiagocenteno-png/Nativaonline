@@ -103,25 +103,8 @@ function build(cfg){
   }
   trees.sort((a,b)=>a.y-b.y);
 
-  /* sombras: sol al este y bajo, se estiran al oeste */
-  const shade=new Float32Array(W*H).fill(1);
-  const len1=1/Math.tan(cfg.sunElev*Math.PI/180);
-  for(const t of trees){
-    const L=Math.max(1,Math.round(t.h*len1)), wide=t.k==='arbol'?1:0;
-    const span=t.k==='caido'?(t.len||1):1;
-    for(let sx=0;sx<span;sx++) for(let d=0;d<=L;d++){
-      const x=t.x+sx-d; if(x<0) break;
-      const str=0.32+0.58*(d/L);
-      for(let j=-wide;j<=wide;j++){
-        const y=t.y+j; if(y<0||y>=H) continue;
-        const s=j===0?str:str+0.22, i=y*W+x;
-        if(s<shade[i]) shade[i]=s;
-      }
-    }
-    const i0=t.y*W+t.x; shade[i0]=Math.min(shade[i0],0.28);
-  }
-
   /* mapa general: un glifo por objeto, el pasto no se dibuja */
+  const shade=new Float32Array(W*H).fill(1);
   const mapG=[];
   for(let y=0;y<H;y++) mapG.push(' '.repeat(W));
   for(const t of trees){
@@ -131,6 +114,30 @@ function build(cfg){
   }
   return {name:cfg.name,w:W,h:H,ground,mid,trees,shade,occ,mapG,flow,cfg};
 }
+function calcularSombras(Wd){
+  const W=Wd.w,H=Wd.h, shade=Wd.shade, S=NV.cielo?NV.cielo.sombra:{dx:-1,dy:0,porMetro:1.7};
+  shade.fill(1);
+  if(S.porMetro<=0.02){                      // de noche no hay sombra proyectada
+    for(const t of Wd.trees){ const i=t.y*W+t.x; shade[i]=Math.min(shade[i],0.5); }
+    return;
+  }
+  for(const t of Wd.trees){
+    const L=Math.max(1,Math.round(t.h*S.porMetro));
+    const ancho=t.k==='arbol'?1:0, span=t.k==='caido'?(t.len||1):1;
+    for(let sx=0;sx<span;sx++) for(let d=0;d<=L;d++){
+      const x=Math.round(t.x+sx+S.dx*d), y=Math.round(t.y+S.dy*d);
+      if(x<0||y<0||x>=W||y>=H) break;
+      const str=0.32+0.58*(d/L);
+      for(let j=-ancho;j<=ancho;j++){
+        const yy=y+j; if(yy<0||yy>=H) continue;
+        const v=j===0?str:str+0.22, i=yy*W+x;
+        if(v<shade[i]) shade[i]=v;
+      }
+    }
+    const i0=t.y*W+t.x; shade[i0]=Math.min(shade[i0],0.28);
+  }
+}
+
 function findSpawn(Wd){
   const cx=Math.round(Wd.w/2), cy=Math.round(Wd.h/2);
   const libre=(x,y)=>{
@@ -154,4 +161,4 @@ function findSpawn(Wd){
 const solidAt=(x,y)=>(!world||x<0||y<0||x>=world.w||y>=world.h)?true:!!world.occ[y*world.w+x];
 const groundAt=(x,y)=>(x<0||y<0||x>=world.w||y>=world.h)?'g':world.ground[y][x];
 
-NV.build=build; NV.findSpawn=findSpawn; NV.solidAt=solidAt; NV.groundAt=groundAt;
+NV.build=build; NV.calcularSombras=calcularSombras; NV.findSpawn=findSpawn; NV.solidAt=solidAt; NV.groundAt=groundAt;

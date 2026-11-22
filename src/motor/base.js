@@ -3,6 +3,7 @@
    los módulos se cargan en orden y comparten el objeto global NV. */
 
 const NV = window.NV || (window.NV = {});
+NV.luz = NV.luz || {amb:1, r:1, g:1, b:1};   // el módulo cielo la reemplaza
 
 const MONO='ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace';
 

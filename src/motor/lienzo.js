@@ -42,12 +42,16 @@ function put(c,r,code,col){
   fbG[i]=code; fbC[i]=col; fbL[i]=layer;
 }
 const packc=(r,g,b)=>(clamp(r|0,0,255)<<16)|(clamp(g|0,0,255)<<8)|clamp(b|0,0,255);
-const packs=(fam,s)=>{ const c=step(fam,s); const m=0.72+s*0.5;
-  return packc(c[0]*m,c[1]*m,c[2]*m); };
+const packs=(fam,s)=>{
+  const c=step(fam,s), m=0.72+s*0.5, L=NV.luz;
+  return packc(c[0]*m*L.r, c[1]*m*L.g, c[2]*m*L.b);
+};
 
 function flush(){
   const Wp=cv.width/dpr,Hp=cv.height/dpr;
-  ctx.fillStyle='#05070a'; ctx.fillRect(0,0,Wp,Hp);
+  const L=NV.luz;
+  ctx.fillStyle='rgb('+Math.round(5*L.r+2)+','+Math.round(7*L.g+2)+','+Math.round(10*L.b+3)+')';
+  ctx.fillRect(0,0,Wp,Hp);
   ctx.font=fontSize+'px '+MONO;
   const adv=ctx.measureText('W').width;
   const canRun = ('letterSpacing' in ctx);
@@ -75,8 +79,11 @@ function flush(){
     }
   }
   if(canRun){ ctx.textAlign='center'; ctx.letterSpacing='0px'; }
-  const g=ctx.createRadialGradient(Wp/2,Hp/2,Math.min(Wp,Hp)*0.32,Wp/2,Hp/2,Math.max(Wp,Hp)*0.78);
-  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.58)');
+  const amb=clamp(NV.luz.amb,0,1.1);
+  const vista=0.10+0.26*amb;                    // de noche se ve mucho menos lejos
+  const cierre=0.95-0.37*amb;
+  const g=ctx.createRadialGradient(Wp/2,Hp/2,Math.min(Wp,Hp)*vista,Wp/2,Hp/2,Math.max(Wp,Hp)*0.80);
+  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,'+cierre.toFixed(2)+')');
   ctx.fillStyle=g; ctx.fillRect(0,0,Wp,Hp);
 }
 
