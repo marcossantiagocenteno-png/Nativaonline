@@ -25,6 +25,17 @@ function nuevoPanel(L){
 }
 const poner=(p,L,x,y,c)=>{ if(x<0||y<0||x>=L||y>=L) return;
   p.ground[y]=p.ground[y].slice(0,x)+c+p.ground[y].slice(x+1); };
+/* ¿Hay agua u orilla a la vuelta? Los árboles no nacen con los pies en el agua
+   ni en la arena y el guijarral que la bordean. */
+const AGUA_U_ORILLA='aAPEsk';
+function cercaDelAgua(p,L,x,y,r){
+  for(let j=-r;j<=r;j++) for(let i=-r;i<=r;i++){
+    const xx=x+i, yy=y+j;
+    if(xx<0||yy<0||xx>=L||yy>=L) continue;
+    if(AGUA_U_ORILLA.indexOf(p.ground[yy][xx])>=0) return true;
+  }
+  return false;
+}
 const libre=(p,L,x,y)=>{
   if(x<1||y<1||x>=L-1||y>=L-1) return false;
   if(p.occ[y*L+x]) return false;
@@ -176,6 +187,7 @@ function arboles(p,L,ox,oy,rnd,op){
     if(f<0.46) continue;
     const g=p.ground[y][x];
     if(g!=='g'&&g!=='G'&&!(op.soloPino&&g==='N')) continue;
+    if(cercaDelAgua(p,L,x,y,2)) continue;          // ni dentro del agua ni en la orilla
     if(rnd()>op.densidad*(0.5+f)*6) continue;
     let cerca=false;
     for(let j=-1;j<=1&&!cerca;j++) for(let i=-1;i<=1;i++) if(p.occ[(y+j)*L+(x+i)]){ cerca=true; break; }

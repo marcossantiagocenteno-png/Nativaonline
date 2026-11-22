@@ -43,6 +43,29 @@ probar('el norte corta a desierto', tiene(N,'D')&&tiene(N,'G'));
 probar('el sur tiene nieve y solo pinos',
   tiene(S,'N')&&S.trees.filter(t=>t.k==='arbol').every(t=>t.sp==='pino'));
 
+console.log('\n=== ningún árbol con los pies en el agua ===');
+const AG='aAPEsk';
+let dentro=0, orilla=0, totalArb=0, excep=[];
+for(const k in NV.BIOMAS){
+  const [i,j]=k.split(',').map(Number), p=NV.panel(i,j);
+  for(const t of p.trees.filter(t=>t.k==='arbol')){
+    totalArb++;
+    if('aAPE'.indexOf(p.ground[t.y][t.x])>=0){ dentro++; excep.push(p.coord+' '+t.sp+' en el agua'); continue; }
+    let cerca=false;
+    for(let dy=-2;dy<=2&&!cerca;dy++) for(let dx=-2;dx<=2;dx++){
+      const x=t.x+dx, y=t.y+dy;
+      if(x<0||y<0||x>=L||y>=L) continue;
+      if(AG.indexOf(p.ground[y][x])>=0){ cerca=true; break; }
+    }
+    if(cerca){ orilla++; excep.push(p.coord+' '+t.sp+' en la orilla'); }
+  }
+}
+console.log('  de', totalArb, 'árboles:', dentro, 'en el agua ·', orilla, 'en la orilla');
+excep.forEach(e=>console.log('    ·', e));
+probar('ningún árbol dentro del agua', dentro===0);
+probar('en la orilla solo puede quedar el árbol místico',
+  excep.every(e=>e.includes('mistico')));
+
 console.log('\n=== la pared oeste no se pasa ===');
 let pared=0, total=0;
 for(let y=5;y<95;y+=2){ total++; if(NV.solidoEn(-100,y)) pared++; }
