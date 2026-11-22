@@ -37,7 +37,8 @@ function draw_(){
   }
   flush();
   const c=NV.cielo;
-  $('st1').textContent=c.nombre+(c.deNoche&&c.lunas.brillo>0.75?' · dos lunas altas':'');
+  $('st1').textContent=c.nombre+(c.deNoche&&c.brilloLunar>0.55?' · lunas altas':'');
+  $('st3').textContent=c.estacion+' · día '+c.dia;
   $('st2').textContent='mirando al '+facing;
   $('st2').textContent='viento '+(wind<0.5?'calmo':wind<0.95?'suave':'racheado');
   const dt=performance.now()-t0;

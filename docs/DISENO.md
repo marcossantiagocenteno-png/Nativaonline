@@ -82,26 +82,49 @@ El jugador tiene un glosario que se llena solo con lo que va deduciendo.
 
 El calendario corre solo, aunque no haya nadie conectado.
 
-**Cosmología: dos lunas y un sol.** Implementado en `src/mundo/cielo.js`.
+**Cosmología: dos lunas y un sol.** Calculada en `src/mundo/astro.js`, presentada
+en `src/mundo/cielo.js`. Los números viven en `NV.ASTRO` y se pueden ajustar sin
+tocar el cálculo.
 
-El sol sale por el este, cruza alto —58° al mediodía— y se pone por el oeste. La
-sombra apunta siempre al lado contrario y se acorta al mediodía:
+El planeta tarda **430 días astronómicos** en dar la vuelta a su estrella, pero el
+calendario que ve el jugador tiene **30 días**: cada día del calendario representa
+14,33 días astronómicos. Todo fenómeno se calcula sobre el tiempo astronómico
+continuo; el calendario es solo la vista.
 
-| hora de juego | sol | sombra |
-|---|---|---|
-| 06:00 | sale por el este | larguísima al oeste |
-| 08:00 | 29° | al oeste, 1,8 m por metro de altura |
-| 12:00 | 58° | al norte, corta |
-| 16:00 | 29° | al este |
-| 18:00 | se pone al oeste | larguísima al este |
-| noche | — | no hay sombra proyectada |
+| | duración real |
+|---|---|
+| Año: 30 días de calendario | 30 días nuestros, un mes |
+| Estación | 7 días y medio |
+| Día solar del planeta | 100 minutos |
+| Ciclo de fases de Calavera | 2 h 18 min |
+| Ciclo de fases de Madre | 9 h 35 min |
 
-La luna mayor tiene un período de 7,3 días de juego y la menor de 3,1. No son
-múltiplos entre sí, así que las dos coinciden llenas **seis noches por año**, sin
-programar ningún evento. Esas noches el bosque se ve casi como de día.
+El sol sale por el este, llega a 58° al mediodía y se pone por el oeste. La sombra
+apunta al lado contrario y se acorta al mediodía: al oeste a la mañana, al norte al
+mediodía, al este a la tarde. De noche no hay sombra proyectada.
 
-De noche la luz baja a menos de un quinto y **la vista se cierra**: solo se ve a
-unos metros alrededor. Las lunas llenas la abren un poco.
+**Calavera** mide 8.000 km y orbita a 150.000 km: en el cielo se ve **seis veces más
+grande que nuestra Luna**, y por eso alumbra tanto. Período sideral 1,366 días,
+sinódico 1,37035. Inclinación 8°, precesión nodal 180 días.
+
+**Madre** mide 3.600 km a 390.000 km: aparenta lo mismo que nuestra Luna y alumbra
+poco. Sideral 5,65 días, sinódico 5,725. Inclinación 12°, precesión nodal 360 días.
+
+La luz de la noche **nunca es fija**: depende de la fase de cada luna, de su altura
+sobre el horizonte y de su tamaño aparente. Hay noches de oscuridad completa, sin
+ninguna luna arriba, y noches en que se ve casi todo. Con poca luz la vista se
+cierra a unos metros.
+
+Cuando Calavera eclipsa, el mundo entero se tiñe de **rojo**; cuando lo hace Madre,
+de un **blanco pálido**. El origen de esos colores es deliberadamente desconocido y
+el juego no lo explica.
+
+**Supuestos tomados**, por no estar definidos, ambos configurables en `NV.ASTRO`:
+Calavera está nueva en el origen del tiempo (día 1), Madre está nueva el día 27 del
+calendario, y los nodos de ambas arrancan en longitud 0.
+
+**Pendiente:** eclipses con condición nodal, mareas, y la influencia de las mareas
+sobre humedad, niebla y lluvia. El mundo todavía no tiene costas donde aplicarlas.
 
 La hora se comunica en palabras —*amanece*, *mediodía*, *cae la tarde*, *noche
 cerrada*— nunca en números, igual que todo lo demás.

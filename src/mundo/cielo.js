@@ -1,22 +1,12 @@
-/* Nativa Online — cielo: el sol, las dos lunas y la hora.
-   Reglas en docs/DISENO.md. Sin dependencias ni compilación:
-   los módulos se cargan en orden y comparten el objeto global NV. */
+/* Nativa Online — cielo: traduce la astronomía a luz, color y palabras.
+   Los cálculos viven en astro.js; acá solo se presenta. */
 
 const NV_ = window.NV;
 
-/* Un año de juego = un mes nuestro  →  un día de juego = dos horas reales. */
-const DIA_MS = 2*60*60*1000;
-const ANO_DIAS = 360;
-
-/* Períodos de las lunas, en días de juego. No son múltiplos entre sí:
-   así las conjunciones y los eclipses caen solos y rarísimos. */
-const LUNA_MAYOR = 7.3;
-const LUNA_MENOR = 3.1;
-
-/* Color de la luz según la hora. Se interpola entre estas paradas. */
+/* Paradas de color según la hora del día. Se interpola entre ellas. */
 const PARADAS = [
-  {f:0.00, amb:0.16, r:0.44, g:0.54, b:0.86, n:'noche cerrada'},
-  {f:0.18, amb:0.20, r:0.50, g:0.58, b:0.88, n:'antes del alba'},
+  {f:0.00, amb:0.14, r:0.44, g:0.54, b:0.86, n:'noche cerrada'},
+  {f:0.18, amb:0.17, r:0.50, g:0.58, b:0.88, n:'antes del alba'},
   {f:0.25, amb:0.52, r:1.18, g:0.80, b:0.60, n:'amanece'},
   {f:0.32, amb:0.86, r:1.12, g:0.96, b:0.82, n:'mañana temprano'},
   {f:0.44, amb:1.00, r:1.00, g:1.00, b:1.00, n:'mañana'},
@@ -24,76 +14,71 @@ const PARADAS = [
   {f:0.62, amb:0.98, r:1.04, g:0.99, b:0.92, n:'tarde'},
   {f:0.72, amb:0.72, r:1.16, g:0.88, b:0.66, n:'cae la tarde'},
   {f:0.78, amb:0.40, r:1.14, g:0.74, b:0.62, n:'anochece'},
-  {f:0.86, amb:0.20, r:0.52, g:0.58, b:0.88, n:'noche'},
-  {f:1.00, amb:0.16, r:0.44, g:0.54, b:0.86, n:'noche cerrada'}
+  {f:0.86, amb:0.17, r:0.52, g:0.58, b:0.88, n:'noche'},
+  {f:1.00, amb:0.14, r:0.44, g:0.54, b:0.86, n:'noche cerrada'}
 ];
-
-function entre(a,b,t){ return a+(b-a)*t; }
+const entre=(a,b,t)=>a+(b-a)*t;
 
 const cielo = {
-  fase:0.4, dia:0, ano:0, elev:40, azimut:140,
+  t:0, dia:1, ano:0, estacion:'primavera', fase:0.4, deNoche:false,
+  elev:40, azimut:140,
   sombra:{dx:-1, dy:0, porMetro:1.7},
   luz:{amb:1, r:1, g:1, b:1},
-  lunas:{mayor:0, menor:0, brillo:0},
-  nombre:'mañana', deNoche:false
+  lunas:null, brilloLunar:0, nombre:'mañana'
 };
 
 function actualizarCielo(ms){
-  const total = ms/DIA_MS;
-  const fase = total - Math.floor(total);          // 0 medianoche, 0.5 mediodía
-  cielo.fase = fase;
-  cielo.dia = Math.floor(total) % ANO_DIAS;
-  cielo.ano = Math.floor(total/ANO_DIAS);
-
-  /* sol: sale por el este, pasa alto al mediodía, se pone por el oeste */
-  const arco = (fase-0.25)/0.5;                     // 0 al amanecer, 1 al ocaso
-  const dia = arco>0 && arco<1;
-  cielo.elev = dia ? Math.sin(arco*Math.PI)*58 : 0;
-  cielo.azimut = 90 + arco*180;                     // 90 este, 180 sur, 270 oeste
-  cielo.deNoche = !dia;
+  const a = NV_.astroEn(ms);
+  cielo.t=a.t; cielo.dia=a.dia; cielo.ano=a.ano; cielo.estacion=a.estacion;
+  cielo.fase=a.fraccionDia; cielo.deNoche=!a.deDia;
+  cielo.elev=a.solElev; cielo.azimut=a.solAzimut; cielo.lunas=a.lunas;
 
   /* la sombra apunta al lado contrario del sol y se acorta al mediodía */
-  const s = (cielo.azimut+180)*Math.PI/180;
-  const largo = cielo.elev>3 ? Math.min(14, 1/Math.tan(cielo.elev*Math.PI/180)) : 0;
-  cielo.sombra.dx = Math.sin(s);
-  cielo.sombra.dy = -Math.cos(s);
-  cielo.sombra.porMetro = largo;
+  const s=(a.solAzimut+180)*Math.PI/180;
+  cielo.sombra.dx=Math.sin(s);
+  cielo.sombra.dy=-Math.cos(s);
+  cielo.sombra.porMetro = a.solElev>3 ? Math.min(14,1/Math.tan(a.solElev*Math.PI/180)) : 0;
 
-  /* lunas: dos fases que casi nunca coinciden */
-  const fm = (total/LUNA_MAYOR)%1, fn = (total/LUNA_MENOR)%1;
-  cielo.lunas.mayor = 1-Math.abs(fm*2-1);           // 0 nueva, 1 llena
-  cielo.lunas.menor = 1-Math.abs(fn*2-1);
-  cielo.lunas.brillo = cielo.lunas.mayor*0.7 + cielo.lunas.menor*0.3;
+  /* luz de las lunas: fase por altura sobre el horizonte, cada una con su peso */
+  let lunar=0;
+  for(const k in a.lunas){
+    const L=a.lunas[k];
+    if(L.altura>0) lunar += L.ilum * L.altura * L.cfg.peso;
+  }
+  cielo.brilloLunar=lunar;
 
   /* color y cantidad de luz */
-  let i=0; while(i<PARADAS.length-2 && fase>PARADAS[i+1].f) i++;
-  const a=PARADAS[i], b=PARADAS[i+1];
-  const t=(fase-a.f)/Math.max(0.0001,(b.f-a.f));
-  let amb=entre(a.amb,b.amb,t);
-  if(!dia) amb += cielo.lunas.brillo*0.14;          // las lunas aclaran la noche
-  cielo.luz.amb=amb;
-  cielo.luz.r=entre(a.r,b.r,t)*amb;
-  cielo.luz.g=entre(a.g,b.g,t)*amb;
-  cielo.luz.b=entre(a.b,b.b,t)*amb;
-  cielo.nombre = t<0.5 ? a.n : b.n;
+  const f=a.fraccionDia;
+  let i=0; while(i<PARADAS.length-2 && f>PARADAS[i+1].f) i++;
+  const p=PARADAS[i], q=PARADAS[i+1];
+  const t=(f-p.f)/Math.max(0.0001,(q.f-p.f));
+  let amb=entre(p.amb,q.amb,t);
+  if(cielo.deNoche) amb += lunar*0.30;             // una noche de lunas altas se ve
+  let r=entre(p.r,q.r,t), g=entre(p.g,q.g,t), b=entre(p.b,q.b,t);
+  if(cielo.deNoche && lunar>0.15){                  // la luz de luna es más fría y blanca
+    const m=Math.min(1,lunar);
+    r=entre(r,0.78,m*0.5); g=entre(g,0.84,m*0.5); b=entre(b,1.00,m*0.5);
+  }
+  cielo.luz.amb=amb; cielo.luz.r=r*amb; cielo.luz.g=g*amb; cielo.luz.b=b*amb;
+  cielo.nombre = t<0.5 ? p.n : q.n;
   return cielo;
 }
 
-/* Descripción del cielo sin un solo número, para cuando el jugador mira. */
+/* El cielo en palabras, sin un solo número. */
 function cieloEnPalabras(){
-  const l=cielo.lunas;
   if(!cielo.deNoche){
     const alto = cielo.elev>45?'alto':cielo.elev>20?'a media altura':'bajo, rasante';
-    const lado = cielo.fase<0.5?'al este':'al oeste';
-    return 'El sol está '+alto+', '+lado+'.';
+    return 'El sol está '+alto+', '+(cielo.fase<0.5?'al este':'al oeste')+'.';
   }
-  const f=v=>v>0.85?'llena':v>0.55?'crecida':v>0.25?'en cuarto':'casi nueva';
-  const juntas = Math.abs(l.mayor-l.menor)<0.08 && l.mayor>0.8;
-  return juntas
-    ? 'Las dos lunas están llenas a la vez; el bosque se ve casi como de día.'
-    : 'La luna mayor está '+f(l.mayor)+' y la menor '+f(l.menor)+'.';
+  const arriba=[];
+  for(const k in cielo.lunas){
+    const L=cielo.lunas[k];
+    if(L.altura>0.05) arriba.push(L.nombre+' '+L.nombreFase+
+      (L.altura>0.75?', en lo más alto':L.altura<0.3?', junto al horizonte':''));
+  }
+  if(!arriba.length) return 'No hay lunas en el cielo; la oscuridad es completa.';
+  return (arriba.length>1?'Dos lunas: ':'En el cielo, ')+arriba.join('; ')+'.';
 }
 
-NV_.DIA_MS=DIA_MS; NV_.cielo=cielo;
-NV_.actualizarCielo=actualizarCielo; NV_.cieloEnPalabras=cieloEnPalabras;
-NV_.luz=cielo.luz;
+NV_.cielo=cielo; NV_.actualizarCielo=actualizarCielo;
+NV_.cieloEnPalabras=cieloEnPalabras; NV_.luz=cielo.luz;
