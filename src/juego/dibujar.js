@@ -36,6 +36,7 @@ function draw_(){
     if(my===me.y) drawPlayer(haze);
   }
   dibujarLluvia(Date.now()/1000);
+  dibujarNiebla(t);
   flush();
   const c=NV.cielo;
   $('st1').textContent=c.nombre+(c.deNoche&&c.brilloLunar>0.55?' · lunas altas':'');
@@ -47,6 +48,47 @@ function draw_(){
   if(lastMs>34&&calidad>0.42) calidad=Math.max(0.42,calidad-0.08);
   else if(lastMs<15&&calidad<1) calidad=Math.min(1,calidad+0.04);
   if(dt>46&&animMs<520){ animMs=Math.min(520,Math.round(animMs*1.4)); restartAnim(); }
+}
+
+/* Niebla: una pasada final que lava el color y come el detalle.
+   Se calcula una vez por metro y se aplica a todo su bloque de casillas. */
+function dibujarNiebla(t){
+  if(!NV.nieblaEn) return;
+  const L=NV.luz;
+  const fr=170*L.r+22, fg=182*L.g+24, fb=196*L.b+28;
+  const colsM=Math.ceil(cols/CPM), rowsM=Math.ceil(rowsN/RPM);
+  let densa=0;
+  for(let my=camY;my<camY+rowsM;my++){
+    for(let mx=camX;mx<camX+colsM+1;mx++){
+      const d=NV.nieblaEn(mx,my,t);
+      if(d<0.04) continue;
+      if(Math.abs(mx-me.x)<3&&Math.abs(my-me.y)<3) densa=Math.max(densa,d);
+      const k=Math.min(0.88,d*0.95);
+      const c0=(mx-camX)*CPM, r0=(my-camY)*RPM;
+      for(let r=0;r<RPM;r++){
+        const fila=r0+r; if(fila<0||fila>=rowsN) continue;
+        for(let c=0;c<CPM;c++){
+          const col=c0+c; if(col<0||col>=cols) continue;
+          const i=fila*cols+col;
+          if(fbG[i]){
+            const v=fbC[i];
+            fbC[i]=packc(((v>>16)&255)+(fr-((v>>16)&255))*k,
+                         ((v>>8)&255)+(fg-((v>>8)&255))*k,
+                         (v&255)+(fb-(v&255))*k);
+            if(d>0.55 && (hash3(col,fila,Math.floor(t*3))%100)<d*40) fbG[i]=d>0.78?61:58;
+          } else if(d>0.42 && (hash3(col,fila,Math.floor(t*3)+1)%100)<d*26){
+            fbG[i]=46; fbC[i]=packc(fr*0.8,fg*0.8,fb*0.8); fbL[i]=0;
+          }
+        }
+      }
+    }
+  }
+  if(NV.cielo) NV.cielo.nieblaAqui=densa;
+}
+
+/* El fuego no es constante: late. */
+function titilar(t){
+  return 0.80 + 0.20*Math.sin(t*9.3) + 0.14*Math.sin(t*23.7+1.4) + 0.08*Math.sin(t*41.1);
 }
 
 /* Lluvia: cada gota tiene su columna, su velocidad y su desvío. Cae de verdad,
@@ -89,10 +131,14 @@ function drawGroundRow(my,rBase,haze,t,W){
     const type=groundAt(mx,my), mt=MAT[type]||MAT.g;
     const sh=world.shade[my*W+mx];
     const lp=0.84+patch(mx,my,3,0.08)*0.40;
-    const light=clamp(sh*lp*haze,0,1.3);
+    let light=clamp(sh*lp*haze,0,1.3);
+    /* resplandor de la hoguera: más fuerte cuanto más oscuro esté todo */
+    const fg0=world.fuego?world.fuego[my*W+mx]:0;
+    const calor = fg0 ? fg0*(1.25-Math.min(1,NV.luz.amb)*0.75)*titilar(t) : 0;
+    if(calor) light=clamp(light+calor*0.55,0,1.6);
     const w=windAt(mx,my,t); wsum+=w; wn++;
     const bend = w>1.02?2 : w>0.66?1 : 0;
-    const colG=packs(mt.fam,light*(mt.agua||1));
+    const colG=packs(mt.fam,light*(mt.agua||1),calor*0.55);
     const base=(mx-camX)*CPM;
     const grass=(type==='G'||type==='g'||type==='f');
 
@@ -194,6 +240,37 @@ function drawTree(tr,haze,t){
         put(bc+cen+c,br-r,g.charCodeAt(0),packs('piedra',lit));
       }
       prevCi=ci;
+    }
+    return;
+  }
+  if(tr.k==='hoguera'){
+    const tit=titilar(t);
+    const brasa=packc(255,138,46), llama=packc(255,196,92), punta=packc(255,232,170);
+    const lena=packs('corteza',0.85);
+    /* los leños, cruzados */
+    for(let c=-4;c<=4;c++){
+      put(bc+c, br, (c%3===0)?72:104, lena);
+      if(Math.abs(c)<3) put(bc+c, br-1, 104, lena);
+    }
+    /* las llamas, más angostas y más claras hacia arriba */
+    const alto=Math.max(3,Math.round((2.1+tit*1.3)*HPM*0.42));
+    for(let r=2;r<alto;r++){
+      const u=(r-2)/(alto-2);
+      const an=Math.max(0,Math.round((3.2-u*3.0)*(0.75+tit*0.4)));
+      for(let c=-an;c<=an;c++){
+        const h=hash3(tr.s+c, r, Math.floor(t*14));
+        if((h%100) < 22+u*46) continue;
+        const g = u>0.72?'\'':u>0.44?'^':(h%2?'%':'&');
+        put(bc+c+Math.round(Math.sin(t*5+r*0.7)*u*2.2), br-r,
+            g.charCodeAt(0), u>0.66?punta:u>0.3?llama:brasa);
+      }
+    }
+    /* chispas que suben */
+    for(let i=0;i<3;i++){
+      const h=hash3(tr.s+i,9,0);
+      const sube=((t*7+(h%100)/100)%1);
+      put(bc+Math.round(Math.sin(t*3+i)*3), br-Math.round(2+sube*alto*1.8),
+          46, punta);
     }
     return;
   }
@@ -310,4 +387,5 @@ function drawPlayer(haze){
   }
 }
 
+NV.titilar=titilar; NV.dibujarNiebla=dibujarNiebla;
 NV.draw=draw; NV.draw_=draw_;

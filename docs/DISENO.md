@@ -182,8 +182,25 @@ estado del cielo, las dos lunas con su cara y su fase, la marea con su barra, el
 clima y los próximos fenómenos en orden. Sin un solo número: caras de luna, barras
 y palabras.
 
+**Niebla.** `src/mundo/clima.js`. Un campo que ocupa la grilla, se arrastra hacia
+el oeste a unos seis metros por minuto real y reacciona a la humedad. Espesa de
+madrugada, se levanta con el sol —al mediodía es casi nada— y vuelve al caer la
+tarde. Carga sobre el tercio oeste del claro. Al dibujarse lava el color de todo
+lo que tapa, come el detalle y cierra la vista; donde es muy densa aparecen sus
+propios glifos `: =`. Es la misma maquinaria que va a usar el fuego cuando se
+propague: algo que ocupa la grilla, se mueve y reacciona al aire.
+
+**La hoguera.** Un objeto en el claro, a cinco metros del punto de partida. Los
+leños se dibujan cruzados y la llama se levanta con glifos que cambian cuadro a
+cuadro, más angosta y más clara hacia la punta, con chispas que suben. Late con
+tres ondas superpuestas, así que no parpadea al azar: respira.
+
+Su luz alcanza 159 casillas alrededor y **se suma a la del cielo**: de día casi no
+se nota, de noche cerrada es lo único que ves. No solo aclara, entibia: lo que
+alcanza se corre hacia el ámbar. No se puede caminar sobre ella.
+
 **Pendiente:** el mundo todavía no tiene costas, así que la marea se calcula pero
-no hay agua que suba. Falta también la niebla.
+no hay agua que suba.
 
 La hora se comunica en palabras —*amanece*, *mediodía*, *cae la tarde*, *noche
 cerrada*— nunca en números, igual que todo lo demás.

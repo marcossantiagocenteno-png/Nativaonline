@@ -72,4 +72,29 @@ function proximaLluvia(t,limite){
   return null;
 }
 
+/* ---------- niebla ----------
+   Un campo que se arrastra hacia el oeste con el viento. Es espesa de
+   madrugada, se levanta con el sol y vuelve al caer la tarde; la humedad y el
+   agua cercana la alimentan. Misma maquinaria que va a usar el fuego: algo que
+   ocupa la grilla, se mueve y reacciona al aire. */
+const ruidoNiebla = NV.makeNoise(NV.mulberry(77312));
+const NIEBLA = { oeste:0.62, deriva:33, piso:0.0 };   // deriva: unos 6 m por minuto real
+
+function nieblaEn(mx,my,t){
+  const c = NV.cielo && NV.cielo.clima;
+  const hora = t-Math.floor(t);
+  /* de madrugada espesa, al mediodía casi nada */
+  let ciclo = hora<0.22?1 : hora<0.34?1-(hora-0.22)/0.12 : hora<0.68?0.06
+            : hora<0.82?(hora-0.68)/0.14 : 1;
+  const hum = c?Math.max(0,c.humedad-0.3)/0.7:0.35;
+  const base = NIEBLA.piso + ciclo*(0.30+hum*0.70);
+  if(base<=0.02) return 0;
+  /* más al oeste, y arrastrándose hacia allá con el tiempo */
+  const oeste = NIEBLA.oeste * Math.max(0, 1 - mx/(NV.ASTRO?70:70));
+  const bancos = ruidoNiebla(mx*0.055 + t*NIEBLA.deriva, my*0.055, 3, 1);
+  const v = base*(oeste + bancos*0.85 - 0.34);
+  return Math.max(0, Math.min(1, v));
+}
+
+NV.NIEBLA=NIEBLA; NV.nieblaEn=nieblaEn;
 NV.windAt=windAt; NV.CLIMA=CLIMA; NV.clima=clima; NV.proximaLluvia=proximaLluvia;

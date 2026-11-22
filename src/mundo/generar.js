@@ -103,8 +103,35 @@ function build(cfg){
   }
   trees.sort((a,b)=>a.y-b.y);
 
+  /* una hoguera en el claro, a unos pasos del punto de partida */
+  const inicio=buscarClaro({w:W,h:H,ground,occ});
+  let hog=null;
+  for(const [dx,dy] of [[3,-2],[-3,-2],[3,2],[-3,2],[0,-4],[0,4],[5,0],[-5,0]]){
+    const x=inicio.x+dx, y=inicio.y+dy;
+    if(x<2||y<2||x>=W-2||y>=H-2) continue;
+    if(occ[y*W+x]) continue;
+    const g=ground[y][x];
+    if(g!=='g'&&g!=='G') continue;
+    hog={x,y}; break;
+  }
+  if(hog){
+    occ[hog.y*W+hog.x]=1;
+    trees.push({x:hog.x,y:hog.y,h:0.9,k:'hoguera',s:4242});
+  }
+  /* resplandor del fuego, guardado por casilla */
+  const fuego=new Float32Array(W*H);
+  if(hog){
+    const R=8;
+    for(let j=-R;j<=R;j++) for(let i=-R;i<=R;i++){
+      const x=hog.x+i, y=hog.y+j;
+      if(x<0||y<0||x>=W||y>=H) continue;
+      const d=Math.hypot(i,j*1.25);
+      if(d>R) continue;
+      fuego[y*W+x]=Math.pow(1-d/R,2)*1.5;
+    }
+  }
+
   /* mapa general: un glifo por objeto, el pasto no se dibuja */
-  const shade=new Float32Array(W*H).fill(1);
   const mapG=[];
   for(let y=0;y<H;y++) mapG.push(' '.repeat(W));
   for(const t of trees){
@@ -112,7 +139,8 @@ function build(cfg){
     else if(t.k==='roca') put(mapG,t.x,t.y,'o');
     else if(t.k==='caido') for(let k=0;k<(t.len||2);k++) put(mapG,t.x+k,t.y,'=');
   }
-  return {name:cfg.name,w:W,h:H,ground,mid,trees,shade,occ,mapG,flow,cfg};
+  const shade=new Float32Array(W*H).fill(1);
+  return {name:cfg.name,w:W,h:H,ground,mid,trees,shade,occ,mapG,flow,fuego,hoguera:hog,cfg};
 }
 function calcularSombras(Wd){
   const W=Wd.w,H=Wd.h, shade=Wd.shade, S=NV.cielo?NV.cielo.sombra:{dx:-1,dy:0,porMetro:1.7};
@@ -138,6 +166,26 @@ function calcularSombras(Wd){
   }
 }
 
+function buscarClaro(Wd){
+  const cx=Math.round(Wd.w/2), cy=Math.round(Wd.h/2);
+  const libre=(x,y)=>{
+    if(x<4||y<4||x>=Wd.w-4||y>=Wd.h-4) return false;
+    const g=Wd.ground[y][x];
+    if(g!=='g'&&g!=='G') return false;
+    for(let j=-3;j<=3;j++) for(let i=-3;i<=3;i++){
+      const xx=x+i, yy=y+j;
+      if(xx<0||yy<0||xx>=Wd.w||yy>=Wd.h) continue;
+      if(Wd.occ[yy*Wd.w+xx]) return false;
+    }
+    return true;
+  };
+  for(let r=0;r<Math.max(Wd.w,Wd.h);r++)
+    for(let j=-r;j<=r;j++) for(let i=-r;i<=r;i++){
+      if(Math.max(Math.abs(i),Math.abs(j))!==r) continue;
+      if(libre(cx+i,cy+j)) return {x:cx+i,y:cy+j};
+    }
+  return {x:cx,y:cy};
+}
 function findSpawn(Wd){
   const cx=Math.round(Wd.w/2), cy=Math.round(Wd.h/2);
   const libre=(x,y)=>{
@@ -161,4 +209,4 @@ function findSpawn(Wd){
 const solidAt=(x,y)=>(!world||x<0||y<0||x>=world.w||y>=world.h)?true:!!world.occ[y*world.w+x];
 const groundAt=(x,y)=>(x<0||y<0||x>=world.w||y>=world.h)?'g':world.ground[y][x];
 
-NV.build=build; NV.calcularSombras=calcularSombras; NV.findSpawn=findSpawn; NV.solidAt=solidAt; NV.groundAt=groundAt;
+NV.build=build; NV.buscarClaro=buscarClaro; NV.calcularSombras=calcularSombras; NV.findSpawn=findSpawn; NV.solidAt=solidAt; NV.groundAt=groundAt;

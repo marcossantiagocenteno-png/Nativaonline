@@ -42,9 +42,11 @@ function put(c,r,code,col){
   fbG[i]=code; fbC[i]=col; fbL[i]=layer;
 }
 const packc=(r,g,b)=>(clamp(r|0,0,255)<<16)|(clamp(g|0,0,255)<<8)|clamp(b|0,0,255);
-const packs=(fam,s)=>{
+const packs=(fam,s,calor)=>{
   const c=step(fam,s), m=0.72+s*0.5, L=NV.luz;
-  return packc(c[0]*m*L.r, c[1]*m*L.g, c[2]*m*L.b);
+  let r=c[0]*m*L.r, g=c[1]*m*L.g, b=c[2]*m*L.b;
+  if(calor){ const k=Math.min(1.2,calor); r+=168*k; g+=84*k; b+=22*k; }
+  return packc(r,g,b);
 };
 
 function flush(){
@@ -80,7 +82,7 @@ function flush(){
   }
   if(canRun){ ctx.textAlign='center'; ctx.letterSpacing='0px'; }
   const amb=clamp(NV.luz.amb,0,1.1);
-  const vis=(NV.cielo&&NV.cielo.visibilidad)||1;
+  const vis=((NV.cielo&&NV.cielo.visibilidad)||1)*(1-((NV.cielo&&NV.cielo.nieblaAqui)||0)*0.55);
   const vista=(0.10+0.26*amb)*vis;                    // de noche se ve mucho menos lejos
   const cierre=Math.min(0.97, 0.95-0.37*amb+(1-vis)*0.35);
   const g=ctx.createRadialGradient(Wp/2,Hp/2,Math.min(Wp,Hp)*vista,Wp/2,Hp/2,Math.max(Wp,Hp)*0.80);
