@@ -97,19 +97,11 @@ function dibujarNiebla(t){
         for(let c=0;c<CPM;c++){
           const col=c0+c; if(col<0||col>=cols) continue;
           const i=fila*cols+col;
-          if(fbL[i]>1) continue;                     // las copas quedan por encima
-          if(fbG[i]){
-            const v=fbC[i];
-            fbC[i]=packc(((v>>16)&255)+(fr-((v>>16)&255))*k,
-                         ((v>>8)&255)+(fg-((v>>8)&255))*k,
-                         (v&255)+(fb-(v&255))*k);
-          }
-          if(fbB[i]){
-            const w=fbB[i]-1;
-            fbB[i]=1+packc(((w>>16)&255)+(fr-((w>>16)&255))*k,
-                           ((w>>8)&255)+(fg-((w>>8)&255))*k,
-                           (w&255)+(fb-(w&255))*k);
-          }
+          if(!fbG[i] || fbL[i]>1) continue;          // nada que teñir, o es copa
+          const v=fbC[i];
+          fbC[i]=packc(((v>>16)&255)+(fr-((v>>16)&255))*k,
+                       ((v>>8)&255)+(fg-((v>>8)&255))*k,
+                       (v&255)+(fb-(v&255))*k);
         }
       }
     }
@@ -175,8 +167,6 @@ function drawGroundRow(my,rBase,haze,t){
     } else if(mt.textura==='caida'){
       lp *= 0.30;
     }
-    /* la sombra no es sólo oscuridad: la llena la luz azul del cielo */
-    const frio = NV.cielo.deNoche ? 0 : clamp((1-sh)*0.85,0,0.8);
     let light=clamp(sh*lp*haze,0,1.3);
     /* resplandor de la hoguera: más fuerte cuanto más oscuro esté todo */
     const fg0=NV.fuegoEn(mx,my);
@@ -184,12 +174,8 @@ function drawGroundRow(my,rBase,haze,t){
     if(calor) light=clamp(light+calor*0.85,0,2.0);
     const w=windAt(mx,my,t); wsum+=w; wn++;
     const bend = w>1.02?2 : w>0.66?1 : 0;
-    const colG=packs(fam,light*(mt.agua||1),calor*0.75,frio);
-    /* el fondo del metro: la misma materia, apagada. Esto es lo que llena los
-       huecos de negro entre glifo y glifo y convierte el suelo en un manto. */
-    const colF=packs(fam, light*(mt.agua||1)*0.40, calor*0.45, frio*0.8);
+    const colG=packs(fam,light*(mt.agua||1),calor*0.75);
     const base=(mx-camX)*CPM;
-    fondoBloque(base, top, CPM, RPM, colF);
     const grass=(type==='G'||type==='g'||type==='f');
 
     /* las RPM franjas se recorren de norte a sur: lo de más al sur tapa */
@@ -228,8 +214,8 @@ function drawGroundRow(my,rBase,haze,t){
          de la grilla para que la mata se enlace de un metro al siguiente */
       const nPer=Math.max(2,Math.round(CPM*(type==='G'?0.15:0.09)*calidad));
       const n=Math.round(nPer*clamp(0.5+light*0.7,0.3,1.4));
-      const colT=packs(mt.fam2||mt.fam,light*1.1,0,frio);
-      const colM=packs(mt.fam,light*0.95,0,frio);
+      const colT=packs(mt.fam2||mt.fam,light*1.1);
+      const colM=packs(mt.fam,light*0.95);
       for(let b=0;b<n;b++){
         const hb=hash3(mx*997+b,my*131+sy*37,7);
         const c0=base+((hb%(CPM*8))/8|0);
@@ -294,10 +280,7 @@ function drawTree(tr,haze,t){
         let lit = iluminado?1.02:0.40;
         if(techo) lit*=1.18;
         lit*=(0.92+((hh>>9)%100)/100*0.16)*haze;
-        const frioR=NV.cielo.deNoche?0:(iluminado?0.06:0.5);
-        put(bc+cen+c,br-r,g.charCodeAt(0),packs('piedra',lit,0,frioR));
-        const litF=(iluminado?1.0:0.42)*haze;        // dos caras, dos fondos
-        fondo(bc+cen+c,br-r,packs('piedra',litF*0.36,0,frioR));
+        put(bc+cen+c,br-r,g.charCodeAt(0),packs('piedra',lit));
       }
       prevCi=ci;
     }
@@ -309,7 +292,6 @@ function drawTree(tr,haze,t){
     const lena=packs('corteza',0.85);
     /* los leños, cruzados */
     for(let c=-4;c<=4;c++){
-      fondo(bc+c, br, packs('corteza',0.3));
       put(bc+c, br, (c%3===0)?72:104, lena);
       if(Math.abs(c)<3) put(bc+c, br-1, 104, lena);
     }
@@ -378,17 +360,7 @@ function drawTree(tr,haze,t){
       const dens=clamp((1-u*0.72)*lit*1.45,0,1);
       const g=u>0.78?pick(borde,dens*1.1):pick(copa,dens);
       if(g===' ') continue;
-      const famHoja = east<-0.15?(famC==='verde'?'verdeO':famC):famC;
-      const frioHoja = NV.cielo.deNoche?0:(east<-0.15?0.42:0.10);
-      put(bc+c-topSway,sr,g.charCodeAt(0),packs(famHoja,lit,0,frioHoja));
-      if(u<0.88){
-        /* el fondo de la copa se calcula por bandas de luz, no carácter por
-           carácter: así las celdas vecinas comparten color y el volcado las
-           pinta de una sola pasada */
-        const banda=Math.round(east*2.5)/2.5;
-        const litF=(0.50+0.60*((banda+1)/2)+0.18*Math.round(tN*3)/3)*haze;
-        fondo(bc+c-topSway,sr,packs(famHoja,litF*0.34,0,frioHoja*1.1));
-      }
+      put(bc+c-topSway,sr,g.charCodeAt(0),packs(east<-0.15?(famC==='verde'?'verdeO':famC):famC,lit));
     }
   }
   if(trunkR>0){
@@ -398,8 +370,7 @@ function drawTree(tr,haze,t){
       const g=r<trunkR*0.35?WOOD.tronco[2]:r<trunkR*0.75?WOOD.tronco[1]:WOOD.tronco[0];
       for(let c=0;c<tw;c++){
         const lit=(0.60+0.42*(c/(tw-1||1)))*(0.82+0.3*(r/trunkR))*haze;
-        put(bc+c-1,sr,g.charCodeAt(0),packs(fam,lit,0,0.12));
-        fondo(bc+c-1,sr,packs(fam,0.30*haze,0,0.2));
+        put(bc+c-1,sr,g.charCodeAt(0),packs(fam,lit));
       }
     }
     if(!sp.tiers){

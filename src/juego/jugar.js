@@ -6,7 +6,7 @@
 let world=null, me={x:50,y:62}, facing='norte';
 let cv,ctx,dpr=1,cw=6,chh=9,cols=0,rowsN=0,camX=0,camY=0;
 let fontSize=11, animOn=true, frame=0, animTimer=null, animMs=120, animMsBase=120;
-let fbG=null,fbC=null,fbL=null,fbB=null, db=null,userNs=null,docRef=null;
+let fbG=null,fbC=null,fbL=null, db=null,userNs=null,docRef=null;
 let layer=0, calidad=1, pend=false, lastMs=16;
 const patch=makeNoise(mulberry(41099));
 const gustN=makeNoise(mulberry(7717));
