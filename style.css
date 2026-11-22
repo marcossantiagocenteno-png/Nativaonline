@@ -18,10 +18,17 @@
 #astros .ae i{color:var(--dim);font-style:normal;float:right;font-size:10px}
 
 /* Barra de día y noche: dónde estamos dentro del día del planeta */
-#reloj{position:absolute;left:0;right:0;top:0;height:3px;z-index:29;
+#reloj{position:absolute;left:0;right:0;top:0;height:6px;z-index:29;
   background:linear-gradient(90deg,
     #0a1020 0%, #0a1020 22%, #d98a4a 26%, #cfd6c8 34%,
     #e8eadf 50%, #cfd6c8 68%, #d9764a 76%, #0a1020 80%, #0a1020 100%);
-  opacity:.55}
-#relojM{position:absolute;top:-2px;width:2px;height:7px;background:#fff;
-  box-shadow:0 0 4px #fff;transition:left .4s linear}
+  opacity:.80;border-bottom:1px solid #00000066}
+#relojM{position:absolute;top:-3px;width:3px;height:12px;background:#fff;
+  box-shadow:0 0 6px #fff;transition:left .4s linear}
+#relojS{position:absolute;top:-4px;margin-left:-6px;width:13px;height:13px;
+  line-height:13px;text-align:center;font-size:11px;color:#fff;
+  text-shadow:0 0 5px #000;transition:left .4s linear;pointer-events:none}
+
+#astros .luna{vertical-align:-4px}
+#astros .ax b.sol{font-size:17px;color:#f0e2b0}
+#astros .ae .luna{vertical-align:-3px;margin-right:2px}

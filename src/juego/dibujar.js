@@ -134,11 +134,11 @@ function drawGroundRow(my,rBase,haze,t,W){
     let light=clamp(sh*lp*haze,0,1.3);
     /* resplandor de la hoguera: más fuerte cuanto más oscuro esté todo */
     const fg0=world.fuego?world.fuego[my*W+mx]:0;
-    const calor = fg0 ? fg0*(1.25-Math.min(1,NV.luz.amb)*0.75)*titilar(t) : 0;
-    if(calor) light=clamp(light+calor*0.55,0,1.6);
+    const calor = fg0 ? fg0*(1.55-Math.min(1,NV.luz.amb)*0.95)*titilar(t) : 0;
+    if(calor) light=clamp(light+calor*0.85,0,2.0);
     const w=windAt(mx,my,t); wsum+=w; wn++;
     const bend = w>1.02?2 : w>0.66?1 : 0;
-    const colG=packs(mt.fam,light*(mt.agua||1),calor*0.55);
+    const colG=packs(mt.fam,light*(mt.agua||1),calor*0.75);
     const base=(mx-camX)*CPM;
     const grass=(type==='G'||type==='g'||type==='f');
 

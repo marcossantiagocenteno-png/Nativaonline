@@ -3,9 +3,20 @@
 
 const NVx = window.NV;
 
-/* Cara de la luna según su fase, con los glifos del juego. */
-const CARAS=['·',')','D','0','O','0','C','('];
-function cara(f){ return CARAS[Math.floor(((f+1/16)%1)*8)]; }
+/* La cara de la luna, dibujada: un disco oscuro y encima la parte iluminada.
+   El terminador es una elipse que se va aplastando según la fase. */
+function lunaSVG(fase, grande){
+  const k=(1-Math.cos(fase*Math.PI*2))/2;        // fracción iluminada
+  const R=grande?9:7, C=grande?10:8, L=C*2;
+  const rx=(R*Math.abs(1-2*k)).toFixed(2);
+  const lado=fase<0.5?1:0;                       // creciente ilumina por el este
+  const barrido=k>0.5?lado:1-lado;
+  const d='M'+C+','+(C-R)+' A'+R+','+R+' 0 0 '+lado+' '+C+','+(C+R)+
+          ' A'+rx+','+R+' 0 0 '+barrido+' '+C+','+(C-R)+' Z';
+  return '<svg class="luna" viewBox="0 0 '+L+' '+L+'" width="'+L+'" height="'+L+'">'+
+    '<circle cx="'+C+'" cy="'+C+'" r="'+R+'" fill="#121c24" stroke="#3b5566" stroke-width="1"/>'+
+    '<path d="'+d+'" fill="#eef4f7"/></svg>';
+}
 
 const SIG={ estrella:'*', calavera:'@', madre:'o', marea:'~', nube:'=',
             lluvia:'/', tormenta:'%', rojo:'#', blanco:'O' };
@@ -21,7 +32,7 @@ function filaLuna(L){
   const hacia = L.fase<0.5?'llena':'nueva';
   const cuando = prox.enHorasReales<1 ? 'en un rato'
                : prox.enHorasReales<4 ? 'dentro de unas horas' : 'más adelante';
-  return '<div class="ax"><b>'+cara(L.fase)+'</b><span class="an">'+L.nombre+'</span>'+
+  return '<div class="ax"><b>'+lunaSVG(L.fase,true)+'</b><span class="an">'+L.nombre+'</span>'+
     '<span class="af">'+L.nombreFase+'</span>'+
     '<i>'+donde+(ecl?' · <u>eclipse '+ecl.clase+'</u>':'')+' · '+hacia+' '+cuando+'</i></div>';
 }
@@ -31,7 +42,7 @@ function panelAstros(){
   const a=NVx.astroEn(ms), m=NVx.marea(a.t), c=NVx.clima(a.t), cielo=NVx.cielo;
   let h='';
   h+='<div class="ah">'+SIG.estrella+' cielo</div>';
-  h+='<div class="ax"><b>'+(a.deDia?'*':'·')+'</b><span class="an">'+(a.deDia?'día':'noche')+
+  h+='<div class="ax"><b class="sol">'+(a.deDia?'&#9788;':'&#9790;')+'</b><span class="an">'+(a.deDia?'día':'noche')+
      '</span><span class="af">'+cielo.nombre+'</span><i>'+a.estacion+' · día '+a.diaMes+' del mes '+a.mes+' · año '+a.ano+'</i></div>';
   h+='<div class="ah">'+SIG.calavera+' lunas</div>';
   h+=filaLuna(a.lunas.calavera)+filaLuna(a.lunas.madre);
@@ -56,7 +67,7 @@ function panelAstros(){
     const L=a.lunas[k];
     for(const [obj,etq] of [[0,'nueva'],[0.5,'llena']]){
       const p=NVx.proximaFase(k,obj,ms);
-      ev.push({h:p.enHorasReales, t:(k==='calavera'?SIG.calavera:SIG.madre)+' '+L.nombre+' '+etq});
+      ev.push({h:p.enHorasReales, t:lunaSVG(obj,false)+' '+L.nombre+' '+etq});
     }
   }
   const pe=NVx.proximoEclipse(a.t, 30);
@@ -82,4 +93,4 @@ function toggleAstros(v){
 }
 function pintar(){ if(astrosOn) NVx.$('astrosTx').innerHTML=panelAstros(); }
 
-NVx.toggleAstros=toggleAstros; NVx.panelAstros=panelAstros;
+NVx.lunaSVG=lunaSVG; NVx.toggleAstros=toggleAstros; NVx.panelAstros=panelAstros;

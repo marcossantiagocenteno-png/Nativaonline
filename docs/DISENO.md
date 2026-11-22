@@ -179,9 +179,17 @@ Las nubes apagan la luz y le quitan color. La lluvia, además, **cierra la vista
 la cortina tapa la distancia aunque sea mediodía.
 
 **Ventana ASTROS.** `src/juego/astros.js`, botón *astros* o tecla `C`. Muestra el
-estado del cielo, las dos lunas con su cara y su fase, la marea con su barra, el
-clima y los próximos fenómenos en orden. Sin un solo número: caras de luna, barras
-y palabras.
+estado del cielo, las dos lunas, la marea con su barra, el clima y los próximos
+fenómenos en orden. Sin un solo número: discos, barras y palabras.
+
+Cada luna se **dibuja**, no se nombra con un carácter: un disco oscuro y encima la
+parte iluminada, recortada por una elipse que se aplasta según la fase. En cuarto
+la elipse vale cero y queda media luna exacta; en llena ocupa el disco entero. El
+lado iluminado cambia de este a oeste al pasar la llena, como corresponde.
+
+**El tiempo también se ve sin abrir nada:** una franja arriba de la escena es el
+día entero del planeta, con los tramos de noche oscuros y el amanecer y el ocaso
+en naranja, y un sol o una luna recorriéndola.
 
 **Niebla.** `src/mundo/clima.js`. Un campo que ocupa la grilla, se arrastra hacia
 el oeste a unos seis metros por minuto real y reacciona a la humedad. Espesa de
@@ -196,7 +204,7 @@ leños se dibujan cruzados y la llama se levanta con glifos que cambian cuadro a
 cuadro, más angosta y más clara hacia la punta, con chispas que suben. Late con
 tres ondas superpuestas, así que no parpadea al azar: respira.
 
-Su luz alcanza 159 casillas alrededor y **se suma a la del cielo**: de día casi no
+Su luz alcanza dieciséis metros a la redonda y **se suma a la del cielo**: de día casi no
 se nota, de noche cerrada es lo único que ves. No solo aclara, entibia: lo que
 alcanza se corre hacia el ámbar. No se puede caminar sobre ella.
 

@@ -122,13 +122,13 @@ function build(cfg){
   /* resplandor del fuego, guardado por casilla */
   const fuego=new Float32Array(W*H);
   if(hog){
-    const R=8;
+    const R=16;                       // metros que alcanza el resplandor
     for(let j=-R;j<=R;j++) for(let i=-R;i<=R;i++){
       const x=hog.x+i, y=hog.y+j;
       if(x<0||y<0||x>=W||y>=H) continue;
       const d=Math.hypot(i,j*1.25);
       if(d>R) continue;
-      fuego[y*W+x]=Math.pow(1-d/R,2)*1.5;
+      fuego[y*W+x]=Math.pow(1-d/R,1.5)*2.4;
     }
   }
 
