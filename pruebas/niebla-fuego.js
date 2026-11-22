@@ -44,6 +44,22 @@ if(vals[0]!==null){
   probar('el titileo es suave', mx-mn>0.15 && mx-mn<1.2);
 } else console.log('  (la función vive dentro del dibujo)');
 
+// La hoguera tiene que terminar DIBUJADA, no solo existir en los datos.
+// (Se agregó tras descubrir que se añadía al mundo después de ordenar por profundidad.)
+{
+  const m=require('./cargar.js')('module.exports={draw_, fbG:()=>fbG, fbC:()=>fbC, tictac, world:()=>world};');
+  m.tictac(); m.draw_();
+  const g=m.fbG(), c=m.fbC(); let llama=0;
+  for(let i=0;i<g.length;i++){ if(!g[i]) continue; const v=c[i];
+    if(((v>>16)&255)>200 && ((v>>8)&255)>100 && (v&255)<120) llama++; }
+  const t=m.world().trees; let ord=true;
+  for(let i=1;i<t.length;i++) if(t[i].y<t[i-1].y) ord=false;
+  console.log('\n=== la hoguera en pantalla ===');
+  console.log('  glifos de llama dibujados:', llama, '· objetos ordenados por profundidad:', ord?'sí':'no');
+  probar('la hoguera llega a dibujarse', llama>0);
+  probar('los objetos quedan ordenados por profundidad', ord);
+}
+
 console.log('\n'+ok.length+' comprobaciones pasaron'+(mal.length?', '+mal.length+' FALLARON:':''));
 mal.forEach(m=>console.log('  ✗',m));
 process.exit(mal.length?1:0);

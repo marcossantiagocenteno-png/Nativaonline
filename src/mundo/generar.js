@@ -117,6 +117,7 @@ function build(cfg){
   if(hog){
     occ[hog.y*W+hog.x]=1;
     trees.push({x:hog.x,y:hog.y,h:0.9,k:'hoguera',s:4242});
+    trees.sort((a,b)=>a.y-b.y);   // el dibujo recorre por profundidad: sin esto no se ve
   }
   /* resplandor del fuego, guardado por casilla */
   const fuego=new Float32Array(W*H);
