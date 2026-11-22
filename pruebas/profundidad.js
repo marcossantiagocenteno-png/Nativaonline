@@ -55,29 +55,6 @@ console.log('  bloques de suelo:', m.nBloques(), '· tiradas de objetos:', tirad
             '· total', m.nBloques()+tiradas, 'rectángulos para', total, 'celdas');
 probar('el fondo se pinta en pocos rectángulos', m.nBloques()+tiradas < total/12);
 
-console.log('\n=== oclusión: al pie de las cosas entra menos luz ===');
-{
-  const NV=m.NV, L=NV.LADO, p=NV.panel(0,0);
-  let alPie=0,nPie=0, abierto=0,nAb=0;
-  for(const t of p.trees){
-    if(t.k!=='arbol') continue;
-    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
-      const x=t.x+dx, y=t.y+dy;
-      if(x<0||y<0||x>=L||y>=L) continue;
-      alPie+=p.ao[y*L+x]; nPie++;
-    }
-  }
-  for(let y=4;y<L-4;y+=7) for(let x=4;x<L-4;x+=7){
-    let cerca=false;
-    for(let j=-3;j<=3&&!cerca;j++) for(let i=-3;i<=3;i++) if(p.occ[(y+j)*L+(x+i)]){ cerca=true; break; }
-    if(cerca) continue;
-    abierto+=p.ao[y*L+x]; nAb++;
-  }
-  console.log('  luz que llega — al pie de un árbol:', (alPie/nPie).toFixed(2),
-              '· en campo abierto:', (abierto/nAb).toFixed(2));
-  probar('al pie de los árboles entra menos luz', alPie/nPie < abierto/nAb*0.9);
-}
-
 console.log('\n=== la sombra es azul, no sólo oscura ===');
 const az=(c)=>{ const r=(c>>16)&255,g=(c>>8)&255,b=c&255; return b-(r+g)/2; };
 let sol=0,nsol=0, som=0,nsom=0;

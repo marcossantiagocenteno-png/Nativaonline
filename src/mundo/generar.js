@@ -47,30 +47,7 @@ function marcarSenderos(p,L,ox,oy){
 function nuevoPanel(L){
   return {ground:[], occ:new Uint8Array(L*L), trees:[],
           flow:new Uint8Array(L*L), fuego:new Float32Array(L*L),
-          shade:new Float32Array(L*L).fill(1),
-          ao:new Float32Array(L*L).fill(1)};
-}
-
-/* Oclusión: al pie de un tronco, contra una piedra o bajo una copa entra menos
-   luz, venga de donde venga. No es la sombra proyectada —esa se mueve con el
-   sol—, es que ahí el cielo se ve menos. Se calcula una vez y no cambia. */
-function calcularOclusion(p,L){
-  p.ao.fill(1);
-  for(const t of p.trees){
-    const ancho = t.k==='arbol' ? Math.max(1,Math.round(t.h*0.34))
-                : t.k==='roca'  ? Math.max(1,Math.round(t.h*0.9)) : 1;
-    const span=t.k==='caido'?(t.len||1):1;
-    const hondo = t.k==='arbol'?0.42 : t.k==='hoguera'?0 : 0.5;
-    for(let sx=0;sx<span;sx++)
-      for(let j=-ancho;j<=ancho;j++) for(let i=-ancho;i<=ancho;i++){
-        const x=t.x+sx+i, y=t.y+j;
-        if(x<0||y<0||x>=L||y>=L) continue;
-        const d=Math.hypot(i,j*1.2)/(ancho+0.6);
-        if(d>1) continue;
-        const v=hondo+(1-hondo)*Math.pow(d,0.8);
-        if(v<p.ao[y*L+x]) p.ao[y*L+x]=v;
-      }
-  }
+          shade:new Float32Array(L*L).fill(1)};
 }
 const poner=(p,L,x,y,c)=>{ if(x<0||y<0||x>=L||y>=L) return;
   p.ground[y]=p.ground[y].slice(0,x)+c+p.ground[y].slice(x+1); };
@@ -320,7 +297,6 @@ function generarPanel(pi,pj,def,L){
     if(t.k==='arbol') pm(t.x,t.y,t.sp==='mistico'?'Y':'T');
     else if(t.k==='hoguera') pm(t.x,t.y,'f');
   }
-  calcularOclusion(p,L);
   calcularSombras(p,L);
   return p;
 }
@@ -368,7 +344,6 @@ function buscarClaro(p,L){
   return {x:cx,y:cy};
 }
 
-NVg.calcularOclusion=calcularOclusion;
 NVg.sendero=sendero;
 NVg.generarPanel=generarPanel; NVg.calcularSombras=calcularSombras;
 NVg.buscarClaro=buscarClaro; NVg.ejeArroyo=ejeArroyo;

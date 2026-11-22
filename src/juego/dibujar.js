@@ -161,7 +161,7 @@ function drawGroundRow(my,rBase,haze,t){
     const type=NV.sueloEn(mx,my);
     if(!type) continue;                         // más allá del mundo conocido
     const mt=MAT[type]||MAT.g;
-    const sh=NV.sombraEn(mx,my)*NV.oclusionEn(mx,my);
+    const sh=NV.sombraEn(mx,my);
     let lp=0.84+patch(mx,my,3,0.08)*0.40;
     let fam=mt.fam, grieta=0;
     if(mt.textura==='roca'){
