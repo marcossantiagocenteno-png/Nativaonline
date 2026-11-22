@@ -412,8 +412,11 @@ juncos `! j`, flores `*`.
 
 ### Color y profundidad
 
-Diecinueve familias —verde, corteza, piedra, arena, agua, hueso, nieve, abismo…—
-con cuatro escalones de luz cada una, moduladas después por la luz del cielo.
+Diecinueve familias —verde, corteza, piedra, arena, agua, hueso, nieve, abismo…—,
+cada una con cuatro colores. Pero esos cuatro **no son escalones sino anclajes**:
+entre uno y el siguiente se interpola y el resultado se redondea a doce pasos. Con
+cuatro tonos por material los degradados salían a bandas; con doce la luz se ve
+continua sin perder la disciplina de la paleta.
 
 **Cada celda lleva dos colores, no uno.** Detrás de la letra hay un fondo: la
 misma materia, apagada. Ese fondo es lo que llena los huecos y convierte un
@@ -426,9 +429,15 @@ Medido sobre un cuadro de mediodía:
 | | |
 |---|---|
 | forma de la letra | 3,7 bits · 29 glifos |
-| color de la letra | 7,5 bits · unos 1.000 colores |
-| color del fondo | 6,5 bits · unos 365 colores |
-| **total** | **17,7 bits por celda** |
+| color de la letra | 8,9 bits · unos 2.700 colores |
+| color del fondo | 8,2 bits · unos 570 colores |
+| **total** | **20,7 bits por celda** |
+
+**Oclusión: donde las cosas se tocan entra menos luz.** Al pie de un tronco,
+contra una piedra, bajo una copa. No es la sombra proyectada —esa se mueve con el
+sol—, es que ahí el cielo se ve menos. Se calcula una vez por panel y no cambia.
+Medido: al pie de un árbol llega el 80% de la luz que llega en campo abierto. Es
+lo que hace que las cosas se apoyen en el suelo en vez de flotar sobre él.
 
 **La sombra no es oscuridad: es luz azul.** Lo que ilumina una sombra no es el
 sol sino el cielo, y el cielo es azul. Todo lo que está en sombra se corre hacia
@@ -438,7 +447,7 @@ verse plana. Medido: a pleno sol la tendencia al azul es de −8, en sombra de +
 **Cómo se pinta sin que cueste.** El fondo del suelo va por bloques de un metro,
 que son de un solo color; el de los objetos, en tiradas horizontales del mismo
 color, con el color redondeado a saltos de doce para que las tiradas sean largas.
-Resultado: unos **1.800 rectángulos** para 61.000 celdas, en vez de los 20.000 que
+Resultado: unos **2.900 rectángulos** para 61.000 celdas, en vez de los 20.000 que
 costaría pintarlas de a una.
 
 ### Viento

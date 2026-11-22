@@ -60,9 +60,22 @@ function makeNoise(rnd){
 function rgbOf(hex){ const v=parseInt(hex.slice(1),16); return [(v>>16)&255,(v>>8)&255,v&255]; }
 const RGB={};
 for(const k in FAM) RGB[k]=FAM[k].map(rgbOf);
-function step(fam,s){ /* s 0..1 -> escalón 0..3 */
-  const f=RGB[fam]||RGB.piedra;
-  return f[clamp(Math.round(s*3.4-0.2),0,3)];
+/* Los cuatro colores de cada familia son anclajes, no escalones: entre uno y el
+   siguiente se interpola, y el resultado se redondea a doce pasos. Antes había
+   cuatro tonos por material y los degradados salían a bandas; ahora hay doce,
+   que alcanzan para que la luz se vea continua sin perder la disciplina de la
+   paleta. */
+const PASOS=12;
+const _col=[0,0,0];
+function step(fam,s){
+  const f=RGB[fam]||RGB.piedra, ult=f.length-1;
+  let t=clamp(s*1.06-0.03,0,1);
+  t=Math.round(t*PASOS)/PASOS*ult;
+  const i=Math.min(ult-1,Math.floor(t)), fr=t-i, a=f[i], b=f[i+1];
+  _col[0]=a[0]+(b[0]-a[0])*fr;
+  _col[1]=a[1]+(b[1]-a[1])*fr;
+  _col[2]=a[2]+(b[2]-a[2])*fr;
+  return _col;
 }
 function pick(ramp,t){ return ramp[clamp(Math.round(t*(ramp.length-1)),0,ramp.length-1)]; }
 

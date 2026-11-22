@@ -61,6 +61,10 @@ function sombraEn(gx,gy){
   const p=panelDe(gx,gy);
   return p?p.shade[localY(gy)*LADO+localX(gx)]:1;
 }
+function oclusionEn(gx,gy){
+  const p=panelDe(gx,gy);
+  return p&&p.ao?p.ao[localY(gy)*LADO+localX(gx)]:1;
+}
 function fuegoEn(gx,gy){
   const p=panelDe(gx,gy);
   return p&&p.fuego?p.fuego[localY(gy)*LADO+localX(gx)]:0;
@@ -105,6 +109,6 @@ NVp.limites=limites;
 NVp.LADO=LADO; NVp.BIOMAS=BIOMAS; NVp.panel=panel; NVp.panelDe=panelDe;
 NVp.nombreDe=nombreDe; NVp.desdeNombre=desdeNombre;
 NVp.sueloEn=sueloEn; NVp.solidoEn=solidoEn; NVp.sombraEn=sombraEn;
-NVp.fuegoEn=fuegoEn; NVp.flujoEn=flujoEn;
+NVp.oclusionEn=oclusionEn; NVp.fuegoEn=fuegoEn; NVp.flujoEn=flujoEn;
 NVp.objetosEn=objetosEn; NVp.olvidarObjetos=olvidarObjetos;
 NVp.recalcularSombras=recalcularSombras; NVp.cachePaneles=cache;
