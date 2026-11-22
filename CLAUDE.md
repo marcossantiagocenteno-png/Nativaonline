@@ -30,6 +30,13 @@ Antes de tocar nada, leer `docs/DISENO.md`. Ese documento manda sobre el código
   `pruebas/cargar.js`, en el mismo orden.
 - Todo elemento que el código busque con `$('algo')` tiene que existir en el
   marcado de `interfaz.js`.
+- **La hoja de estilos es `src/style.css` y ninguna otra.** Hubo un `style.css` en
+  la raíz que nadie cargaba y se llevó semanas de cambios al vacío; `node
+  pruebas/estilos.js` vigila que no vuelva a aparecer y que cada pieza de la
+  interfaz tenga su regla.
+- **La interfaz es negro, blanco y oro viejo.** Fondo negro, letras blancas,
+  marcos `--oro`. Nada de verdes ni de colores de la escena: el lienzo ya tiene
+  los suyos y la interfaz no le compite.
 - Probar antes de publicar: `node pruebas/humo.js` carga los módulos en un
   navegador simulado, genera el mundo, dibuja un cuadro y camina 60 pasos.
 - El juicio visual lo pone Marcos. Describir qué se cambió y por qué, no afirmar

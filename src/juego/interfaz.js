@@ -8,7 +8,7 @@ const NVi = window.NV;
 
 /* Sello de versión, puesto por sellar.sh al publicar. Se ve en el pie: así
    Marcos y yo sabemos al instante si está mirando la última versión. */
-NVi.VERSION='22/11 10:38';
+NVi.VERSION='22/11 10:47';
 
 NVi.MARCADO = `<header>
   <h1 id="wname">Claro del norte</h1>
@@ -17,7 +17,6 @@ NVi.MARCADO = `<header>
   </span>
   <button id="bAnim" class="on" title="Viento">~</button>
   <button id="bMap">mapa</button>
-  <button id="bInfo" title="Información">i</button>
   <span class="sp"></span>
 </header>
 
@@ -28,6 +27,7 @@ NVi.MARCADO = `<header>
     <div id="reloj"><span id="relojM"></span><span id="relojS"></span></div>
     <div id="map"><div id="mapCab"></div><pre id="mapTx"></pre></div>
     <div id="bubble"></div>
+    <button id="bInfo" title="Información">i</button>
     <aside id="info">
       <div class="icaj" data-cuadro="controles">Controles</div>
     </aside>

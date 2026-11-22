@@ -420,8 +420,11 @@ Tres formas, y las tres conviven:
 
 No hay cruceta en pantalla: el toque la reemplaza, y la pantalla queda limpia.
 
-**La barra de información.** Un botón con una `i` abre una barra lateral de
-cajones. Al abrir un cajón, la barra se repliega y aparece un cuadro en el medio
+**La interfaz es negra, blanca y de oro viejo**, y nada más: el lienzo tiene todos
+los colores del bosque y la interfaz no le compite.
+
+**La barra de información.** Un botón redondo con una `i`, abajo a la derecha
+dentro de la escena, abre una barra de cajones justo encima. Al abrir un cajón, la barra se repliega y aparece un cuadro en el medio
 de la pantalla, con fondo negro, letras blancas y marco blanco, con una `×` arriba
 a la derecha para cerrarlo. Por ahora hay un solo cajón, *Controles*; los cuadros
 se declaran en `CUADROS`, dentro de `src/juego/jugar.js`, y agregar uno es sumar
