@@ -8,12 +8,19 @@
 const OVX=0.70, OVY=0.54;
 const ASPECTO=OVY/(0.6*OVX);          // alto de celda respecto del ancho
 const METROS_MIN=9, METROS_MAX=72;    // cuánto mundo entra a lo ancho
+/* Cuánto se puede alejar depende del ancho real de la pantalla: en un teléfono
+   vertical, pedir 72 metros dejaría cada metro en cinco píxeles y las letras en
+   dos. El tope se calcula para que el carácter nunca baje de ~2,7 px de ancho. */
+function metrosMaximos(anchoPx){ return clamp(anchoPx/(4*2.7), 18, METROS_MAX); }
 let metrosVista=28, metrosDestino=28;
 
 /* El zoom no cambia el tamaño de la letra: cambia cuántas letras entran en un
    metro. Así se puede parar en cualquier punto entre el mínimo y el máximo sin
    saltos de escala, y el carácter se ve siempre igual de grande. */
 function aplicarEscala(anchoPx){
+  const tope=metrosMaximos(anchoPx);
+  if(metrosDestino>tope) metrosDestino=tope;
+  if(metrosVista>tope) metrosVista=tope;
   const pxm=anchoPx/metrosVista;                       // píxeles por metro
   CPM=clamp(Math.round(pxm/3.2),6,48);
   cw=pxm/CPM;
@@ -22,7 +29,10 @@ function aplicarEscala(anchoPx){
   HPM=RPM*1.7;
   fontSize=cw/(0.6*OVX);
 }
-function zoomAbsoluto(m){ metrosDestino=clamp(m,METROS_MIN,METROS_MAX); }
+function zoomAbsoluto(m){
+  const tope=metrosMaximos(($('stage')||{clientWidth:1200}).clientWidth||1200);
+  metrosDestino=clamp(m,METROS_MIN,tope);
+}
 function zoomRelativo(f){ zoomAbsoluto(metrosDestino*f); }
 function layout(){
   const st=$('stage');
@@ -106,6 +116,7 @@ function flush(){
 NV.layout=layout; NV.aplicarEscala=aplicarEscala;
 NV.zoomAbsoluto=zoomAbsoluto; NV.zoomRelativo=zoomRelativo;
 NV.metrosVista=()=>metrosVista;
+NV.metrosMaximos=metrosMaximos;
 /* El zoom se acerca a su destino de a poco: nunca salta. */
 NV.acercarZoom=function(){
   if(Math.abs(metrosDestino-metrosVista)<0.02){ metrosVista=metrosDestino; return false; }
