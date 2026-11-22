@@ -332,6 +332,27 @@ profundidad. Si nacen alineadas, el pasto se lee como un campo arado.
 
 ---
 
+## 9 bis. El reloj y el guardado
+
+**El mundo tiene su propio reloj y corre sin nadie.** La hora no arranca al entrar:
+sale del tiempo real, el mismo que tiene cualquier teléfono. Dos personas que
+entran en el mismo instante, en cualquier parte, ven la misma hora, la misma fase
+de las lunas, la misma marea y el mismo clima. Y si nadie entra en una semana, al
+volver el bosque está siete días más viejo.
+
+El bosque tampoco se sortea: se genera de una semilla, así que es idéntico siempre.
+
+**Lo que se guarda** es la partida de quien juega: dónde está, hacia dónde mira, su
+nivel de zoom y si tenía el mapa abierto. Vive en el navegador, así que vuelve
+donde lo dejó en ese dispositivo. Al volver, el juego le dice cuánto tiempo pasó
+afuera. Con `Mayús + R` se vuelve al claro de partida.
+
+El guardado se descarta solo si cambia la semilla del mundo o si la posición ya no
+es pisable: así, cuando el mundo cambie, nadie aparece dentro de un tronco.
+
+**Pendiente:** un guardado de verdad, en servidor, para cuando haya varios
+jugadores, muerte permanente y un bosque que recuerda.
+
 ## 10. Orden de trabajo
 
 1. Paneles y ciclo de día y noche. Base de todo.

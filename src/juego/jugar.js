@@ -20,7 +20,7 @@ function move(dx,dy){
   const gq=groundAt(nx,ny);
   if(gq==='A') bubble('El agua te llega a los tobillos y arrastra para el sur.');
   else if(gq==='a') bubble('Pisás el arroyo; apenas te moja las botas.');
-  me.x=nx; me.y=ny; hide(); requestDraw(); drawMap();
+  me.x=nx; me.y=ny; hide(); requestDraw(); drawMap(); guardar();
 }
 function look(){
   let n=0,near=null;
@@ -43,6 +43,32 @@ function requestDraw(){
   pend=true;
   requestAnimationFrame(()=>{ pend=false; draw(); });
 }
+/* ---------- guardado ----------
+   Vive en el navegador de quien juega: vuelve donde dejó, en ese dispositivo.
+   Puede faltar o fallar, así que todo va envuelto y el juego sigue igual. */
+const CLAVE='nativa.guardado.v1';
+let ultGuardado=0, guardadoPendiente=false;
+function guardar(forzar){
+  const ahora=Date.now();
+  if(!forzar && ahora-ultGuardado<1500){ guardadoPendiente=true; return; }
+  ultGuardado=ahora; guardadoPendiente=false;
+  try{
+    localStorage.setItem(CLAVE, JSON.stringify({
+      semilla:world.cfg.seed, x:me.x, y:me.y, mirando:facing,
+      zoom:zi, mapa:mapOn, ts:ahora
+    }));
+  }catch(e){}
+}
+function cargarGuardado(){
+  let d=null;
+  try{ d=JSON.parse(localStorage.getItem(CLAVE)||'null'); }catch(e){}
+  if(!d||d.semilla!==world.cfg.seed) return null;
+  if(!(d.x>=0&&d.y>=0&&d.x<world.w&&d.y<world.h)) return null;
+  if(NV.solidAt(d.x,d.y)) return null;
+  return d;
+}
+function olvidarGuardado(){ try{ localStorage.removeItem(CLAVE); }catch(e){} }
+
 let ultSol=-9;
 function tictac(){
   const c=NV.actualizarCielo(Date.now());
@@ -52,6 +78,7 @@ function tictac(){
     ultSol=c.fase;
     NV.calcularSombras(world);
   }
+  if(guardadoPendiente) guardar(true);            // nada se pierde por el freno
   return c;
 }
 function restartAnim(){
@@ -162,7 +189,20 @@ function init(){
   NV.calcularSombras(world);
   $('wname').textContent=world.name;
   me=NV.findSpawn(world);
+  const g=cargarGuardado();
+  if(g){
+    me={x:g.x,y:g.y}; facing=g.mirando||facing;
+    if(typeof g.zoom==='number'){ zi=clamp(g.zoom,0,2); NV.applyLOD(); }
+    if(g.mapa) setTimeout(()=>toggleMap(true),60);
+    const horas=(Date.now()-(g.ts||0))/3600000;
+    setTimeout(()=>bubble(horas>1
+      ? 'Volvés al bosque donde lo dejaste. Han pasado '+
+        (horas<24?Math.round(horas)+' horas':Math.round(horas/24)+' días')+' acá afuera.'
+      : 'Volvés donde lo dejaste.'), 400);
+  }
   layout(); restartAnim(); connect();
+  addEventListener('visibilitychange',()=>{ if(document.hidden) guardar(true); });
+  addEventListener('pagehide',()=>guardar(true));
 
   addEventListener('resize',()=>{ clearTimeout(init._r); init._r=setTimeout(layout,140); });
   addEventListener('keydown',e=>{
@@ -175,6 +215,8 @@ function init(){
     else if(k==='e'||k===' '){ look(); e.preventDefault(); }
     else if(k==='m'){ toggleMap(); e.preventDefault(); }
     else if(k==='c'){ NV.toggleAstros(); e.preventDefault(); }
+    else if(k==='r'&&e.shiftKey){ olvidarGuardado(); me=NV.findSpawn(world);
+      bubble('Volvés al claro de partida.'); requestDraw(); e.preventDefault(); }
     else if(k==='+'||k==='='){ setZoom(1); e.preventDefault(); }
     else if(k==='-'||k==='_'){ setZoom(-1); e.preventDefault(); }
   });
