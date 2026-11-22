@@ -405,10 +405,17 @@ su rampa de densidad.
 |---|---|---|
 | pasto corto | `° *` | `°` rala, `*` tupida |
 | pasto largo | `\|` cuerpo, `/` `\` inclinadas | base recta, se curva al subir |
-| arena de río | `. : °` | grano fino |
-| guijarral | `. : ° o c` | la orilla |
+| pasto seco | `\|` tendido, familia hoja | el filo del desierto |
+| pasto nevado | `° *` de manto, con briznas que asoman | entre el pasto y la nieve |
+| arena de río | `. : ° ;` con onda corta | grano fino |
+| arena de mar | `. : ° =` mojada y oscura | la desembocadura |
+| barro | `: , - = ~` con charcos y costra | la orilla que se moja y se seca |
+| guijarral | `. : ° o c` | la orilla del río |
+| canto de mar | `: ° o c O` más grueso | donde el oleaje revuelve |
 | agua somera | `. - ~` | se vadea |
 | corriente | `- ~ =` | se vadea |
+| lago | `_ = ~` quieto | el bosque viejo |
+| mar abierto | `~ = _` con marejada | el acantilado |
 
 **Objetos**
 
@@ -574,6 +581,90 @@ y el azar de los huecos sorteado por bloque y por fila en vez de por celda.
 **Reservado** (acordado, fuera del mundo actual): musgo `° o`, tierra `° *`,
 hojarasca `v u`, charco `- = ~`, helecho `f F`, zarza `x X`, hongos `n m`,
 juncos `! j`, flores `*`.
+
+### El agua
+
+El agua no es una textura: es una **superficie con altura**. Todo sale de un
+campo de olas —la suma de dos o tres sinusoides que viajan, más ruido para que
+el frente no salga peinado— y de ahí se deducen las tres cosas que la hacen
+leer como agua:
+
+- la **altura** elige el glifo: cresta tupida, valle liso;
+- la **pendiente hacia el este** decide dónde pega el reflejo del sol;
+- la **espuma** aparece donde la cresta es alta **y** empinada a la vez.
+
+Sólo alta da una tela corrugada. Y el reflejo es lo que más vende el agua: sin
+él, cualquier campo de ondas parece tela. Eso era exactamente el agua de antes,
+una sinusoide de densidad sin brillo.
+
+Nueve estados: agua tranquila, orilla de lago, somera, río, río profundo, mar en
+calma, mar con olas, mar con tormenta y la rompiente. **El mar cambia de estado
+con el tiempo que hace** —según la intensidad de la lluvia y la amplitud de la
+marea—, así que no hay que elegirlo a mano en ningún lado.
+
+El agua se resuelve **celda por celda**, no por metro: es lo que le da la onda
+continua. Para que eso no cueste el cuadro, el motor lleva una tabla de 1.024
+senos; el error de redondeo es menor que el salto entre dos glifos.
+
+### La textura del suelo
+
+El suelo se sorteaba celda por celda: cada celda sacaba su densidad de un hash
+propio. Eso da **estática**. La arena de verdad tiene ondas, la tierra tiene
+terrones y grietas, el pasto crece en matas y la nieve se acumula en manchones,
+y un hash por celda no puede dar nada de eso, porque todas esas cosas son
+**coherencia espacial**.
+
+Ahora la densidad sale de un ruido suave de dos octavas —un manchón grande que
+le da forma y un temblor fino que lo desarma— más lo que cada material tenga
+propio: la onda de la arena, el terrón y la grieta de la tierra, el charco y la
+costra del barro, el calibre del canto rodado, la mata del pasto y el manto de
+la nieve.
+
+**El ruido se muestrea en metros del mundo, no en celdas.** En celdas la textura
+cambiaba de tamaño con el zoom —porque los caracteres por metro cambian— y
+además quedaba estirada tres veces a lo alto, porque un metro son CPM columnas
+pero sólo RPM filas.
+
+Dos cosas que hay que recordar al agregar un material:
+
+- **El largo de una onda va en metros.** Puesto en celdas da un período de dos
+  caracteres, que no se lee como onda sino como alternancia.
+- **El umbral de una grieta tiene que ser chico.** Una grieta es una línea fina:
+  con 0,06 toma una celda de cada diez y la tierra queda enrejada.
+
+Medido: el largo medio de una tirada de glifos iguales va de 2,4 celdas en la
+arena de río a 9,4 en la duna, donde la tirada larga *es* la onda. Y el pasto
+sale con un desvío del 13% de briznas entre un metro y otro, en vez de parejo
+como una cancha.
+
+### El borde entre dos materiales
+
+Éste es el defecto que más se nota y el que ninguna textura arregla, porque no
+está en la textura sino **en dónde se toma la decisión**.
+
+El motor decide el material por **metro**: `sueloEn` devuelve una letra por
+metro y después se rellenan las CPM×RPM celdas de ese metro con ella. Mientras
+la orilla es recta no se nota. En cuanto el río dobla, el borde sale como una
+**escalera de un metro de paso**: diez o catorce caracteres por escalón.
+
+La salida: en los metros que tocan a otro material —y sólo en ésos, que son
+pocos— se decide **celda por celda**. Cerca del límite se sortea entre el
+material propio y el del vecino, con probabilidad según de qué lado cae la
+celda. El borde deja de ser una línea y se vuelve una franja entreverada de unos
+centímetros, que es como se entreveran de verdad la arena y el guijarral. Del
+lado del pasto, el material de al lado asoma por debajo de las briznas.
+
+Medido sobre la orilla del arroyo del claro: decidiendo por metro, el **100%**
+de los bordes cae clavado justo donde empieza un metro, porque es ahí donde
+cambia la letra. Decidiendo por celda, el 13%, contra el 8% que daría el puro
+azar. El borde se soltó de la grilla.
+
+**El metro sigue mandando** para caminar y para el camino que busca el personaje.
+Lo que cambia es sólo quién decide el color de cada letra.
+
+Las tres filas de material que hacen falta —la de arriba, la propia y la de
+abajo— se traen una vez por fila. Preguntándolas de nuevo por celda, el cuadro
+pasaba de 24 a 31 ms, porque cada consulta busca su panel.
 
 ### Color
 

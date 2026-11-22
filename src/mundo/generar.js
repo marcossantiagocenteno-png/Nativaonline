@@ -53,7 +53,7 @@ const poner=(p,L,x,y,c)=>{ if(x<0||y<0||x>=L||y>=L) return;
   p.ground[y]=p.ground[y].slice(0,x)+c+p.ground[y].slice(x+1); };
 /* ¿Hay agua u orilla a la vuelta? Los árboles no nacen con los pies en el agua
    ni en la arena y el guijarral que la bordean. */
-const AGUA_U_ORILLA='aAPEsk';
+const AGUA_U_ORILLA='aAPEskLlObyK';   // el agua y todo lo que la bordea
 function cercaDelAgua(p,L,x,y,r){
   for(let j=-r;j<=r;j++) for(let i=-r;i<=r;i++){
     const xx=x+i, yy=y+j;
@@ -66,7 +66,7 @@ const libre=(p,L,x,y)=>{
   if(x<1||y<1||x>=L-1||y>=L-1) return false;
   if(p.occ[y*L+x]) return false;
   const g=p.ground[y][x];
-  return g==='g'||g==='G'||g==='N'||g==='D'||g==='k';
+  return g==='g'||g==='G'||g==='h'||g==='n'||g==='N'||g==='D'||g==='k';
 };
 
 /* ---------- el claro, 0:0 ---------- */
@@ -148,8 +148,13 @@ function bioEste(p,L,ox,oy,rnd){
       if(d<ancho*0.55){ fila+='P'; p.flow[y*L+x]=1; continue; }
       if(d<ancho)     { fila+='A'; p.flow[y*L+x]=1; continue; }
       if(d<ancho+1.6) { fila+='a'; continue; }
-      if(d<ancho+3.4) { fila+='s'; continue; }
-      if(d<ancho+5)   { fila+='k'; continue; }
+      /* En la desembocadura la orilla ya es de mar: arena mojada, y canto
+         rodado grueso donde el oleaje la revuelve. Tierra adentro vuelve a ser
+         barro y arena de río. */
+      const mar=x/borde;
+      if(d<ancho+2.4) { fila+= mar>0.55?'y':(ruidoB(gx+700,gy,2,0.12)>0.42?'b':'s'); continue; }
+      if(d<ancho+3.6) { fila+= mar>0.62?'y':'s'; continue; }
+      if(d<ancho+5)   { fila+= mar>0.70?'K':'k'; continue; }
       fila += ruidoA(gx,gy,4,0.05)>0.52?'G':'g';
     }
     p.ground.push(fila);
@@ -168,6 +173,11 @@ function bioNorte(p,L,ox,oy,rnd){
       const corte = 44 + ruidoC(gx,0,3,0.03)*26-13;
       if(y < corte){ fila += ruidoB(gx+9,gy,2,0.10)>0.72?'k':'D'; continue; }   // duna, con algún pedregal
       if(y < corte+2){ fila += 's'; continue; }                  // la franja donde el bosque se corta
+      /* Cerca del desierto el pasto está seco, y se va poniendo verde hacia el
+         sur. La frontera la pone el mismo ruido que dibuja el corte, así que no
+         queda una raya recta entre lo seco y lo verde. */
+      const seco=(corte+16-y)/18 + ruidoB(gx+400,gy,3,0.06)*0.7-0.35;
+      if(seco>0.30){ fila += seco>0.62?'h':(ruidoA(gx,gy,3,0.07)>0.5?'h':'g'); continue; }
       fila += ruidoA(gx,gy,4,0.05)>0.38?'G':'g';
     }
     p.ground.push(fila);
@@ -185,7 +195,11 @@ function bioSur(p,L,ox,oy,rnd){
       const gx=ox+x, gy=oy+y;
       const nieve = (y-30)/70 + ruidoC(gx,gy,3,0.04)*0.45-0.22;
       if(nieve>0.52){ fila+='N'; continue; }
-      if(nieve>0.34){ fila+= ruidoB(gx,gy,2,0.09)>0.5?'N':'g'; continue; }
+      /* Entre el pasto y la nieve hay una franja donde la nieve cubre pero las
+         briznas todavía asoman: eso es el pasto nevado, y es lo que hace que la
+         nieve no empiece de golpe. */
+      if(nieve>0.34){ fila+= ruidoB(gx,gy,2,0.09)>0.5?'N':'n'; continue; }
+      if(nieve>0.20){ fila+= 'n'; continue; }
       fila += ruidoA(gx,gy,4,0.05)>0.56?'G':'g';
     }
     p.ground.push(fila);
@@ -210,7 +224,14 @@ function arroyo(p,L,ox,oy,conBrazo){
     /* donde el sendero cruza el agua, el fondo sube: eso es un vado, y es
        por donde se pasa */
     const vado = sendero(gx,gy)>0;
-    poner(p,L,x,y, (pr>0.58&&!vado)?'A' : pr>0.34?(vado?'a':'a') : pr>0.12?'s' : 'k');
+    /* La orilla, de dentro hacia fuera: corriente, agua somera, barro mojado,
+       arena y guijarral. El barro es la franja que se moja y se seca con el
+       agua, y es lo que hacía falta para que la arena no empiece pegada al
+       agua. En el vado no hay barro: ahí el fondo es piedra y por eso se pasa. */
+    poner(p,L,x,y, (pr>0.58&&!vado)?'A'
+                 : pr>0.34?'a'
+                 : pr>0.24?(vado?'k':(ruidoB(gx+700,gy,2,0.12)>0.40?'b':'s'))
+                 : pr>0.12?'s' : 'k');
     if(pr>0.34) p.flow[y*L+x]=este?1:0;
   }
 }

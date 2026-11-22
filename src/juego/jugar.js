@@ -117,9 +117,13 @@ function dejarDeCaminar(dx,dy){
    Pisar el sendero cuesta menos, así que si hay un camino cerca lo toma solo:
    no hay que programar "seguir el sendero", sale de que andar por tierra
    pisada es más barato que abrirse paso entre el pasto. */
-const COSTE={ d:0.55, g:0.95, G:1.45, k:1.05, s:1.15, N:1.5, D:1.3, a:1.9, A:2.8 };
-/* tierra pisada < hierba corta < guijarral < arena < pasto alto < duna <
-   nieve < agua somera < corriente. Son costes de andar, no de distancia. */
+const COSTE={ d:0.55, g:0.95, G:1.45, k:1.05, s:1.15, N:1.5, D:1.3, a:1.9, A:2.8,
+              h:1.25, n:1.60, b:1.75, y:1.20, K:1.45, l:1.9 };
+/* tierra pisada < hierba corta < arena de mar < guijarral < arena < pasto seco
+   < duna < pasto alto < canto de mar < nieve < pasto nevado < barro < agua
+   somera < corriente. Son costes de andar, no de distancia.
+   El barro cuesta casi como el agua: es lo que se hunde. El canto de mar
+   cuesta más que el guijarral de río porque la piedra es más grande y rueda. */
 let ruta=null, destino=null;
 
 function buscarCamino(ax,ay,bx,by,tope){

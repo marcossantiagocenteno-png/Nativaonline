@@ -10,11 +10,43 @@
    Regla 4: entre capas distintas (suelo / sotobosque / copa) un glifo puede repetirse:
             la altura y el color ya los separan. */
 
+/* ---------- EL SUELO ----------
+   El suelo se sorteaba celda por celda: cada celda saca su densidad de un hash
+   propio. Eso da estática. La arena de verdad tiene ONDAS, la tierra tiene
+   TERRONES y GRIETAS, el pasto crece en MATAS y la nieve se acumula en
+   MANCHONES, y un hash por celda no puede dar nada de eso, porque todas esas
+   cosas son coherencia espacial. Ahora la densidad sale de un ruido suave de
+   dos octavas en coordenadas de celda, más lo que cada material tenga propio:
+
+   onda    : una sinusoide en la dirección del viento o de la corriente, con la
+             cresta corrida por el ruido para que no salga peinada. El largo va
+             en METROS: puesto en celdas da un período de dos caracteres, que no
+             se lee como onda sino como alternancia.
+   terron  : el bulto de la tierra, de un ruido de escala media
+   grieta  : corre por donde el ruido pasa justo por el medio; el umbral tiene
+             que ser chico, porque una grieta es una línea fina
+   charco  : qué fracción del barro está encharcada, y si brilla
+   costra  : el barro seco partido en placas
+   calibre : el canto rodado, chico cerca del agua y grueso lejos
+   mata    : cuánta mata de pasto hay; la reparte un ruido por metro, así crece
+             a parches y no parejo como una cancha
+   tendido : cuánto se acuesta la brizna, para el pasto seco o pisado
+   manto   : cuánta nieve cubre, y por dónde asoma lo de abajo */
 const MAT={                                   // capa SUELO, en uso
-  g:{n:'pasto corto', fam:'verde',  ramp:[' ','\u00b0','\u00b0','*','*']},
-  G:{n:'pasto largo', fam:'verdeO', ramp:['|','|','|','|','|'], tip:['|','/','\\'], fam2:'verde'},
-  s:{n:'arena de río',fam:'arena',  ramp:['.','.',':','\u00b0',':']},
-  k:{n:'guijarral',   fam:'piedra', ramp:['.',':','\u00b0','o','c']},
+  g:{n:'pasto corto', fam:'verde',  ramp:[' ','\u00b0','\u00b0','*','*'], mata:0.72},
+  G:{n:'pasto largo', fam:'verdeO', ramp:['|','|','|','|','|'], tip:['|','/','\\'], fam2:'verde', mata:0.70},
+  h:{n:'pasto seco',  fam:'hoja',   ramp:['|','|','|','|','|'], fam2:'hoja',
+     mata:0.52, tendido:0.6, largo:1},
+  n:{n:'pasto nevado',fam:'nieve',  ramp:[' ','.','\u00b0','*','*'], fam2:'verdeO',
+     mata:0.60, manto:0.62, largo:1},
+  s:{n:'arena de río',fam:'arena',  ramp:['.','.',':','\u00b0',';'],
+     onda:{largo:0.8, angulo:0.0, fuerza:0.62}},
+  y:{n:'arena de mar',fam:'roca2',  ramp:['.',':','\u00b0','=','='], mojada:1,
+     onda:{largo:1.6, angulo:0.10, fuerza:0.34}},
+  b:{n:'barro',       fam:'tierra', ramp:[':',',','-','=','~'],
+     charco:0.42, brillo:1, costra:0.4, textura:'tierra'},
+  k:{n:'guijarral',   fam:'piedra', ramp:['.',':','\u00b0','o','c'], calibre:0.5},
+  K:{n:'canto de mar',fam:'piedra', ramp:[':','\u00b0','o','c','O'], calibre:1},
   a:{n:'agua somera', fam:'agua',   ramp:[' ','.','-','~','-'], agua:1.22, ola:'somera'},
   A:{n:'corriente',   fam:'agua',   ramp:['-','~','~','=','~'], agua:1.00, ola:'rio'},
   P:{n:'agua honda',  fam:'honda',  ramp:['~','=','_','_','_'], agua:0.62, solido:true, ola:'rio-profundo'},
@@ -24,10 +56,11 @@ const MAT={                                   // capa SUELO, en uso
   O:{n:'mar abierto', fam:'honda',  ramp:['~','=','_','_','_'], agua:0.58, solido:true, ola:'mar'},
   M:{n:'roca madre',  fam:'piedra', ramp:['.',':','^','A','M'], solido:true, textura:'roca'},
   V:{n:'el vacío',    fam:'abismo', ramp:[' ',' ','.',':','.'], solido:true, textura:'caida'},
-  d:{n:'tierra',      fam:'tierra', ramp:['.',',','-','_','='], textura:'tierra'},
+  d:{n:'tierra',      fam:'tierra', ramp:['.',',','-','_','='], textura:'tierra', terron:0.48},
   R:{n:'ruina',       fam:'piedra', ramp:['.',':','#','%','#'], solido:true, textura:'roca'},
-  N:{n:'nieve',       fam:'nieve',  ramp:[' ','.','\u00b0','*','*']},
-  D:{n:'duna',        fam:'arena',  ramp:['.','.',':',';',':']}
+  N:{n:'nieve',       fam:'nieve',  ramp:[' ','.','\u00b0','*','*'], manto:0.97},
+  D:{n:'duna',        fam:'arena',  ramp:['.','.',':',';',';'],
+     onda:{largo:2.6, angulo:0.42, fuerza:0.74}}
 };
 /* ---------- EL AGUA ----------
    El agua no es una textura: es una SUPERFICIE CON ALTURA. Todo sale de un

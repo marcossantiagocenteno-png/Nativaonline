@@ -31,14 +31,18 @@ probar('la costura no es una línea recta de cambio', saltos<pares*0.5);
 console.log('\n=== cada bioma tiene lo suyo ===');
 const tiene=(p,m)=>{ for(let y=0;y<L;y++) if(p.ground[y].includes(m)) return true; return false; };
 const O=NV.panel(-1,0), E=NV.panel(1,0), N=NV.panel(0,-1), S=NV.panel(0,1);
-console.log('  oeste: pared de roca', tiene(O,'M'), '· lago', tiene(O,'P'), '· ruinas', tiene(O,'R'),
-            '· árbol místico', O.trees.some(t=>t.sp==='mistico'));
-console.log('  este: mar', tiene(E,'P'), '· rompiente', tiene(E,'E'), '· acantilado', tiene(E,'M'));
+/* el lago usa L y l —agua quieta— desde que el agua tiene estados de ola; antes
+   usaba la honda del río y se movía como un río */
+console.log('  oeste: pared de roca', tiene(O,'M'), '· lago', tiene(O,'L')&&tiene(O,'l'),
+            '· ruinas', tiene(O,'R'), '· árbol místico', O.trees.some(t=>t.sp==='mistico'));
+console.log('  este: mar abierto', tiene(E,'O'), '· cauce del río', tiene(E,'P'),
+            '· rompiente', tiene(E,'E'), '· acantilado', tiene(E,'M'));
 console.log('  norte: duna', tiene(N,'D'), '· bosque', tiene(N,'G'));
 console.log('  sur: nieve', tiene(S,'N'), '· solo pinos', S.trees.filter(t=>t.k==='arbol').every(t=>t.sp==='pino'));
-probar('el oeste tiene pared, lago, ruinas y el árbol místico',
-  tiene(O,'M')&&tiene(O,'P')&&tiene(O,'R')&&O.trees.some(t=>t.sp==='mistico'));
-probar('el este tiene mar, rompiente y acantilado', tiene(E,'P')&&tiene(E,'E')&&tiene(E,'M'));
+probar('el oeste tiene pared, lago de agua quieta, ruinas y el árbol místico',
+  tiene(O,'M')&&tiene(O,'L')&&tiene(O,'l')&&tiene(O,'R')&&O.trees.some(t=>t.sp==='mistico'));
+probar('el este tiene mar abierto, cauce, rompiente y acantilado',
+  tiene(E,'O')&&tiene(E,'P')&&tiene(E,'E')&&tiene(E,'M'));
 probar('el norte corta a desierto', tiene(N,'D')&&tiene(N,'G'));
 probar('el sur tiene nieve y solo pinos',
   tiene(S,'N')&&S.trees.filter(t=>t.k==='arbol').every(t=>t.sp==='pino'));

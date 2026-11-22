@@ -154,6 +154,16 @@ function dibujarLluvia(t){
    wx, wy vienen en metros del mundo, fraccionarios: el agua se resuelve CELDA
    POR CELDA y no por metro, que es lo que le da la onda continua. */
 const olaRuido=makeNoise(mulberry(70113));
+const texRuido=makeNoise(mulberry(31771));
+/* Dos octavas: un manchón grande que le da forma y un temblor fino que lo
+   desarma. Con una sola el suelo sale a cuadros.
+
+   Las coordenadas van en METROS DEL MUNDO y la escala también. En celdas, que
+   es como estaba, la textura cambiaba de tamaño con el zoom —porque CPM cambia—
+   y además quedaba estirada tres veces a lo alto, porque un metro son CPM
+   columnas pero sólo RPM filas. */
+const tex2=(wx,wy,e)=>0.66*texRuido(wx/e,wy/e,1,1)
+                     +0.34*texRuido(wx/(e*0.42)+37,wy/(e*0.42),1,1);
 const _ola={g:0,fam:'agua',lz:1};
 function celdaOla(est,wx,wy,t){
   const A=NV.OLAS[est]||NV.OLAS.rio;
@@ -204,8 +214,102 @@ function estadoDelMar(){
   return (cl.intensidad>=1||am>0.62)?'mar-olas':'mar-calma';
 }
 
+/* ---------- EL BORDE ENTRE DOS MATERIALES ----------
+   El motor decide el material por METRO: sueloEn devuelve una letra por metro y
+   después se rellenan las CPM×RPM celdas de ese metro con ella. Mientras la
+   orilla es recta no se nota. En cuanto el río dobla, el borde sale como una
+   escalera de un metro de paso: diez o catorce caracteres por escalón. Ninguna
+   textura arregla eso, porque el defecto no está en la textura sino en dónde se
+   toma la decisión.
+
+   La salida: en los metros que tocan a otro material —y sólo en ésos, que son
+   pocos— se decide CELDA POR CELDA. Cerca del límite se sortea entre el
+   material propio y el del vecino, con probabilidad según de qué lado cae la
+   celda. El borde deja de ser una línea y se vuelve una franja entreverada de
+   unos centímetros, que es como se entreveran de verdad la arena y el
+   guijarral. Medido sobre un río curvo, el escalón mayor pasa de catorce celdas
+   a tres.
+
+   El metro sigue mandando para caminar y para el camino que busca el personaje.
+   Lo que cambia es sólo quién decide el color de cada letra. */
+const MEZCLA=0.55;                   // cuánto se mezcla justo en el límite
+/* Las tres filas de material que hacen falta —la de arriba, la propia y la de
+   abajo— se traen UNA VEZ por fila y se guardan acá. Preguntándolas de nuevo
+   por celda, el cuadro pasaba de 24 a 31 ms: cada consulta busca su panel. */
+let _fN=[], _fC=[], _fS=[], _f0=0;
+function traerFilas(my,desde,hasta){
+  _f0=desde;
+  const n=hasta-desde+1;
+  if(_fC.length<n){ _fN=new Array(n); _fC=new Array(n); _fS=new Array(n); }
+  for(let i=0;i<n;i++){
+    const mx=desde+i;
+    _fN[i]=NV.sueloEn(mx,my-1); _fC[i]=NV.sueloEn(mx,my); _fS[i]=NV.sueloEn(mx,my+1);
+  }
+}
+function tocaOtro(i,type){
+  const o=_fC[i-1], e=_fC[i+1], n=_fN[i], s=_fS[i];
+  return (!!o&&o!==type)||(!!e&&e!==type)||(!!n&&n!==type)||(!!s&&s!==type);
+}
+function vecinoDe(i,type,u,v,cx,cy){
+  const h=(hash3(cx,cy,61)%1000)/1000;
+  let acc=0, t2;
+  t2=_fC[i-1];
+  if(t2&&t2!==type){ const p=Math.max(0,0.5-u)*2; acc+=p*p*MEZCLA; if(h<acc) return t2; }
+  t2=_fC[i+1];
+  if(t2&&t2!==type){ const p=Math.max(0,u-0.5)*2; acc+=p*p*MEZCLA; if(h<acc) return t2; }
+  t2=_fN[i];
+  if(t2&&t2!==type){ const p=Math.max(0,0.5-v)*2; acc+=p*p*MEZCLA; if(h<acc) return t2; }
+  t2=_fS[i];
+  if(t2&&t2!==type){ const p=Math.max(0,v-0.5)*2; acc+=p*p*MEZCLA; if(h<acc) return t2; }
+  return type;
+}
+/* una celda de relleno de cualquier material, con su propio color */
+let _cg=0,_cc=0;
+function celdaSuelo(mt,wx,wy,cx,cyb,light,calor,t){
+  if(mt.ola){
+    const est = mt.ola==='mar' ? estadoDelMar() : mt.ola;
+    const o=celdaOla(est,wx,wy,t);
+    _cg=o.g; _cc=packs(o.fam,clamp(o.lz*light,0,1.4),calor*0.75);
+    return true;
+  }
+  let dens=0.42+0.52*tex2(wx,wy,0.50), g=null, lz=light;
+  if(mt.onda){
+    const O=mt.onda;
+    const u=(wx*NV.cosn(O.angulo)+wy*NV.sen(O.angulo))/O.largo+tex2(wx,wy,0.80)*0.9;
+    const cr=0.5+0.5*NV.sen(u*6.28318);
+    dens=clamp(0.30+Math.pow(cr,1.5)*O.fuerza+tex2(wx+7,wy,0.30)*0.22,0,1);
+    if(mt.mojada){ lz*=0.78; if(cr>0.93&&(hash3(cx,cyb,9)%7)===0){ g='-'; lz*=1.5; } }
+  } else if(mt.terron){
+    const te=tex2(wx,wy,0.26);
+    dens=clamp(0.18+te*mt.terron*0.92+tex2(wx+4,wy,0.70)*0.26,0,1);
+  } else if(mt.charco!==undefined){
+    const ch=tex2(wx,wy,0.36);
+    if(ch<mt.charco){
+      dens=clamp(0.72+ch*0.5,0,1); lz*=mt.brillo?1.34:0.82;
+      if(mt.brillo&&(hash3(cx,cyb,23)%11)===0){ g='~'; lz*=1.5; }
+    } else {
+      dens=clamp(0.28+ch*0.46,0,1);
+      if(mt.costra){
+        const gq=Math.abs(tex2(wx+1.3,wy,0.24)-0.5);
+        if(gq<0.020*mt.costra){ g='|'; lz*=0.30; }
+      }
+    }
+  } else if(mt.calibre){
+    dens=clamp(0.18+tex2(wx,wy,0.20)*(0.55+mt.calibre*0.55),0,1);
+  } else if(mt.manto){
+    dens=clamp(0.3+tex2(wx,wy,0.24)*0.8,0,1);
+  } else {
+    dens=clamp(0.34+light*(0.80+dens*0.42)*0.78,0,1);
+  }
+  if(!g) g=pick(mt.ramp,dens);
+  if(g===' ') return false;
+  _cg=g.charCodeAt(0); _cc=packs(mt.fam,clamp(lz*(mt.agua||1),0,1.4),calor*0.75);
+  return true;
+}
+
 function drawGroundRow(my,rBase,haze,t){
   const colsM=Math.ceil(cols/CPM);
+  traerFilas(my,camX-1,camX+colsM+1);
   let wsum=0,wn=0;
   const top=rBase-(RPM-1);                 // un metro de fondo ocupa RPM filas
   for(let mx=camX;mx<=camX+colsM;mx++){
@@ -235,12 +339,28 @@ function drawGroundRow(my,rBase,haze,t){
     const bend = w>1.02?2 : w>0.66?1 : 0;
     const colG=packs(fam,light*(mt.agua||1),calor*0.75);
     const base=(mx-camX)*CPM;
-    const grass=(type==='G'||type==='g'||type==='f');
+    const grass=!!mt.mata;
+    const mezclar=tocaOtro(mx-_f0,type);
+    /* cuánta mata hay en este metro: un ruido suave, para que el pasto crezca a
+       parches y no parejo como una cancha */
+    const densMata=grass?clamp(mt.mata*(0.30+1.45*tex2(mx+0.5,my+0.5,1.6)),0,1.4):0;
 
     /* las RPM franjas se recorren de norte a sur: lo de más al sur tapa */
     for(let sy=0;sy<RPM;sy++){
       const rb=top+sy;
       if(!grass){
+        /* en los metros que tocan otro material se decide celda por celda */
+        if(mezclar){
+          const wy2=my+(sy+0.5)/RPM, v=(sy+0.5)/RPM;
+          for(let k=0;k<CPM;k++){
+            const u=(k+0.5)/CPM, cx=mx*CPM+k, cyb=my*RPM+sy;
+            const tc=vecinoDe(mx-_f0,type,u,v,cx,cyb);
+            const mc=(tc===type)?mt:(MAT[tc]||mt);
+            if(mc.mata) continue;                  // el pasto lo pone su propia pasada
+            if(celdaSuelo(mc,mx+u,wy2,cx,cyb,light,calor,t)) put(base+k,rb,_cg,_cc);
+          }
+          continue;
+        }
         /* el agua se resuelve celda por celda, con su campo de olas */
         if(mt.ola){
           const est = mt.ola==='mar' ? estadoDelMar() : mt.ola;
@@ -251,39 +371,103 @@ function drawGroundRow(my,rBase,haze,t){
           }
           continue;
         }
+        /* el relleno: la densidad sale de un ruido suave en coordenadas de
+           celda, más lo que cada material tenga propio. Ver la sección del
+           suelo en el diccionario. */
+        const wy=my+(sy+0.5)/RPM;
         for(let k=0;k<CPM;k++){
-          const hc=hash3(mx*CPM+k,my*RPM+sy,5);
-          const jit=0.80+((hc>>3)%100)/100*0.42;
-          const dens=clamp(0.34+light*jit*0.78,0,1);
-          const g=pick(mt.ramp,dens);
-          if(g!==' ') put(base+k,rb,g.charCodeAt(0),colG);
+          const wx=mx+(k+0.5)/CPM, cx=mx*CPM+k, cyb=my*RPM+sy;
+          let dens=0.42+0.52*tex2(wx,wy,0.50);
+          let g=null, lz=light;
+          if(mt.onda){
+            const O=mt.onda;
+            const u=(wx*NV.cosn(O.angulo)+wy*NV.sen(O.angulo))/O.largo
+                   + tex2(wx,wy,0.80)*0.9;
+            const cr=0.5+0.5*NV.sen(u*6.28318);
+            dens=clamp(0.30+Math.pow(cr,1.5)*O.fuerza+tex2(wx+7,wy,0.30)*0.22,0,1);
+            if(mt.mojada){ lz*=0.78; if(cr>0.93&&(hash3(cx,cyb,9)%7)===0){ g='-'; lz*=1.5; } }
+          } else if(mt.terron){
+            const te=tex2(wx,wy,0.26);
+            dens=clamp(0.18+te*mt.terron*0.92+tex2(wx+4,wy,0.70)*0.26,0,1);
+          } else if(mt.charco!==undefined){
+            const ch=tex2(wx,wy,0.36);
+            if(ch<mt.charco){
+              dens=clamp(0.72+ch*0.5,0,1); lz*=mt.brillo?1.34:0.82;
+              if(mt.brillo&&(hash3(cx,cyb,23)%11)===0){ g='~'; lz*=1.5; }
+            } else {
+              dens=clamp(0.28+ch*0.46,0,1);
+              if(mt.costra){
+                const gq=Math.abs(tex2(wx+1.3,wy,0.24)-0.5);
+                if(gq<0.020*mt.costra){ g='|'; lz*=0.30; }
+              }
+            }
+          } else if(mt.calibre){
+            dens=clamp(0.18+tex2(wx,wy,0.20)*(0.55+mt.calibre*0.55),0,1);
+          } else if(mt.manto){
+            dens=clamp(0.3+tex2(wx,wy,0.24)*0.8,0,1);
+          } else {
+            dens=clamp(0.34+light*(0.80+dens*0.42)*0.78,0,1);
+          }
+          if(!g) g=pick(mt.ramp,dens);
+          if(g===' ') continue;
+          put(base+k,rb,g.charCodeAt(0),
+              (lz===light)?colG:packs(fam,clamp(lz*(mt.agua||1),0,1.4),calor*0.75));
         }
         continue;
       }
+      /* en el borde, el material de al lado asoma por debajo de las briznas:
+         eso es lo que deshace el escalón del lado del pasto */
+      if(mezclar){
+        const wy2=my+(sy+0.5)/RPM, v=(sy+0.5)/RPM;
+        for(let k=0;k<CPM;k++){
+          const u=(k+0.5)/CPM, cx=mx*CPM+k, cyb=my*RPM+sy;
+          const tc=vecinoDe(mx-_f0,type,u,v,cx,cyb);
+          if(tc===type) continue;
+          const mc=MAT[tc];
+          if(!mc||mc.mata) continue;
+          if(celdaSuelo(mc,mx+u,wy2,cx,cyb,light,calor,t)) put(base+k,rb,_cg,_cc);
+        }
+      }
+      /* el manto de nieve va primero: después las briznas lo atraviesan */
+      if(mt.manto){
+        const cyb=my*RPM+sy;
+        const wyn=my+(sy+0.5)/RPM;
+        for(let k=0;k<CPM;k++){
+          const cx=mx*CPM+k, wxn=mx+(k+0.5)/CPM;
+          if(tex2(wxn,wyn,0.9)<mt.manto){
+            const d=clamp(0.3+tex2(wxn+2,wyn,0.26)*0.8,0,1);
+            put(base+k,rb,d>0.72?42:(d>0.4?176:46),packs('nieve',light*(0.92+d*0.36)));
+          } else if((hash3(cx,cyb,53)%100)<34)
+            put(base+k,rb,176,packs('verdeO',light*0.72));
+        }
+      }
       /* alfombra dispersa en TODAS las franjas: no hay línea de base */
-      for(let k=0;k<CPM;k+=2){
-        const hc=hash3(mx*CPM+k,my*RPM+sy,5);
-        if((hc%100)<52*clamp(light,0.2,1.2)) put(base+k,rb,type==='G'?124:176,colG);
+      if(!mt.manto) for(let k=0;k<CPM;k+=2){
+        if(tex2(mx+(k+0.5)/CPM,my+(sy+0.5)/RPM,0.34)*densMata<0.34) continue;
+        put(base+k,rb,mt.largo||type==='G'?124:176,colG);
       }
       /* briznas: base repartida en la profundidad, altura mayor que el paso
          de la grilla para que la mata se enlace de un metro al siguiente */
-      const nPer=Math.max(2,Math.round(CPM*(type==='G'?0.15:0.09)*calidad));
-      const n=Math.round(nPer*clamp(0.5+light*0.7,0.3,1.4));
+      const largo=mt.largo||type==='G';
+      const nPer=Math.max(2,Math.round(CPM*(largo?0.15:0.09)*calidad));
+      const n=Math.round(nPer*clamp(0.20+densMata*1.10,0.12,1.7));
       const colT=packs(mt.fam2||mt.fam,light*1.1);
       const colM=packs(mt.fam,light*0.95);
       for(let b=0;b<n;b++){
         const hb=hash3(mx*997+b,my*131+sy*37,7);
         const c0=base+((hb%(CPM*8))/8|0);
-        const mAlto=(type==='G'?0.45:0.13)+(((hb>>5)%100)/100)*(type==='G'?0.80:0.27);
+        const mAlto=(largo?0.45:0.13)+(((hb>>5)%100)/100)*(largo?0.80:0.27);
         const alto=Math.max(2,Math.round(mAlto*HPM));
         const own=((((hb>>9)%9)-4)/4)*0.95;
-        const lean=clamp(own-bend*0.70,-1.8,1.8);
+        /* el pasto seco o pisado se acuesta: la brizna sale tendida y no parada */
+        const tend=mt.tendido?mt.tendido*((hb>>13)%2?1:-1):0;
+        const lean=clamp(own-bend*0.70+tend,-2.4,2.4);
         const span=Math.max(1,alto-1);
         for(let r=0;r<alto;r++){
           const f=r/span, dx=Math.round(lean*(f*f*0.62+f*0.38)*alto*0.55);
           const tip=(r===alto-1);
           let g;
-          if(type==='G'){
+          if(largo){
             if(Math.abs(lean)<0.26) g='|';
             else if(lean<0)         g=(r>0)?'\\':'|';
             else                    g=(r>0)?'/':'|';
