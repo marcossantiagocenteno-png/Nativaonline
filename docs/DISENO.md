@@ -86,16 +86,17 @@ El calendario corre solo, aunque no haya nadie conectado.
 en `src/mundo/cielo.js`. Los números viven en `NV.ASTRO` y se pueden ajustar sin
 tocar el cálculo.
 
-El planeta tarda **430 días astronómicos** en dar la vuelta a su estrella, pero el
-calendario que ve el jugador tiene **30 días**: cada día del calendario representa
-14,33 días astronómicos. Todo fenómeno se calcula sobre el tiempo astronómico
-continuo; el calendario es solo la vista.
+El planeta tarda **430 días** en dar la vuelta a su estrella, y ese año entero
+dura **un mes nuestro**. De ahí sale todo lo demás, sin capas intermedias: **la
+fecha avanza con el sol, no con el reloj de afuera**. El calendario es,
+directamente, el día del planeta.
 
 | | duración real |
 |---|---|
-| Año: 30 días de calendario | 30 días nuestros, un mes |
-| Estación | 7 días y medio |
-| Día solar del planeta | 100 minutos |
+| Año: 430 días | 30 días nuestros, un mes |
+| Mes: 43 días (diez por año) | 3 días nuestros |
+| Estación: 107,5 días | 7 días y medio |
+| Día del planeta | 100 minutos |
 | Ciclo de fases de Calavera | 2 h 18 min |
 | Ciclo de fases de Madre | 9 h 35 min |
 
@@ -135,8 +136,8 @@ eclipses tienen que ser un presagio y no una rutina, la palanca es la **inclinac
 orbital**: con 25° o 30°, Calavera bajaría a unos diez al año. Pendiente de decidir.
 
 **Supuestos tomados**, por no estar definidos, ambos configurables en `NV.ASTRO`:
-Calavera está nueva en el origen del tiempo (día 1), Madre está nueva el día 27 del
-calendario, y los nodos de ambas arrancan en longitud 0.
+Calavera está nueva en el origen del tiempo (día 1), Madre está nueva el día 387
+del año, y los nodos de ambas arrancan en longitud 0.
 
 **Mareas.** `src/mundo/mareas.js`. No se suman números: se suman direcciones. Cada
 cuerpo tira en dos sentidos opuestos a la vez, así que dos alineados se refuerzan y
@@ -351,7 +352,8 @@ profundidad. Si nacen alineadas, el pasto se lee como un campo arado.
 
 ## 9 bis. El reloj y el guardado
 
-**El mundo tiene su propio reloj y corre sin nadie.** La hora no arranca al entrar:
+**El mundo tiene su propio reloj y corre sin nadie.** La fecha también: cada 100
+minutos reales amanece y el calendario pasa de página. La hora no arranca al entrar:
 sale del tiempo real, el mismo que tiene cualquier teléfono. Dos personas que
 entran en el mismo instante, en cualquier parte, ven la misma hora, la misma fase
 de las lunas, la misma marea y el mismo clima. Y si nadie entra en una semana, al

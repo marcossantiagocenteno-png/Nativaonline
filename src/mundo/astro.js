@@ -7,9 +7,9 @@ const NVa = window.NV;
    Todo parámetro dudoso vive acá y se puede ajustar sin tocar el cálculo. */
 const ASTRO = {
   /* planeta */
-  anoAstro: 430,            // días astronómicos por vuelta a la estrella
-  diasCalendario: 30,       // días del calendario jugable que representan ese año
+  anoAstro: 430,            // días del planeta por vuelta a la estrella
   horasDia: 24,             // día solar del planeta
+  mesDias: 43,              // diez meses de 43 días entran justos en el año
   inclinacionAxial: 23.4,
   excentricidad: 0,
   gravedad: 1,              // descartada: no afecta a nada
@@ -17,8 +17,10 @@ const ASTRO = {
   solAparente: 0.475,       // grados que mide la estrella en el cielo, a 1,116 UA
   ventanaFase: 0.055,       // cuán cerca de nueva o llena hace falta estar
 
-  /* un día del calendario jugable dura un día real */
-  msPorDiaCalendario: 24*60*60*1000,
+  /* Un año entero dura un mes nuestro. De ahí sale que el día del planeta pase
+     en 100 minutos reales: la fecha avanza con el sol, no con el reloj de
+     afuera. El calendario ES el día del planeta, sin capas intermedias. */
+  msPorAno: 30*24*60*60*1000,
 
   lunas: {
     calavera: {
@@ -33,9 +35,9 @@ const ASTRO = {
     madre: {
       nombre:'Madre', diametro:3600, distancia:390000,
       sideral:5.65, inclinacion:12, nodal:360,
-      /* SUPUESTO: luna nueva en el día 27 del calendario, como en la ficha
-         anterior. 27 días de calendario = 27 × 430/30 días astronómicos. */
-      epocaNueva:27*430/30,
+      /* SUPUESTO: luna nueva el día 387 del año, que es donde caía el "día 27"
+         de la ficha original cuando el calendario tenía 30 casillas. */
+      epocaNueva:387,
       nodo0:0,
       peso:0.22
     }
@@ -43,8 +45,7 @@ const ASTRO = {
 };
 
 const TAU = Math.PI*2;
-const msPorDiaAstro = ASTRO.msPorDiaCalendario * ASTRO.diasCalendario / ASTRO.anoAstro;
-const diasAstroPorCalendario = ASTRO.anoAstro / ASTRO.diasCalendario;
+const msPorDiaAstro = ASTRO.msPorAno / ASTRO.anoAstro;
 
 /* período sinódico: cuánto tarda la luna en volver a la misma fase.
    1/sinódico = 1/sideral − 1/año, porque el planeta también avanza. */
@@ -90,11 +91,14 @@ function tiempoAstro(ms){ return ms/msPorDiaAstro; }     // días astronómicos 
 
 function calendario(t){
   const tAno = ((t%ASTRO.anoAstro)+ASTRO.anoAstro)%ASTRO.anoAstro;
+  const dia=Math.floor(tAno)+1;                           // 1 … 430
   return {
     ano: Math.floor(t/ASTRO.anoAstro),
-    diaAstro: tAno,                                       // 0 … 430
-    dia: Math.floor(tAno/diasAstroPorCalendario)+1,       // 1 … 30, lo que ve el jugador
-    fraccionDia: t-Math.floor(t),                         // 0 medianoche, 0.5 mediodía
+    diaAstro: tAno,
+    dia,                                                   // avanza con el sol
+    mes: Math.floor((dia-1)/ASTRO.mesDias)+1,              // 1 … 10
+    diaMes: ((dia-1)%ASTRO.mesDias)+1,                     // 1 … 43
+    fraccionDia: t-Math.floor(t),                          // 0 medianoche, 0.5 mediodía
     estacion: ['primavera','verano','otoño','invierno'][Math.floor(tAno/(ASTRO.anoAstro/4))%4]
   };
 }

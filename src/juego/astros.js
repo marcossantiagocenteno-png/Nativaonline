@@ -32,7 +32,7 @@ function panelAstros(){
   let h='';
   h+='<div class="ah">'+SIG.estrella+' cielo</div>';
   h+='<div class="ax"><b>'+(a.deDia?'*':'·')+'</b><span class="an">'+(a.deDia?'día':'noche')+
-     '</span><span class="af">'+cielo.nombre+'</span><i>'+a.estacion+' · día '+a.dia+' del año</i></div>';
+     '</span><span class="af">'+cielo.nombre+'</span><i>'+a.estacion+' · día '+a.diaMes+' del mes '+a.mes+' · año '+a.ano+'</i></div>';
   h+='<div class="ah">'+SIG.calavera+' lunas</div>';
   h+=filaLuna(a.lunas.calavera)+filaLuna(a.lunas.madre);
 

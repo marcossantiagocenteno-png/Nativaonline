@@ -6,13 +6,13 @@ const ok=[], mal=[];
 const probar=(t,c)=>(c?ok:mal).push(t);
 
 console.log('=== escala ===');
-const diaCal=A.msPorDiaCalendario;
-console.log('1 día de calendario =', (diaCal/3600000)+' h reales, y representa',
-            (A.anoAstro/A.diasCalendario).toFixed(4),'días astronómicos');
+const diaCal=D;
+console.log('1 día del planeta = 1 día del calendario =', (D/60000).toFixed(1),'min reales');
 console.log('1 día astronómico   =', (D/60000).toFixed(1),'min reales');
 console.log('año completo        =', (A.anoAstro*D/86400000).toFixed(1),'días reales');
 console.log('estación            =', (A.anoAstro/4*D/86400000).toFixed(2),'días reales');
 probar('el año dura 30 días reales', Math.abs(A.anoAstro*D/86400000-30)<0.01);
+probar('la fecha avanza con el día del planeta', NV.calendario(5.4).dia===6 && NV.calendario(6.1).dia===7);
 
 console.log('\n=== sinódicos (deben dar 1.37035 y 5.725) ===');
 for(const k in A.lunas){
@@ -43,11 +43,11 @@ for(const k in A.lunas){
   probar('la fase de '+l.nombre+' se repite tras su ciclo', Math.abs(x-y)<1e-6);
 }
 
-console.log('\n=== Madre nueva el día 27 del calendario ===');
-const t27=27*A.anoAstro/A.diasCalendario;
+console.log('\n=== Madre nueva el día 387 del año ===');
+const t27=387;
 const m27=NV.astroEn(t27*D).lunas.madre;
-console.log('  día 27 → Madre', m27.nombreFase, '('+(m27.ilum*100).toFixed(0)+'% iluminada)');
-probar('Madre está nueva el día 27', m27.ilum<0.01);
+console.log('  día 387 → Madre', m27.nombreFase, '('+(m27.ilum*100).toFixed(0)+'% iluminada)');
+probar('Madre está nueva el día 387', m27.ilum<0.01);
 
 console.log('\n=== el calendario cruza del 430 al 1 sin romperse ===');
 for(const t of [429.9, 429.99, 430, 430.01, 430.5, 860]){
@@ -55,7 +55,7 @@ for(const t of [429.9, 429.99, 430, 430.01, 430.5, 860]){
   console.log('  día astronómico', String(t).padEnd(7), '→ año', c.ano, 'día', String(c.dia).padStart(2), c.estacion);
 }
 const antes=NV.calendario(429.999), despues=NV.calendario(430.001);
-probar('al cruzar el año vuelve al día 1', antes.dia===30 && despues.dia===1 && despues.ano===antes.ano+1);
+probar('al cruzar el año vuelve al día 1', antes.dia===430 && despues.dia===1 && despues.ano===antes.ano+1);
 
 console.log('\n=== la luz nocturna sigue a las lunas, no es fija ===');
 let min=9, max=-9, sinLuna=0, conLuna=0;

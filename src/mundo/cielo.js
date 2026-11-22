@@ -40,7 +40,7 @@ const cielo = {
 
 function actualizarCielo(ms){
   const a = NV_.astroEn(ms);
-  cielo.t=a.t; cielo.dia=a.dia; cielo.ano=a.ano; cielo.estacion=a.estacion;
+  cielo.t=a.t; cielo.dia=a.dia; cielo.mes=a.mes; cielo.diaMes=a.diaMes; cielo.ano=a.ano; cielo.estacion=a.estacion;
   cielo.fase=a.fraccionDia; cielo.deNoche=!a.deDia;
   cielo.elev=a.solElev; cielo.azimut=a.solAzimut; cielo.lunas=a.lunas;
 
