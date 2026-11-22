@@ -93,8 +93,8 @@ function bioOeste(p,L,ox,oy,rnd){
       if(x < pared){ fila += 'M'; continue; }
       if(x < pared+4 && ruidoB(gx+7,oy+y,2,0.12)>0.45){ fila += 'M'; continue; }
       const d=Math.hypot(x-lago.x,(y-lago.y)*1.2);
-      if(d<lago.r-3) { fila+='P'; continue; }
-      if(d<lago.r)   { fila+= d<lago.r-1?'a':'k'; continue; }
+      if(d<lago.r-3) { fila+='L'; continue; }        /* agua quieta */
+      if(d<lago.r)   { fila+= d<lago.r-1?'l':'k'; continue; }
       if(d<lago.r+2) { fila+='s'; continue; }
       fila += ruidoA(gx,oy+y,4,0.05)>0.44?'G':'g';
     }
@@ -136,7 +136,7 @@ function bioEste(p,L,ox,oy,rnd){
       /* De tierra adentro hacia el mar: tierra pelada, el filo de roca,
          el vacío de la caída, la rompiente y el mar abierto. */
       const filo = borde + Math.round(ruidoC(gy*5,0,3,0.05)*5-2.5);
-      if(x>filo+11){ fila += 'P'; continue; }
+      if(x>filo+11){ fila += 'O'; continue; }   /* mar abierto */
       if(x>filo+7) { fila += 'E'; continue; }
       if(x>filo+2) { fila += 'V'; continue; }
       if(x>filo-1) { fila += 'M'; continue; }

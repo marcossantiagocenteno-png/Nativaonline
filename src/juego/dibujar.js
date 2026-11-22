@@ -145,6 +145,65 @@ function dibujarLluvia(t){
   layer=0;
 }
 
+/* ---------- EL AGUA ----------
+   Ver la sección del agua en el diccionario: todo sale de un campo de olas, y
+   de ahí la altura elige el glifo, la pendiente hacia el este decide dónde pega
+   el reflejo del sol, y la espuma aparece donde la cresta es alta Y empinada a
+   la vez. Sólo alta da una tela corrugada.
+
+   wx, wy vienen en metros del mundo, fraccionarios: el agua se resuelve CELDA
+   POR CELDA y no por metro, que es lo que le da la onda continua. */
+const olaRuido=makeNoise(mulberry(70113));
+const _ola={g:0,fam:'agua',lz:1};
+function celdaOla(est,wx,wy,t){
+  const A=NV.OLAS[est]||NV.OLAS.rio;
+  let h=0, dx=0, dy=0, amp=0;
+  for(let i=0;i<A.olas.length;i++){
+    const o=A.olas[i];
+    const kx=NV.cosn(o.dir)/o.largo, ky=NV.sen(o.dir)/o.largo;
+    /* el frente se desordena con ruido: una ola perfecta se lee como corrugado */
+    const des=A.quiebre?(olaRuido(wx*0.42+i*7,wy*0.42,1,1)-0.5)*A.quiebre*1.7:0;
+    const f=(wx*kx+wy*ky-t*o.vel/o.largo+des)*6.28318;
+    h+=NV.sen(f)*o.amp;
+    const c=NV.cosn(f)*o.amp*6.28318;           // la pendiente: la derivada
+    dx+=c*kx; dy+=c*ky;
+    amp+=o.amp;
+  }
+  h/=amp;
+  const pend=Math.sqrt(dx*dx+dy*dy)/amp;
+  const subida=h*0.5+0.5;                       // 0 valle, 1 cresta
+  let g, fam=A.hondo>0.55?A.famH:A.fam;
+  let lz=(0.46+0.70*subida)*(1.12-A.hondo*0.46);
+  const rompe = subida>A.espuma && dx>0;
+  if(rompe){
+    g=(hash3((wx*7)|0,(wy*7)|0,3)%3)?42:35;     // * #
+    fam='espuma'; lz=1.05+0.30*subida;
+  } else {
+    g=A.rampa[clamp(Math.round(subida*(A.rampa.length-1)),0,A.rampa.length-1)].charCodeAt(0);
+  }
+  if(!rompe && A.brillo){
+    /* el reflejo: pega donde la cara mira al este y está parada */
+    const esp=clamp(dx/(pend+0.001),0,1)*clamp(pend*0.9,0,1)*A.brillo;
+    if(esp>0.62 && (hash3((wx*11)|0,(wy*11)|0,5)%100)<58){
+      g = esp>0.95?42:176; fam='espuma'; lz=1.00+esp*0.42;
+    }
+  }
+  if(A.rocio && subida>0.80 && (hash3((wx*13)|0,(wy*13)|0,7)%100)<16){
+    g=39; fam='espuma'; lz=1.25;                // el rocío que arranca el viento
+  }
+  _ola.g=g; _ola.fam=fam; _ola.lz=lz;
+  return _ola;
+}
+/* El mar cambia de estado con el tiempo que hace: en calma, con olas o con
+   tormenta. No hay que elegirlo a mano en ningún lado. */
+function estadoDelMar(){
+  const cl=NV.cielo&&NV.cielo.clima;
+  if(!cl) return 'mar-olas';
+  if(cl.tormenta||cl.intensidad>=2) return 'mar-tormenta';
+  const am=cl.marea?cl.marea.amplitud:0.5;
+  return (cl.intensidad>=1||am>0.62)?'mar-olas':'mar-calma';
+}
+
 function drawGroundRow(my,rBase,haze,t){
   const colsM=Math.ceil(cols/CPM);
   let wsum=0,wn=0;
@@ -182,26 +241,22 @@ function drawGroundRow(my,rBase,haze,t){
     for(let sy=0;sy<RPM;sy++){
       const rb=top+sy;
       if(!grass){
+        /* el agua se resuelve celda por celda, con su campo de olas */
+        if(mt.ola){
+          const est = mt.ola==='mar' ? estadoDelMar() : mt.ola;
+          const wy=my+(sy+0.5)/RPM;
+          for(let k=0;k<CPM;k++){
+            const o=celdaOla(est, mx+(k+0.5)/CPM, wy, t);
+            put(base+k,rb,o.g,packs(o.fam,clamp(o.lz*light,0,1.4),calor*0.75));
+          }
+          continue;
+        }
         for(let k=0;k<CPM;k++){
           const hc=hash3(mx*CPM+k,my*RPM+sy,5);
           const jit=0.80+((hc>>3)%100)/100*0.42;
-          let dens=clamp(0.34+light*jit*0.78,0,1);
-          if(type==='E'){
-            /* la rompiente: olas que llegan al acantilado con el ritmo de la
-               marea, más altas y más seguidas cuando el agua está crecida */
-            const m=NV.cielo.clima?NV.cielo.clima.marea:{amplitud:0.5};
-            const ritmo=1.1+m.amplitud*2.4;
-            const rip=0.5+0.5*Math.sin(t*ritmo-(mx*CPM+k)*0.20+sy*0.45);
-            dens=clamp(0.14+Math.pow(rip,2.4)*(0.7+m.amplitud*0.9),0,1);
-          } else if(mt.agua){
-            const este=NV.flujoEn(mx,my)===1;
-            const fase=este ? (mx*CPM+k)*0.09 : (my*RPM+sy)*0.26;
-            const rip=0.5+0.5*Math.sin(t*2.2-fase+(este?sy*0.3:k*0.05));
-            dens=clamp(0.30+rip*0.65,0,1);
-          }
+          const dens=clamp(0.34+light*jit*0.78,0,1);
           const g=pick(mt.ramp,dens);
           if(g!==' ') put(base+k,rb,g.charCodeAt(0),colG);
-
         }
         continue;
       }

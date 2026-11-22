@@ -15,16 +15,71 @@ const MAT={                                   // capa SUELO, en uso
   G:{n:'pasto largo', fam:'verdeO', ramp:['|','|','|','|','|'], tip:['|','/','\\'], fam2:'verde'},
   s:{n:'arena de río',fam:'arena',  ramp:['.','.',':','\u00b0',':']},
   k:{n:'guijarral',   fam:'piedra', ramp:['.',':','\u00b0','o','c']},
-  a:{n:'agua somera', fam:'agua',   ramp:[' ','.','-','~','-'], agua:1.22},
-  A:{n:'corriente',   fam:'agua',   ramp:['-','~','~','=','~'], agua:1.00},
-  P:{n:'agua honda',  fam:'honda',  ramp:['~','=','_','_','_'], agua:0.62, solido:true},
-  E:{n:'espuma',      fam:'espuma', ramp:['-','~','=','*','#'], agua:1.25},
+  a:{n:'agua somera', fam:'agua',   ramp:[' ','.','-','~','-'], agua:1.22, ola:'somera'},
+  A:{n:'corriente',   fam:'agua',   ramp:['-','~','~','=','~'], agua:1.00, ola:'rio'},
+  P:{n:'agua honda',  fam:'honda',  ramp:['~','=','_','_','_'], agua:0.62, solido:true, ola:'rio-profundo'},
+  E:{n:'espuma',      fam:'espuma', ramp:['-','~','=','*','#'], agua:1.25, ola:'rompiente'},
+  L:{n:'lago',        fam:'honda',  ramp:['_','_','=','=','~'], agua:0.62, solido:true, ola:'tranquila'},
+  l:{n:'orilla del lago',fam:'agua',ramp:[' ','.','-','~','-'], agua:1.22, ola:'tranquila-somera'},
+  O:{n:'mar abierto', fam:'honda',  ramp:['~','=','_','_','_'], agua:0.58, solido:true, ola:'mar'},
   M:{n:'roca madre',  fam:'piedra', ramp:['.',':','^','A','M'], solido:true, textura:'roca'},
   V:{n:'el vacío',    fam:'abismo', ramp:[' ',' ','.',':','.'], solido:true, textura:'caida'},
   d:{n:'tierra',      fam:'tierra', ramp:['.',',','-','_','='], textura:'tierra'},
   R:{n:'ruina',       fam:'piedra', ramp:['.',':','#','%','#'], solido:true, textura:'roca'},
   N:{n:'nieve',       fam:'nieve',  ramp:[' ','.','\u00b0','*','*']},
   D:{n:'duna',        fam:'arena',  ramp:['.','.',':',';',':']}
+};
+/* ---------- EL AGUA ----------
+   El agua no es una textura: es una SUPERFICIE CON ALTURA. Todo sale de un
+   campo de olas —la suma de dos o tres sinusoides que viajan, más ruido para
+   que el frente no salga peinado— y de ahí se deducen las tres cosas que la
+   hacen leer como agua:
+
+     la ALTURA elige el glifo (cresta tupida, valle liso),
+     la PENDIENTE hacia el este decide dónde pega el reflejo del sol,
+     y la ESPUMA aparece donde la cresta es alta Y empinada a la vez.
+
+   El reflejo es lo que más vende el agua. Sin él, cualquier campo de ondas
+   parece una tela corrugada, y eso era exactamente el agua de antes: una
+   sinusoide de densidad sin brillo.
+
+   olas    : largo en metros, dirección en radianes (0 = al este), velocidad en
+             metros por segundo, amplitud
+   hondo   : cuánto oscurece la profundidad
+   espuma  : desde qué altura de cresta rompe (9 = no rompe nunca)
+   brillo  : cuánto reflejo deja; el agua quieta espeja, la revuelta no
+   quiebre : cuánto desordena el ruido el frente de la ola
+   rocio   : el viento arranca agua de la cresta y la tira por arriba */
+const OLAS={
+ 'tranquila':{fam:'agua', famH:'honda', hondo:0.30, espuma:9, brillo:1.35, quiebre:0.10,
+   rampa:['_','_','-','-','~'],
+   olas:[{largo:5.0,dir:0.30,vel:0.22,amp:0.55},{largo:2.1,dir:1.40,vel:0.15,amp:0.30}]},
+ 'tranquila-somera':{fam:'agua', famH:'agua', hondo:0.06, espuma:9, brillo:1.40, quiebre:0.20,
+   rampa:[' ','.','-','~','-'],
+   olas:[{largo:3.0,dir:0.30,vel:0.26,amp:0.55},{largo:1.1,dir:1.40,vel:0.20,amp:0.34}]},
+ 'somera':{fam:'agua', famH:'agua', hondo:0.05, espuma:0.74, brillo:0.85, quiebre:0.85,
+   rampa:['.','-','~','~','='],
+   olas:[{largo:0.75,dir:0.08,vel:1.35,amp:0.70},{largo:0.30,dir:-0.30,vel:1.80,amp:0.45}]},
+ 'rio':{fam:'agua', famH:'agua', hondo:0.35, espuma:0.90, brillo:1.00, quiebre:0.35,
+   rampa:['-','~','~','=','='],
+   olas:[{largo:2.2,dir:0.04,vel:0.95,amp:0.60},{largo:0.8,dir:0.30,vel:1.25,amp:0.34}]},
+ 'rio-profundo':{fam:'honda', famH:'honda', hondo:0.85, espuma:9, brillo:0.70, quiebre:0.12,
+   rampa:['_','_','=','=','~'],
+   olas:[{largo:4.0,dir:0.02,vel:0.55,amp:0.45},{largo:1.5,dir:0.40,vel:0.70,amp:0.22}]},
+ 'mar-calma':{fam:'honda', famH:'honda', hondo:0.70, espuma:9, brillo:1.45, quiebre:0.08,
+   rampa:['_','_','-','-','~'],
+   olas:[{largo:14.0,dir:1.55,vel:1.60,amp:0.70},{largo:3.0,dir:1.20,vel:0.70,amp:0.22}]},
+ 'mar-olas':{fam:'honda', famH:'honda', hondo:0.62, espuma:0.76, brillo:1.05, quiebre:0.30,
+   rampa:['-','~','~','=','='],
+   olas:[{largo:9.0,dir:1.57,vel:2.30,amp:1.00},{largo:3.2,dir:1.30,vel:1.30,amp:0.40},
+         {largo:1.1,dir:1.80,vel:1.10,amp:0.18}]},
+ 'mar-tormenta':{fam:'honda', famH:'honda', hondo:0.55, espuma:0.60, brillo:0.55, quiebre:0.80,
+   rampa:['~','=','=','#','#'], rocio:1,
+   olas:[{largo:7.0,dir:1.57,vel:3.40,amp:1.25},{largo:2.6,dir:1.05,vel:2.40,amp:0.75},
+         {largo:0.9,dir:2.10,vel:2.00,amp:0.40}]},
+ 'rompiente':{fam:'espuma', famH:'espuma', hondo:0.10, espuma:0.30, brillo:1.20, quiebre:0.70,
+   rampa:['-','~','=','*','#'],
+   olas:[{largo:6.0,dir:1.57,vel:2.60,amp:1.10},{largo:1.4,dir:1.40,vel:1.60,amp:0.50}]}
 };
 const MID={};                                 // sotobosque: vacío por ahora
 /* Reservado: acordado, fuera del mundo actual. */
@@ -259,5 +314,5 @@ const ROCAS={
  ]
 };
 NV.TEX=TEX; NV.LIQUEN=LIQUEN; NV.ROCAS=ROCAS;
-NV.MAT=MAT; NV.MID=MID; NV.RESERVA=RESERVA; NV.SPECIES=SPECIES; NV.WOOD=WOOD; NV.RAMP=RAMP;
+NV.OLAS=OLAS; NV.MAT=MAT; NV.MID=MID; NV.RESERVA=RESERVA; NV.SPECIES=SPECIES; NV.WOOD=WOOD; NV.RAMP=RAMP;
 NV.MODELOS=MODELOS;

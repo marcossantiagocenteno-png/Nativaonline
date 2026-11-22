@@ -45,6 +45,16 @@ const esc=s=>String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[
 function hashStr(s){ let h=2166136261; for(let i=0;i<s.length;i++){h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
 function mulberry(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 function hash3(x,y,z){ let h=(x*374761393+y*668265263+z*2147483647)|0; h=Math.imul(h^(h>>>13),1274126177); return ((h^(h>>>16))>>>0)&0x7fffffff; }
+/* El agua pide dos o tres senos y otros tantos cosenos por celda, y hay
+   decenas de miles de celdas de agua por cuadro. Una tabla de mil veinticuatro
+   entradas los saca de encima: el error de redondeo es menor que el salto entre
+   dos glifos, así que no se ve. */
+const SEN=new Float32Array(1024);
+for(let i=0;i<1024;i++) SEN[i]=Math.sin(i*Math.PI/512);
+const K2PI=1024/(Math.PI*2);
+const sen=a=>SEN[((a*K2PI)|0)&1023];
+const cosn=a=>SEN[(((a*K2PI)|0)+256)&1023];
+
 function makeNoise(rnd){
   const s=256,g=new Float64Array(s*s);
   for(let i=0;i<g.length;i++) g[i]=rnd();
@@ -69,4 +79,5 @@ function pick(ramp,t){ return ramp[clamp(Math.round(t*(ramp.length-1)),0,ramp.le
 NV.MONO=MONO; NV.CONFIG=CONFIG;
 NV.FAM=FAM; NV.RGB=RGB; NV.step=step; NV.pick=pick;
 NV.clamp=clamp; NV.esc=esc; NV.$=$;
+NV.sen=sen; NV.cosn=cosn;
 NV.hashStr=hashStr; NV.mulberry=mulberry; NV.hash3=hash3; NV.makeNoise=makeNoise;
