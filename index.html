@@ -5,61 +5,21 @@
 <meta http-equiv="Cache-Control" content="no-cache, max-age=0">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Nativa Online</title>
-<script>document.write('<link rel="stylesheet" href="src/style.css?v='+Date.now()+'">');</script>
 </head>
 <body>
-<header>
-  <h1 id="wname">Claro del norte</h1>
-  <span class="zg">
-    <button class="zb" data-z="0">1</button><button class="zb on" data-z="1">2</button><button class="zb" data-z="2">3</button>
-  </span>
-  <button id="bAnim" class="on" title="Viento">~</button>
-  <button id="bMap">mapa</button>
-  <span class="sp"></span>
-</header>
-
-<main>
-  <div id="stage">
-    <canvas id="cv"></canvas>
-    <div id="compass">N<br><span>&#9650;</span></div>
-    <div id="reloj"><span id="relojM"></span><span id="relojS"></span></div>
-    <div id="map"><div id="mapCab"></div><pre id="mapTx"></pre></div>
-    <div id="bubble"></div>
-    <div id="pad">
-      <button class="e"></button><button data-mv="n">&#9650;</button><button class="e"></button>
-      <button data-mv="w">&#9664;</button><button data-mv="a">E</button><button data-mv="e">&#9654;</button>
-      <button class="e"></button><button data-mv="s">&#9660;</button><button class="e"></button>
-    </div>
-  </div>
-</main>
-
-<footer>
-  <span id="st1">—</span><span id="st2"></span><span id="st3">Flechas o WASD &middot; E para mirar &middot; rueda, pellizco o + / &minus; para el zoom</span>
-</footer>
-
-<div class="modal" id="mdHelp"><div class="box">
-  <h3>D&oacute;nde est&aacute;s</h3>
-  <div style="font-size:12px;line-height:1.6">
-    Un claro de 100 &times; 100 metros. Arriba es <b>norte</b>, abajo <b>sur</b>, derecha <b>este</b>.
-    El sol est&aacute; al este y bajo, as&iacute; que todo tira su sombra hacia el oeste y los &aacute;rboles tienen
-    la cara derecha iluminada.<br><br>
-    La c&aacute;mara mira el suelo inclinada: un metro hacia el norte ocupa menos pantalla que un metro
-    hacia el este, y lo que tiene altura se levanta y tapa lo que queda detr&aacute;s.<br><br>
-    Camin&aacute; con flechas o WASD. En celular, el control de abajo a la derecha.
-  </div>
-  <div class="acts"><button data-close class="on">Cerrar</button></div>
-</div></div>
-
-
-<div id="toast"></div>
+<noscript>Nativa Online necesita JavaScript.</noscript>
 <script>
-/* El HTML puede quedar en la caché del navegador, pero los archivos del juego
-   se piden con la hora actual: así nunca se sirve una versión vieja. */
+/* El HTML se guarda en la caché del navegador y no se puede evitar acá, así que
+   lo único que contiene es este cargador: pide cada archivo con la hora actual,
+   incluida la interfaz. El enlace es siempre el mismo y nunca sirve algo viejo. */
 (function(){
   var v='?v='+Date.now();
-  var orden=['motor/base','mundo/diccionario','mundo/generar','mundo/astro','mundo/cielo',
-             'mundo/mareas','mundo/clima','motor/lienzo','juego/dibujar','juego/astros','juego/jugar'];
-  orden.forEach(function(f){ document.write('<script src="src/'+f+'.js'+v+'"><\/script>'); });
+  document.write('<link rel="stylesheet" href="src/style.css'+v+'">');
+  ['motor/base','mundo/diccionario','mundo/generar','mundo/astro','mundo/cielo',
+   'mundo/mareas','mundo/clima','motor/lienzo','juego/interfaz','juego/dibujar',
+   'juego/astros','juego/jugar'].forEach(function(f){
+    document.write('<script src="src/'+f+'.js'+v+'"><\/script>');
+  });
 })();
 </script>
 </body>

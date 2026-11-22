@@ -157,33 +157,6 @@ function drawMap(){
   if(cab) cab.innerHTML = NV.resumenCielo?NV.resumenCielo():'';
 }
 
-/* ---------- leyenda ---------- */
-function buildLegend(){
-  const rows=[];
-  rows.push(['— suelo —','','']);
-  for(const k in MAT){
-    const m=MAT[k];
-    let gl=m.ramp.join(' ').trim();
-    if(m.tip) gl+='   inclinada '+m.tip.join(' ');
-    rows.push([m.n,gl,m.tip?'base recta, se curva al subir':'grado ralo, asterisco tupido']);
-  }
-  rows.push(['— objetos —','','']);
-  rows.push(['piedra grande','c o O Q 0','cara este iluminada']);
-  rows.push(['tronco caído', WOOD.caido.join(' '),'tendido de este a oeste']);
-  rows.push(['tronco en pie', WOOD.tronco.join(' '),'H grueso, h medio, t fino']);
-  rows.push(['ramas', WOOD.rama.join(' '),'']);
-  rows.push(['— copas —','','']);
-  for(const k in SPECIES){
-    const e=SPECIES[k];
-    rows.push([e.n, e.copa.join(' ').trim()+'   borde '+e.borde.join(' ').trim(),
-      k==='pino'?'cónica, por pisos':k==='alamo'?'columnar, se mece mucho':'ancha y redonda']);
-  }
-  rows.push(['— reservado —','','']);
-  for(const k in RESERVA) rows.push([k, RESERVA[k], 'fuera del mundo actual']);
-  $('legend').innerHTML=rows.map(r=> r[1]===''
-    ? '<div class="lgh">'+esc(r[0])+'</div>'
-    : '<div class="lg"><b>'+esc(r[0])+'</b><code>'+esc(r[1])+'</code><i>'+esc(r[2])+'</i></div>').join('');
-}
 
 /* ---------- arranque ---------- */
 function init(){

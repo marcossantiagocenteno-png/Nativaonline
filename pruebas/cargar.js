@@ -2,7 +2,7 @@
 const fs=require('fs');
 const R='/home/claude/nativaonline/';
 const ORDEN=['src/motor/base.js','src/mundo/diccionario.js','src/mundo/generar.js',
-  'src/mundo/astro.js','src/mundo/cielo.js','src/mundo/mareas.js','src/mundo/clima.js','src/motor/lienzo.js','src/juego/dibujar.js','src/juego/astros.js','src/juego/jugar.js'];
+  'src/mundo/astro.js','src/mundo/cielo.js','src/mundo/mareas.js','src/mundo/clima.js','src/motor/lienzo.js','src/juego/interfaz.js','src/juego/dibujar.js','src/juego/astros.js','src/juego/jugar.js'];
 const ctx={font:'',textBaseline:'',textAlign:'',fillStyle:'',letterSpacing:'0px',
   measureText:t=>({width:6*(t?t.length:1)}),setTransform(){},fillRect(){},fillText(){},
   createRadialGradient(){return{addColorStop(){}}}};
@@ -12,7 +12,7 @@ const el=id=>els[id]||(els[id]={id,textContent:'',innerHTML:'',value:'',dataset:
   classList:{toggle(){},add(){},remove(){},contains(){return false}},
   addEventListener(){},querySelectorAll:()=>[],getContext:()=>ctx});
 global.window={claude:{use:async()=>null}};
-global.document={getElementById:el,querySelector:()=>null,querySelectorAll:()=>[],hidden:false,body:{classList:{add(){}}}};
+global.document={getElementById:el,querySelector:()=>null,querySelectorAll:()=>[],hidden:false,body:{classList:{add(){}},insertAdjacentHTML(){}}};
 global.matchMedia=()=>({matches:false});
 global.addEventListener=()=>{};
 global.requestAnimationFrame=cb=>cb();

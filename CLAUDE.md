@@ -21,10 +21,15 @@ Antes de tocar nada, leer `docs/DISENO.md`. Ese documento manda sobre el código
 ## Al trabajar
 
 - La caché del navegador fue el error que más veces nos hizo creer que algo no
-  funcionaba. `index.html` ya no enlaza los archivos directamente: un cargador los
-  pide con la hora actual, así que aunque el HTML venga de la caché, el juego
-  siempre es el último. Si se agrega un módulo, va en esa lista del cargador **y**
-  en `pruebas/cargar.js`, en el mismo orden.
+  funcionaba. Este alojamiento guarda el HTML diez minutos y no se puede cambiar,
+  así que `index.html` no tiene nada adentro: solo un cargador que pide cada
+  archivo con la hora actual. **La interfaz vive en `src/juego/interfaz.js`**, no
+  en el HTML, justamente para que un cambio de botones llegue al instante con el
+  mismo enlace de siempre. Nunca devolver marcado a `index.html`.
+- Si se agrega un módulo, va en la lista del cargador de `index.html` **y** en
+  `pruebas/cargar.js`, en el mismo orden.
+- Todo elemento que el código busque con `$('algo')` tiene que existir en el
+  marcado de `interfaz.js`.
 - Probar antes de publicar: `node pruebas/humo.js` carga los módulos en un
   navegador simulado, genera el mundo, dibuja un cuadro y camina 60 pasos.
 - El juicio visual lo pone Marcos. Describir qué se cambió y por qué, no afirmar
