@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // La altura del terreno, etapa 1: se DIBUJA, todavía no se camina.
 //
 // Cada metro se dibuja desplazado hacia arriba según su altura. Lo que se prueba:

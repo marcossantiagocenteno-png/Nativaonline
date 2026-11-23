@@ -38,7 +38,9 @@ global.setInterval=()=>0;global.clearInterval=()=>{};global.setTimeout=()=>0;glo
    árboles ponen global.__arboles=true ANTES de cargar: se aplica justo después de base.js,
    antes de que se genere el primer panel. */
 const partes=ORDEN.map(f=>fs.readFileSync(R+f,'utf8'));
-const src=[partes[0],'window.NV.CONFIG.arboles=!!global.__arboles;',...partes.slice(1)].join('\n;\n');
+/* El mundo de partida es un solo panel de pasto. Las pruebas que miden árboles, agua, acantilados o fuego ponen
+   global.__viejo=true: el mundo de nueve paneles de antes, con su semilla de antes. */
+const src=[partes[0],'window.NV.CONFIG.arboles=!!global.__arboles; if(global.__viejo){ window.NV.CONFIG.mundoViejo=true; window.NV.CONFIG.seed="bosque-02"; }',...partes.slice(1)].join('\n;\n');
 /* Las partículas dependen del reloj, y casi todas las pruebas comparan cuadros: arrancan apagadas.
    La que las mide (particulas.js) las enciende con NV.particulas=true. */
 module.exports=function(extra,reemplazos){

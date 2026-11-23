@@ -28,12 +28,14 @@
     if(S.tipo==='formacion'){
       const izq=bc-Math.round(S.W*CPM/2);
       if(izq>cols+8||izq+S.W*CPM<-8) return;
-      const ctx=ctxBase(tr,t,haze,izq,br,tr.x,tr.y);
+      /* una formación vertical se centra en su largo: su punta sur queda media longitud al sur del centro */
+      const b0=S.vert?br+Math.round(S.largo/2*RPM):br;
+      const ctx=ctxBase(tr,t,haze,izq,b0,tr.x,tr.y);
       ctx.ventana=[-izq-6,cols-izq+6];
       R.pintarSombra(S,ctx); R.pintarFormacion(S,ctx);
       if(S.spec.pie!==false) for(const e of R.pieDe(S)){
         const cE=izq+Math.round(e.x*CPM); if(cE<-4*CPM||cE>cols+4*CPM) continue;
-        const c2=ctxBase(tr,t,haze,cE,br+Math.round(e.y*RPM),tr.x-S.W/2+e.x,tr.y+e.y);
+        const c2=ctxBase(tr,t,haze,cE,b0+Math.round(e.y*RPM),tr.x-S.W/2+e.x,tr.y+e.y);
         R.pintarSombra(e.S,c2); R.pintar(e.S,c2);
       }
       return;

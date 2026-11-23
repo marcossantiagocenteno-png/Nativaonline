@@ -1246,7 +1246,7 @@ El pasto compacto ya no se mece con un seno propio: su inclinación sale del mot
 Esta sección fija **cómo se prepara** el juego para un futuro editor permanente del mundo. No hay
 editor todavía, ni mapa final: sólo las costuras para que ambos entren sin tocar lo que ya anda.
 
-**Regla madre.** El mundo = lo que genera la semilla (`bosque-02`) **más** un archivo de ediciones.
+**Regla madre.** El mundo = lo que genera la semilla (`claro-01`) **más** un archivo de ediciones.
 Las ediciones son *datos puros* y no saben que existe el Modo Dios: el editor las escribe, el
 juego las lee. El mapa jamás depende del estado del editor (el estado del editor vivirá aparte,
 en `NV.editor`). Sin ediciones el juego sale idéntico: lo vigila `node pruebas/dorado.js`.
@@ -1277,7 +1277,7 @@ se registra al salir.
 ### El formato del archivo (formato 2)
 
 ```
-{formato:2, semilla:'bosque-02',
+{formato:2, semilla:'claro-01',
  paneles:{ 'pi,pj':{ def:{bioma,nombre,esq?}, suelo:[[x,y,'d'],..],
                      objetos:{agregar:[{x,y,k,h,..}], quitar:[[x,y],..]},
                      alturas:[[x,y,metros],..] } },
@@ -1499,3 +1499,42 @@ durante el arrastre de una perilla la vista previa de una formación va a media 
 Pruebas: `pruebas/rocoso-juego.js` (rocas) y `pruebas/arbolado-juego.js` (árboles).
 
 **Árboles diseñados** (`NV.arbolado`, objeto `{k:'arbolnv', r:{fam,tam,sem,alto?,variante?}}`): misma ventana con familia, tamaño, altura, variante y una perilla de viento sólo para la vista previa. En el juego se mueven con el viento real, proyectan su sombra y no tocan los árboles de siempre (`k:'arbol'`).
+
+### Cambios del 23/11 (tarde): paleta, borrado, formaciones verticales, topes y mundo limpio
+
+**La paleta sólo ofrece lo que se diseña.** Los árboles y rocas genéricos (`arbol:*`, `roca:*`) llevan
+`oculto:true` en su catálogo: `armarPaleta` no los dibuja, pero siguen en el registro para que lo ya puesto en
+otras sesiones se pueda regenerar y borrar. Queda: Tronco caído, Árbol (diseñar), Roca (diseñar), Formación
+(diseñar) y Tope (diseñar).
+
+**Borrar lo de otra sesión.** El clic derecho primero usa el búfer de apuntado; si no cae en un pixel del
+objeto, busca el objeto cuya huella (`fx`,`fy`) cubre la casilla (`E.objetoEnHuella`). La ventana de diseño tiene
+un botón **borrar** que elimina el objeto que se está editando (un solo paso de deshacer). El clic sobre un
+objeto sin nada elegido también abre la ventana por la huella.
+
+**Formaciones chicas y verticales.** El largo va de 3 a 48 m y hay una perilla de **fondo** (m). La perilla
+**orientación** elige `sur` (horizontal, cara al sur: como siempre), `este` u `oeste`: un muro que corre de norte a
+sur con la cara hacia ese lado. `verticalizar()` (rocoso.js) no reescribe el sólido: lo envuelve, cambiando de marco
+(`z+L` es la coordenada a lo largo del muro; `U` pasa a ser la profundidad). Con la cámara de frente un plano que
+mira al este se ve **de canto**, así que una vertical lleva un talud base (la cara echada hacia atrás, −0.3 de
+inclinación, que la perilla suma o resta) y lo que se lee son los escalones de cada estrato. Detalles:
+- El objeto guarda `dy = fy` y `NV.objetosEn` entrega `oy = y + dy`: la fila **desde la que se dibuja**, la punta
+  sur del muro. La lista se ordena por `oy`; `dibujar.js` dibuja por `oy` y, tras el último renglón, dibuja los muros
+  cuya punta sur quedó más allá de la última fila pero cuyo cuerpo todavía se ve (`NV.mundo.margenAlto()`).
+- En el juego el muro se centra en su largo: la punta sur queda media longitud al sur de `(x,y)`.
+- Las rocas sueltas al pie van del lado de la cara.
+- Límite conocido: el respaldo (el lado opuesto a la cara) es un corte plano; de frente casi no se ve.
+
+**TOPE.** `{k:'tope', fx, fy}`: un rectángulo de casillas (1 a 41 de ancho y de largo, siempre impar: va centrado)
+que cuenta como sólido (`OCUPAN`), así que nadie lo cruza. **No se dibuja en el juego**; en Modo Dios es una trama
+dorada con borde (`NV.dibujarTope`), por encima del suelo. Se diseña en la ventana (ancho y largo), se edita con un
+clic, se borra con clic derecho. No tiene sombra ni glifo en el mapa general. Motor: `src/juego/topes.js`.
+
+**Mundo limpio.** El mundo de partida es **un solo panel de pasto** (`bioma:'pasto'`, panel 0:0 "El claro"): sin
+árboles, piedras, agua, senderos, hoguera ni otros paneles. El punto de inicio es el centro (50,50). La semilla pasó
+de `bosque-02` a `claro-01`: así el borrador del navegador y la partida guardada del mundo anterior se descartan
+solos (`cargarBorrador` y la partida comparan la semilla). Los biomas viejos siguen en `generar.js`: el editor puede
+definir un panel con cualquiera de ellos (operación `panel`). Para las pruebas, `global.__viejo=true` (antes de
+`cargar()`) restaura los nueve paneles y la semilla vieja (`CONFIG.mundoViejo`): así `dorado.js` sigue cuidando los
+motores sobre el mundo rico, sin cambios en la huella. `pruebas/limpio.js` vigila el mundo nuevo. Queda el relieve
+suave de luz (ver "relieve"): no es un objeto ni cambia dónde se camina.

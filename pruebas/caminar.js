@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // Caminar sostenido y que los objetos se dibujen de verdad.
 const cargar=require('./cargar.js');          // este archivo pisa los temporizadores
 const T=new Map(); let id=0;

@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // Mesetas y paredes: tierra alta de bordes marcados. Un borde es pared (se ve como roca
 // estratificada y no se pisa) o rampa (se sube caminando), según un ruido que cambia a
 // lo largo del borde. Se comprueba el campo en el mundo real y el dibujo en una escena

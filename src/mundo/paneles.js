@@ -18,17 +18,23 @@ const clave=(pi,pj)=>pi+','+pj;
 const nombreDe=(pi,pj)=>pi+':'+(-pj);
 const desdeNombre=n=>{ const [x,y]=n.split(':').map(Number); return {pi:x,pj:-y}; };
 
-const BIOMAS={
+/* El mundo de partida es UN panel de pasto. Los biomas viejos (claro, oeste, este, norte, sur, esquina) siguen en
+   generar.js: el editor puede definir un panel con cualquiera de ellos, pero ya no vienen puestos.
+   BIOMAS_VIEJOS es el mundo de nueve paneles de antes: sólo lo usan las pruebas (CONFIG.mundoViejo), que lo necesitan
+   para seguir midiendo árboles, agua, acantilados y fuego. */
+const BIOMAS_VIEJOS={
   '0,0':  {bioma:'claro',    nombre:'El claro'},
   '-1,0': {bioma:'oeste',    nombre:'El bosque viejo'},
   '1,0':  {bioma:'este',     nombre:'El acantilado'},
   '0,-1': {bioma:'norte',    nombre:'El filo del desierto'},
   '0,1':  {bioma:'sur',      nombre:'Los pinos fríos'},
-  /* las esquinas: sin ellas, caminar en diagonal daba pantalla negra */
   '-1,-1':{bioma:'esquina', nombre:'El arenal del oeste', esq:{ns:'norte'}},
   '1,-1': {bioma:'esquina', nombre:'La costa seca',       esq:{ns:'norte',costa:1}},
   '-1,1': {bioma:'esquina', nombre:'Los pinos del oeste', esq:{ns:'sur'}},
   '1,1':  {bioma:'esquina', nombre:'La costa helada',     esq:{ns:'sur',costa:1}}
+};
+const BIOMAS=(NVp.CONFIG&&NVp.CONFIG.mundoViejo)?BIOMAS_VIEJOS:{
+  '0,0':  {bioma:'pasto',    nombre:'El claro'}
 };
 
 const cache=new Map();
@@ -109,9 +115,10 @@ function objetosEn(gx0,gy0,gx1,gy1){
   for(let pj=pj0;pj<=pj1;pj++) for(let pi=pi0;pi<=pi1;pi++){
     const p=panel(pi,pj);
     if(!p) continue;
-    for(const o of p.trees) lista.push(Object.assign({},o,{x:o.x+pi*LADO, y:o.y+pj*LADO}));
+    for(const o of p.trees){ const e=Object.assign({},o,{x:o.x+pi*LADO, y:o.y+pj*LADO}); e.oy=e.y+(o.dy||0); lista.push(e); }
   }
-  lista.sort((a,b)=>a.y-b.y);
+  /* se ordenan por la fila desde la que se dibujan: un muro que corre de norte a sur se dibuja por su punta sur */
+  lista.sort((a,b)=>a.oy-b.oy);
   ultimoJuego=firma; ultimaLista=lista;
   return lista;
 }

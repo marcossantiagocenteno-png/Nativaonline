@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // La luz del fuego: continua sobre el suelo y también sobre lo que se levanta de él.
 //
 // Antes el calor se leía una vez por metro, así que una hoguera salía en

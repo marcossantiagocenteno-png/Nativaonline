@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // Prueba de humo: cargar todo, generar los cinco paneles, dibujar y caminar.
 const cargar=require('./cargar.js');
 let NV;

@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // Las costuras entre paneles.
 //
 // Cada bioma tenía su propia proporción de pasto largo contra corto, y entre dos

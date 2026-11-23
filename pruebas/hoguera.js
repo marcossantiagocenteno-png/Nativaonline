@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // Hoguera: que exista y que no cueste caro. (La niebla por hora se fue con el sistema de astros.)
 const cargar=require('./cargar.js');
 const NV=cargar();

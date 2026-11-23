@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // El Modo Dios: colocar, regenerar, eliminar y deshacer con el ratón, sobre el juego real dibujado.
 const cargar=require('./cargar.js');
 const m=cargar(`module.exports={NV:window.NV, draw_, tictac, me:()=>me,

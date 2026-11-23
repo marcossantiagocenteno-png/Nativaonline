@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // Suelo: que los materiales nuevos estén en el mundo, que la textura no salga
 // como estática, que la arena tenga onda y que el pasto crezca a parches.
 const cargar=require('./cargar.js');

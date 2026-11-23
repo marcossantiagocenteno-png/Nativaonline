@@ -23,7 +23,7 @@
   const ESPECIES=['pino','encino','alamo'];
   NV.motores.registrar({id:'arboles',nombre:'Árboles',estado:'integrado',archivo:'src/juego/dibujar.js',prueba:'pruebas/arboles.js',
     caras:{objetos:{
-      catalogo:()=>ESPECIES.filter(sp=>NV.SPECIES[sp]).map(sp=>({id:'arbol:'+sp,nombre:mayus(NV.SPECIES[sp].n),k:'arbol',sp,encaja:o=>o.k==='arbol'&&o.sp===sp})),
+      catalogo:()=>ESPECIES.filter(sp=>NV.SPECIES[sp]).map(sp=>({id:'arbol:'+sp,nombre:mayus(NV.SPECIES[sp].n),k:'arbol',sp,oculto:true,encaja:o=>o.k==='arbol'&&o.sp===sp})),
       crear:(id)=>{ const sp=id.split(':')[1], A=NV.SPECIES[sp].alto;
         return {k:'arbol',sp,h:+(A[0]+azar()*(A[1]-A[0])).toFixed(2),s:nuevaS()}; },
       /* misma especie y casi la misma altura (±8 %); cambia la forma */
@@ -35,7 +35,7 @@
   const cat=h=>h<0.75?'pequena':h<1.75?'media':h<3.5?'grande':'gigante';
   NV.motores.registrar({id:'rocas',nombre:'Piedras y rocas',estado:'integrado',archivo:'src/juego/dibujar.js',prueba:'pruebas/rocas.js',
     caras:{objetos:{
-      catalogo:()=>Object.keys(TAM).filter(c=>NV.ROCAS&&NV.ROCAS[c]).map(c=>({id:'roca:'+c,nombre:TAM[c].n,k:'roca',encaja:o=>o.k==='roca'&&cat(o.h)===c})),
+      catalogo:()=>Object.keys(TAM).filter(c=>NV.ROCAS&&NV.ROCAS[c]).map(c=>({id:'roca:'+c,nombre:TAM[c].n,k:'roca',oculto:true,encaja:o=>o.k==='roca'&&cat(o.h)===c})),
       crear:(id)=>{ const c=id.split(':')[1], b=TAM[c].h; return {k:'roca',h:+(b*(0.92+0.16*azar())).toFixed(2),s:nuevaS()}; },
       variar:(o)=>{ const R=NV.ROCAS[cat(o.h)]; return {s:otraS(o.s,R?R.length:1)}; }
     }}});

@@ -123,6 +123,7 @@
     $c('creaTit').textContent=(objeto?'Editar · ':'')+Cr().titulo(id);
     $c('creaColocar').style.display=objeto?'none':'';
     $c('creaAplicar').style.display=objeto?'':'none';
+    $c('creaBorrar').style.display=objeto?'':'none';
     $c('creaPan').value=pan;
     $c('creador').classList.add('show');
     perillas(); vista();
@@ -147,6 +148,8 @@
     const ob=entregar(); const ok=NV.editor.reemplazar(objeto,ob); if(ok) C.cerrar(); return ok;
   };
 
+  C.borrar=function(){ if(!abierto||!objeto) return false; const o=objeto; C.cerrar(); NV.editor.eliminar(o); return true; };
+
   C.iniciar=function(){
     const panel=$c('creador'); if(!panel) return;
     /* las teclas de la ventana (flechas en una barra, letras en una lista) no son del juego */
@@ -157,6 +160,7 @@
     $c('creaLuz').onclick=()=>{ estudio=!estudio; $c('creaLuz').textContent='luz: '+(estudio?'estudio':'del juego'); vista(); };
     $c('creaColocar').onclick=C.colocar;
     $c('creaAplicar').onclick=C.aplicar;
+    $c('creaBorrar').onclick=C.borrar;
     $c('creaPan').oninput=e=>{ pan=+e.target.value; pronto(2); };
   };
 })(window.NV);

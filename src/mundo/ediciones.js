@@ -2,7 +2,7 @@
    El mundo del juego = lo que genera la semilla + las ediciones guardadas aquí.
    Este módulo es dueño de las ediciones, que son DATOS puros:
 
-     {formato:1, semilla:'bosque-02',
+     {formato:1, semilla:'claro-01',
       paneles:{ 'pi,pj':{ def:{bioma,nombre,esq?}, suelo:[[x,y,'d'],..],
                           objetos:{agregar:[{x,y,k,h,sp?,s?,len?}], quitar:[[x,y],..]},
                           alturas:[[x,y,dm],..] } },
@@ -125,7 +125,7 @@ function reindexar(){
 }
 
 /* ---------- aplicar las ediciones a un panel recién generado ---------- */
-const OCUPAN={arbol:1,roca:1,hoguera:1,rocoso:1,arbolnv:1};
+const OCUPAN={arbol:1,roca:1,hoguera:1,rocoso:1,arbolnv:1,tope:1};
 /* las casillas (índices del panel) que ocupa un objeto: un tronco, len a lo largo; una roca grande, su ancho */
 function huella(t){
   const out=[];
@@ -189,7 +189,7 @@ function aplicar(p){
   p.trees.sort((a,b)=>a.y-b.y);
   p.mapG=[]; for(let y=0;y<L;y++) p.mapG.push(' '.repeat(L));
   for(const t of p.trees){
-    const c=t.k==='arbolnv'?'T':t.k==='arbol'?(t.sp==='mistico'?'Y':'T'):t.k==='hoguera'?'f':null;
+    const c=t.k==='tope'?null:t.k==='arbolnv'?'T':t.k==='arbol'?(t.sp==='mistico'?'Y':'T'):t.k==='hoguera'?'f':null;
     if(c&&t.x>=0&&t.y>=0&&t.x<L&&t.y<L) p.mapG[t.y]=p.mapG[t.y].slice(0,t.x)+c+p.mapG[t.y].slice(t.x+1);
   }
   NVe.calcularSombras(p,L);
@@ -346,11 +346,16 @@ if(NVe.MUNDO_DATOS){
 /* cuánto, a los lados, llega el objeto editado más ancho (una formación): el dibujo mira esos metros de más para no
    perderla cuando su centro queda fuera de la pantalla. 0 sin objetos anchos, así que el juego sin ediciones no cambia. */
 let _mv=-1,_mD=null,_mm=0;
+let _av=-1,_aD=null,_am=0;
+const margenAlto=()=>{
+  if(_av!==version||_aD!==D){ _av=version; _aD=D; _am=0; if(D) for(const P of D.pan.values()) for(const a of P.agregar) if((a.dy||0)>_am) _am=a.dy; }
+  return _am;
+};
 const margenAncho=()=>{
   if(_mv!==version||_mD!==D){ _mv=version; _mD=D; _mm=0; if(D) for(const P of D.pan.values()) for(const a of P.agregar) if((a.fx||0)>_mm) _mm=a.fx; }
   return _mm>4?_mm:0;
 };
-NVe.mundo={FORMATO,aplicar,margenAncho,editar,cargar,exportar,texto,comoScript,importarTexto,vacio,descargar,
+NVe.mundo={FORMATO,aplicar,margenAncho,margenAlto,editar,cargar,exportar,texto,comoScript,importarTexto,vacio,descargar,
   guardarBorrador,cargarBorrador,borrarBorrador,deltaAltura,defDe,clavesDefinidas,alCambiar,estadisticas,
   validar:o=>{ validar(o); return true; },version:()=>version,
   caminosDatos:()=>D?D.caminos:[]};

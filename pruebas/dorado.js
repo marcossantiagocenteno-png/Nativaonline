@@ -1,3 +1,4 @@
+global.__viejo=true;   // la huella cuida los motores sobre el mundo de nueve paneles de antes (ver cargar.js); el mundo limpio se prueba en limpio.js
 // PRUEBA DORADA: la huella de varios cuadros del juego. Es la red de seguridad de cualquier
 // refactor: si un cambio "que no debía tocar nada" mueve UN solo glifo o color, esto falla.
 //   node pruebas/dorado.js            compara contra pruebas/dorado.json

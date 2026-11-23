@@ -81,10 +81,12 @@ function draw_(){
   for(let x=camX;x<=camX+colsM;x+=3) for(let y=camY+rowsM;y<=camY+rowsM+10;y+=3) hS=Math.max(hS,NV.alturaEn(x,y));
   const extS=Math.min(14,Math.ceil(hS*HPM/RPM)+2);
   const mAn=NV.mundo&&NV.mundo.margenAncho?NV.mundo.margenAncho():0;          // una formación ancha cuyo centro está fuera de vista
-  let objetos=NV.objetosEn(camX-2-mAn, camY-extN-2, camX+colsM+2+mAn, lastRow+2);
+  const mAy=NV.mundo&&NV.mundo.margenAlto?NV.mundo.margenAlto():0;           // un muro de norte a sur cuyo centro está más al sur de lo que se ve
+  let objetos=NV.objetosEn(camX-2-mAn, camY-extN-2, camX+colsM+2+mAn, lastRow+2+mAy);
   if(NV.editor&&NV.editor.activo) objetos=NV.editor.conFantasma(objetos);   // la vista previa de lo que se va a colocar
+  for(let q=0;q<objetos.length;q++) if(objetos[q].oy===undefined) objetos[q].oy=objetos[q].y;   // quien arma la lista a mano no pone la fila de dibujo
   NV.objetosVista=objetos;                                                    // el editor apunta por índice en esta lista
-  let ti=0; while(ti<objetos.length&&objetos[ti].y<camY-extN) ti++;
+  let ti=0; while(ti<objetos.length&&objetos[ti].oy<camY-extN) ti++;
   liftR=liftF; NV.liftFila=liftF;
 
   for(let my=camY-extN;my<=lastRow;my++){
@@ -94,7 +96,7 @@ function draw_(){
     layer=0;
     if(my<camY+rowsM+extS) drawGroundRow(my,rBase,haze,t);
     layer=2;
-    while(ti<objetos.length&&objetos[ti].y<=my){ if(objetos[ti].y===my){ pickId=objetos[ti].fantasma?65535:ti+1; drawTree(objetos[ti],haze,t); pickId=0; } ti++; }
+    while(ti<objetos.length&&objetos[ti].oy<=my){ if(objetos[ti].oy===my){ pickId=objetos[ti].fantasma?65535:ti+1; drawTree(objetos[ti],haze,t); pickId=0; } ti++; }
     layer=3;
     /* Los personajes se dibujan en la fila que les toca, igual que los
        árboles: así el que está más al sur tapa al que está más al norte.
@@ -119,6 +121,9 @@ function draw_(){
       }
     }
   }
+  /* los muros de norte a sur cuya punta sur quedó más allá de la última fila pero cuyo cuerpo todavía se ve */
+  layer=2; ordR=lastRow-camY+extN+2;
+  while(ti<objetos.length&&objetos[ti].oy<=lastRow+mAy){ const o=objetos[ti]; if(o.dy){ pickId=o.fantasma?65535:ti+1; drawTree(o,0.98,t); pickId=0; } ti++; }
   dibujarParticulas(Date.now()/1000,objetos,colsM,rowsM);
   if(NV.destino){                       // adónde se va, mientras se va
     const d=NV.destino;
@@ -1326,6 +1331,7 @@ function drawObjeto(tr,haze,t){
   if(tr.k==='roca'){ drawRoca(tr,haze,t); return; }
   if(tr.k==='rocoso'){ NV.dibujarRocoso(tr,haze,t); return; }
   if(tr.k==='arbolnv'){ NV.dibujarArbolado(tr,haze,t); return; }
+  if(tr.k==='tope'){ NV.dibujarTope(tr,haze,t); return; }
   if(false){
     const hgt=Math.max(3,Math.round(tr.h*HPM*0.85));
     const hw=Math.max(2,(tr.h*CPM*0.95)/2);

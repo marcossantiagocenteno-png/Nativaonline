@@ -190,7 +190,9 @@ function crearFormacion(spec){
   const nK=Math.ceil(Hh/lh)+3, REC=[];
   for(let k=0;k<nK+2;k++){ const hd=H4(k,s0,9,1); REC.push((0.18+0.82*hd*hd)*lh*0.34*T0.estratos*(sp.dureza==null?1:sp.dureza)); }
   const col=sp.columnas!=null?sp.columnas:T0.columnas, ero=sp.erosion!=null?sp.erosion:(T0.canal||0)*0.8+sp.estado.erosion*0.8;
-  const der=sp.derrumbe!=null?sp.derrumbe:T0.derr, lean=sp.inclinacion||0;
+  const vertical=sp.orient==='este'||sp.orient==='oeste';
+  /* de frente un muro vertical se ve de canto; con un talud (la cara echada hacia atrás) la cara mira un poco hacia arriba y se lee */
+  const der=sp.derrumbe!=null?sp.derrumbe:T0.derr, lean=(sp.inclinacion||0)-(vertical?0.3:0);
   const A1=1.1+0.09*Hh, A2=0.16+0.015*Hh, seg=sp.bloque||(2.6+Hh*0.12), bamp=(0.30+0.045*Hh)*(sp.fractura==null?1:sp.fractura);
   /* bloques de frente: cada fila de capas se parte en bloques que avanzan o retroceden, con saltos verticales netos */
   const contra=(u,v)=>{ const kk=Math.floor(v/(lh*2.2)), x=u/seg+0.4*(fbm(u*0.15,kk,0,s0+23,2)-0.5), q=Math.floor(x), t=x-q, w=0.10; return lerp(H4(q,kk,s0,24)-0.5,H4(q+1,kk,s0,24)-0.5,sm((t-(1-w))/w))*bamp*2; };
@@ -252,6 +254,22 @@ function crearFormacion(spec){
   else { S.juntas.push({nx:Math.cos(1.2),ny:0.04,nz:Math.sin(1.2),esp:Math.max(3,Hh*0.9),off:rnd()*6,w:wj*1.3,mask:0.38,s:11},{nx:Math.cos(2.0),ny:-0.05,nz:Math.sin(2.0),esp:Math.max(4,Hh*1.3),off:rnd()*7,w:wj*1.1,mask:0.40,s:12}); }
   S.juntas.push({nx:0.0,ny:1,nz:0.0,esp:0,off:0,w:0,mask:1,s:0,estrato:true});
   S.bloques=BL;
+  return (sp.orient==='este'||sp.orient==='oeste')?verticalizar(S,sp.orient):S;
+}
+/* Una formación VERTICAL corre de norte a sur y mira al este o al oeste. El cuerpo se arma igual que la horizontal
+   (u a lo largo del muro, zs hacia afuera) y acá sólo se cambia de marco: el largo pasa a ser la profundidad de pantalla
+   y el fondo pasa a ser el ancho. Con la cámara de frente un plano que mira al este se ve de canto; lo que se lee son
+   los escalones de cada estrato (cada capa retrocede), la cima y la inclinación. Por eso conviene estrato marcado. */
+function verticalizar(S0,lado){
+  const L=S0.W, Dp=S0.D, B0=S0.box, pad=Math.max(0.6,B0.zmax), W2=Dp+pad+0.3, f0=S0.sdf, este=lado==='este';
+  const zsDe=U=>este?U-Dp:-(U-pad);
+  const S=Object.assign({},S0,{vert:true,lado,largo:L,W:W2,D:L,fondoReal:Dp});
+  S.sdf=(U,v,z)=>f0(z+L,v,zsDe(U));
+  S.local=(U,v,z)=>[z+L,v,zsDe(U)];
+  S.box={umin:0,umax:W2,vmin:B0.vmin,vmax:B0.vmax,zmin:-L-1,zmax:1};
+  S.cuerposV=()=>{ const n=Math.max(2,Math.round(L/2)), out=[];
+    for(let i=0;i<n;i++){ const z=-L+(i+0.5)*L/n; out.push({e:(este?Dp:pad+Dp)*0.5,h:S0.Hh*0.5,s:z,re:Dp*0.5,rh:S0.Hh*0.5,rs:L/n*0.7,f:0.9}); }
+    return out; };
   return S;
 }
 
@@ -486,6 +504,8 @@ function sombra(S,ctx){
     const n=Math.max(2,Math.round(S.a/Math.max(0.2,S.h*0.5)));
     for(let i=0;i<n;i++){ const f=n===1?0:(i/(n-1)-0.5)*2; const rr=Math.sqrt(Math.max(0.15,1-f*f*0.8));
       cuerpos.push({e:f*S.a*0.55*S.cy,h:S.cv,s:f*S.a*0.55*S.sy,re:Math.max(S.a*0.5,0.1)*rr+0.05,rh:S.bh*rr,rs:Math.max(S.c*0.7,0.1),f:0.9}); }
+  } else if(S.vert){
+    cuerpos.push(...S.cuerposV());
   } else {
     const n=Math.max(2,Math.round(S.W/2));
     for(let i=0;i<n;i++){ const u=(i+0.5)*S.W/n; cuerpos.push({e:u,h:S.Hh*0.5,s:-S.D*0.3,re:S.W/n*0.7,rh:S.Hh*0.5,rs:S.D*0.45,f:0.9}); }
@@ -515,7 +535,7 @@ function rasterTramo(F,k,CPM,HPM,RPM,luz,det){
   const key=k+'|'+CPM+'|'+HPM+'|'+RPM+'|'+LK(luz)+'|'+det+'|'+(F._v&&F._v[k]||0);
   const hit=F._t.get(k); if(hit&&hit.key===key) return hit;
   const phi=Math.atan2(RPM,HPM), cphi=Math.cos(phi), sphi=Math.sin(phi), K=HPM/cphi, B=F.box, pad=2;
-  const Ytop=B.vmax*cphi+B.zmax*sphi, Ybot=-B.zmax*sphi, R0=Math.ceil(Ytop*K)+pad, rows=R0+Math.ceil(-Ybot*K)+pad+2;
+  const Ytop=Math.max(B.vmax*cphi+B.zmax*sphi,B.vmax*cphi-B.zmin*sphi), Ybot=-B.zmax*sphi, R0=Math.ceil(Ytop*K)+pad, rows=R0+Math.ceil(-Ybot*K)+pad+2;
   const u0=k*TRAMO/CPM, cols=Math.min(TRAMO,Math.ceil(F.W*CPM)-k*TRAMO); if(cols<=0) return null;
   /* el sólido es global: el tramo no necesita a sus vecinos, así que se rehace solo */
   const rc=rasterCaja(F,u0,cols,R0,rows,{CPM,HPM,RPM,det});
@@ -634,19 +654,21 @@ const azarEd=()=>(NV.azarEditor||Math.random)();
 const nuevaSem=()=>((azarEd()*60000)|0)+1;
 const clon=o=>JSON.parse(JSON.stringify(o));
 const ROCA0={mat:'granito',tam:'media',forma:'irregular',escala:1,yaw:0,estado:{musgo:0,liquen:0,humedad:0,erosion:0,enterrada:0}};
-const FORM0={tipo:'acantilado',mat:'caliza',ancho:24,inclinacion:0,pie:true,estado:{musgo:0.3,liquen:0.2,humedad:0.1,erosion:0,enterrada:0}};
+const FORM0={tipo:'acantilado',mat:'caliza',orient:'sur',ancho:24,inclinacion:0,pie:true,estado:{musgo:0.3,liquen:0.2,humedad:0.1,erosion:0,enterrada:0}};
 const DISENO={};                                   // el último diseño de cada entrada: lo que se coloca "otra vez"
 const ID_ROCA='rocoso:roca', ID_FORM='rocoso:formacion';
 const idDe=spec=>spec&&spec.tipo?ID_FORM:ID_ROCA;
 function limpiar(spec){
   const o=clon(spec); o.estado=Object.assign({},ESTADO0,o.estado);
-  if(o.tipo){ o.ancho=clamp(+o.ancho||24,6,48); } else { o.escala=clamp(+o.escala||1,0.3,3); }
+  if(o.tipo){ o.ancho=clamp(+o.ancho||24,3,48); } else { o.escala=clamp(+o.escala||1,0.3,3); }
   return o;
 }
 function aObjeto(spec){
   const r=limpiar(spec), S=r.tipo?crearFormacion(r):crearRoca(r);
-  const fx=r.tipo?Math.ceil(S.W/2):Math.min(6,Math.round(S.a)), fy=r.tipo?Math.min(4,Math.ceil(S.D*0.5)):Math.min(6,Math.round(S.c));
-  return {k:'rocoso',r,h:+S.hmax.toFixed(2),s:r.sem|0,fx,fy};
+  const fx=r.tipo?(S.vert?Math.min(8,Math.ceil(S.W/2)):Math.ceil(S.W/2)):Math.min(6,Math.round(S.a)), fy=r.tipo?(S.vert?Math.ceil(S.largo/2):Math.min(4,Math.ceil(S.D*0.5))):Math.min(6,Math.round(S.c));
+  const ob={k:'rocoso',r,h:+S.hmax.toFixed(2),s:r.sem|0,fx,fy};
+  if(S.vert) ob.dy=fy;       // un muro de norte a sur se dibuja por su punta sur (ver paneles.objetosEn)
+  return ob;
 }
 const baseDe=id=>clon(id===ID_FORM?FORM0:ROCA0);
 const paraPaleta=[
@@ -674,7 +696,9 @@ const CAMPOS={
   [ID_FORM]:[
     {ruta:'tipo',etq:'Tipo',tipo:'sel',opciones:opc(NOM_TIPO),grupo:'Formación'},
     {ruta:'mat',etq:'Material',tipo:'sel',opciones:opc(NOM_MAT),grupo:'Formación'},
-    {ruta:'ancho',etq:'Ancho (m)',tipo:'rng',min:8,max:48,paso:1,grupo:'Formación'},
+    {ruta:'orient',etq:'Orientación',tipo:'sel',opciones:[['sur','Horizontal · cara al sur'],['este','Vertical · cara al este'],['oeste','Vertical · cara al oeste']],grupo:'Formación'},
+    {ruta:'ancho',etq:'Largo (m)',tipo:'rng',min:3,max:48,paso:1,grupo:'Formación'},
+    {ruta:'fondo',etq:'Fondo (m)',tipo:'rng',min:0,max:12,paso:1,auto:0,grupo:'Formación'},
     {ruta:'alto',etq:'Alto (m)',tipo:'rng',min:0,max:18,paso:1,auto:0,grupo:'Formación'},
     {ruta:'estrato',etq:'Grosor de estrato (m)',tipo:'rng',min:0,max:3,paso:0.1,auto:0,grupo:'Estructura'},
     {ruta:'columnas',etq:'Columnas (m)',tipo:'rng',min:-0.5,max:8,paso:0.5,auto:-0.5,grupo:'Estructura'},
@@ -685,7 +709,13 @@ const CAMPOS={
 /* Las rocas sueltas al pie de una formación: posiciones en metros desde su borde izquierdo (x) y hacia el sur (y) */
 function pieDe(F){
   if(F._pie) return F._pie;
-  const sp=F.spec, G=grupo('piedemonte',sp.sem|0,{mat:sp.mat,densidad:F.W/20}), out=[];
+  const sp=F.spec, G=grupo('piedemonte',sp.sem|0,{mat:sp.mat,densidad:(F.vert?F.largo:F.W)/20}), out=[];
+  if(F.vert){   // al pie del lado que mira: x desde el borde izquierdo, y hacia el sur desde la punta sur del muro
+    const L=F.largo, este=F.lado==='este', borde=este?F.fondoReal:Math.max(0.6,F.box.zmax);
+    for(const e of G.rocas){ const s2=Object.assign({},e.spec,{escala:(e.spec.escala||1)*0.55}), a=clamp(L/2+e.x*(L/14),0.5,L-0.5);
+      out.push({S:crearRoca(s2),x:borde+(este?1:-1)*(0.8+Math.abs(e.y)*0.35),y:a-L}); }
+    return F._pie=out;
+  }
   for(const e of G.rocas){ const s2=Object.assign({},e.spec,{escala:(e.spec.escala||1)*0.55}); out.push({S:crearRoca(s2),x:F.W/2+e.x*(F.W/14),y:0.8+Math.abs(e.y)*0.35}); }
   return F._pie=out;
 }
@@ -695,7 +725,14 @@ const solidoDe=r=>{ const k=JSON.stringify(r); let S=PCACHE.get(k); if(!S){ if(P
 function previa(spec,opt){
   opt=opt||{}; const r=limpiar(spec);
   if(r.tipo){
-    const F=solidoDe(r), vis=Math.min(F.W,16), pan=clamp(opt.pan||0,0,1)*(F.W-vis), mw=Math.ceil(vis)+2, mh=Math.ceil(F.Hh*1.7+F.D+5), cy=mh-3;
+    const F=solidoDe(r);
+    if(F.vert){
+      const mw=Math.ceil(F.W)+6, mh=Math.ceil(F.Hh*1.7+F.largo)+5, cy=mh-3, X0=F.lado==='este'?1:3;
+      const items=[{x:X0,y:cy,pintar:ctx=>{ pintarSombra(F,ctx); pintarFormacion(F,ctx); }}];
+      if(r.pie!==false) for(const e of pieDe(F)) items.push({x:X0+e.x,y:cy+e.y,pintar:ctx=>{ pintarSombra(e.S,ctx); pintar(e.S,ctx); }});
+      return {mw,mh,z:opt.rapido?0.5:(F.largo>22?0.7:1),items,S:F,pan:0,vis:F.W,detalle:'alto '+F.Hh.toFixed(1)+' m · largo '+F.largo+' m · cara al '+F.lado};
+    }
+    const vis=Math.min(F.W,16), pan=clamp(opt.pan||0,0,1)*(F.W-vis), mw=Math.ceil(vis)+2, mh=Math.ceil(F.Hh*1.7+F.D+5), cy=mh-3;
     const items=[{x:1,y:cy,pintar:ctx=>{ const C=ctx.CPM; ctx.bc=Math.round(1*C)-Math.round(pan*C); ctx.ventana=[pan*C-4,(pan+vis)*C+4]; pintarSombra(F,ctx); pintarFormacion(F,ctx); }}];
     if(r.pie!==false) for(const e of pieDe(F)){ const x=1+e.x-pan; if(x<-1.5||x>vis+3.5) continue;
       items.push({x,y:cy+e.y,pintar:ctx=>{ pintarSombra(e.S,ctx); pintar(e.S,ctx); }}); }
@@ -705,7 +742,7 @@ function previa(spec,opt){
   const mw=Math.max(Math.ceil(ub*2)+2,r.tam==='pequena'?3:5), mh=Math.ceil(S.h*1.7+zm)+2;
   return {mw,mh,z,S,items:[{x:mw/2,y:mh-(zm+0.6),pintar:ctx=>{ pintarSombra(S,ctx); pintar(S,ctx); }}],detalle:S.h.toFixed(2)+' m de alto'};
 }
-const resumen=o=>{ const r=o.r; return r.tipo?(NOM_TIPO[r.tipo]+' · '+NOM_MAT[r.mat]+' · '+r.ancho+' m de ancho'):(NOM_MAT[r.mat]+' · '+NOM_TAM[r.tam].toLowerCase()+' · '+NOM_FORMA[r.forma].toLowerCase()); };
+const resumen=o=>{ const r=o.r; return r.tipo?(NOM_TIPO[r.tipo]+' · '+NOM_MAT[r.mat]+' · '+r.ancho+' m de '+(r.orient==='este'||r.orient==='oeste'?'largo, vertical al '+r.orient:'ancho')):(NOM_MAT[r.mat]+' · '+NOM_TAM[r.tam].toLowerCase()+' · '+NOM_FORMA[r.forma].toLowerCase()); };
 
 if(NV.entorno) NV.entorno.conectar('rocoso',{viento:[],luz:true,sombra:true,contorno:true});
 if(NV.motores) NV.motores.registrar({id:'rocoso',nombre:'Rocas, peñascos y formaciones',estado:'integrado',

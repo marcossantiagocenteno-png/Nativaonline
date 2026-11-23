@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // Personajes: la mecánica compartida. Lo que se afinó con Myrella tiene que
 // servirle igual a una nativa, a un lobo o a lo que venga.
 const cargar=require('./cargar.js');

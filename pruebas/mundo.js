@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // El mundo editable: ediciones como datos, aplicadas sobre lo generado, exportables y reversibles.
 const cargar=require('./cargar.js');
 const m=cargar('module.exports={NV:window.NV};');

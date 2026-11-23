@@ -8,7 +8,7 @@ const NVi = window.NV;
 
 /* Sello de versión, puesto por sellar.sh al publicar. Se ve en el pie: así
    Marcos y yo sabemos al instante si está mirando la última versión. */
-NVi.VERSION='23/11 12:12';
+NVi.VERSION='23/11 12:40';
 
 NVi.MARCADO = `<div id="stage">
   <canvas id="cv"></canvas>
@@ -56,7 +56,7 @@ NVi.MARCADO = `<div id="stage">
     <div id="creaPanFila"><span>recorrer</span><input id="creaPan" type="range" min="0" max="1" step="0.02" value="0.5"></div>
     <div id="creaCampos"></div>
     <div class="fila"><button id="creaRegen" title="Otra variante con las mismas perillas">otra semilla</button><button id="creaLuz">luz: estudio</button></div>
-    <div class="fila"><button id="creaColocar">colocar</button><button id="creaAplicar">aplicar</button></div>
+    <div class="fila"><button id="creaColocar">colocar</button><button id="creaAplicar">aplicar</button><button id="creaBorrar" title="Eliminar esta pieza del mundo">borrar</button></div>
   </div>
 
   <div id="bubble"></div>

@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // Tocar la pantalla y caminar hasta ahí: que encuentre camino, que llegue,
 // que rodee lo que no se puede pisar y que prefiera el sendero.
 const cargar=require('./cargar.js');

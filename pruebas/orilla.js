@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // La orilla y los reflejos.
 //
 // La costa se definía con una letra por metro, así que una orilla que dobla

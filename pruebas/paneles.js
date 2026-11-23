@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // Los cinco paneles: nombres, continuidad y que se pueda entrar y salir.
 const cargar=require('./cargar.js');
 global.__arboles=true;       // estas pruebas miden los árboles: se encienden (el juego los trae apagados)

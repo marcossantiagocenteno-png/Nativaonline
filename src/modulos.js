@@ -24,6 +24,7 @@ window.NV_MODULOS=[
   'juego/arbolado',          // motor de árboles (lo coloca y lo diseña el Modo Dios)
   'juego/rocoso',            // motor de rocas y formaciones (lo coloca y lo diseña el Modo Dios)
   'juego/puente-motores',    // puente: dibuja en el juego los objetos {k:'rocoso'} y {k:'arbolnv'}
+  'juego/topes',             // topes: casillas por las que nadie pasa (invisibles fuera del Modo Dios)
   'juego/dibujar',
   'juego/particulas',
   'juego/editor',

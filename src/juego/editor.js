@@ -28,8 +28,10 @@
     const cont=$e('diosPaleta'); if(!cont) return;
     cont.innerHTML='';
     for(const g of NV.catalogoObjetos()){
+      if(!g.items.some(it=>!it.oculto)) continue;
       const h=document.createElement('div'); h.className='grupo'; h.textContent=g.nombre; cont.appendChild(h);
       for(const it of g.items){
+        if(it.oculto) continue;          // los genéricos siguen sabiendo regenerarse y borrarse, pero ya no se ofrecen
         const b=document.createElement('button'); b.textContent=it.nombre; b.dataset.id=it.id; b.className='diosItem';
         b.addEventListener('click',()=>{
           if(it.disenar&&NV.creador){ NV.creador.abrir(NV.motorDeEntrada(it.id),it,null); return; }   // se diseña antes de colocar
@@ -117,6 +119,17 @@
     const nuevo=Object.assign({},o,r.motor.caras.objetos.variar(o)); delete nuevo.x; delete nuevo.y; delete nuevo.fantasma;
     hacer({t:'lote',ops:[{t:'objeto-',x:o.x,y:o.y},{t:'objeto+',x:o.x,y:o.y,objeto:nuevo}]},(r.entrada.etiqueta||r.entrada.nombre)+': otra variante.');
   }
+  /* Si el clic no cayó sobre un pixel de objeto (o el objeto vino de otra sesión), se busca el que tenga esa casilla en su pie. */
+  function objetoEnHuella(x,y){
+    let mejor=null,d0=1e9;
+    for(const o of NV.objetosEn(x-8,y-8,x+8,y+8)){
+      const fx=(o.fx|0)+(o.k==='caido'?(o.len||1):0), fy=o.fy|0;
+      const dx=Math.abs(o.x-x), dy=Math.abs(o.y-y);
+      if(o.k==='caido'?(y===o.y&&x>=o.x&&x<o.x+(o.len||1)):(dx<=fx&&dy<=fy)){ const d=dx+dy; if(d<d0){ d0=d; mejor=o; } }
+    }
+    return mejor;
+  }
+  E.objetoEnHuella=objetoEnHuella;
   function eliminar(o){
     const r=NV.entradaDeObjeto(o);
     hacer({t:'objeto-',x:o.x,y:o.y},(r?(r.entrada.etiqueta||r.entrada.nombre):'Objeto')+' eliminado.');
@@ -133,6 +146,7 @@
   }
   /* lo que la ventana de diseño entrega: armar la herramienta con un objeto exacto, o cambiar uno ya puesto */
   E.armar=function(entrada,objeto){ E.sel=entrada; E.fantasma=objeto; marcarPaleta(); refrescar(); programarCuadro(); };
+  E.eliminar=o=>eliminar(o);
   E.reemplazar=function(o,nuevo){
     const n=Object.assign({},nuevo); delete n.x; delete n.y; delete n.fantasma;
     return hacer({t:'lote',ops:[{t:'objeto-',x:o.x,y:o.y},{t:'objeto+',x:o.x,y:o.y,objeto:n}]},'Cambiado.');
@@ -161,7 +175,8 @@
     const h=E.hover; if(!h) return;
     if(e.button===2){                                   // clic derecho: elimina SOLO el objeto apuntado
       if(e.ctrlKey) return;                             // en Mac, Control+clic es clic derecho: no debe borrar
-      if(h.obj) eliminar(h.obj); else decir('Ahí no hay ningún objeto.');
+      const o=h.obj||objetoEnHuella(h.x,h.y);
+      if(o) eliminar(o); else decir('Ahí no hay ningún objeto.');
       return;
     }
     if(e.button!==0) return;
@@ -170,8 +185,8 @@
       return;
     }
     if(!E.sel){
-      const r=h.obj&&NV.entradaDeObjeto(h.obj);
-      if(r&&r.entrada.disenar&&NV.creador){ NV.creador.abrir(r.motor,r.entrada,h.obj); return; }   // se edita con sus perillas
+      const ob=h.obj||objetoEnHuella(h.x,h.y), r=ob&&NV.entradaDeObjeto(ob);
+      if(r&&r.entrada.disenar&&NV.creador){ NV.creador.abrir(r.motor,r.entrada,ob); return; }   // se edita con sus perillas
       decir(h.obj?'Control + clic lo regenera; clic derecho lo elimina.':'Elegí algo de la paleta.'); return;
     }
     colocar(h.x,h.y);
@@ -231,8 +246,8 @@
   E.conFantasma=function(objetos){
     const h=E.hover;
     if(!E.sel||!E.fantasma||E.ctrl||!h) return objetos;
-    const g=Object.assign({},E.fantasma,{x:h.x,y:h.y,fantasma:true});
-    return objetos.concat([g]).sort((a,b)=>a.y-b.y);
+    const g=Object.assign({},E.fantasma,{x:h.x,y:h.y,fantasma:true}); g.oy=g.y+(g.dy||0);
+    return objetos.concat([g]).sort((a,b)=>a.oy-b.oy);
   };
 
   const mezcla=(c,col,a)=>{

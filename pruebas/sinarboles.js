@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // Sin árboles: el mundo viene sin ninguno, y apagarlos no mueve nada más.
 //
 // NV.CONFIG.arboles=false es el estado del juego. Los árboles se generan igual y se

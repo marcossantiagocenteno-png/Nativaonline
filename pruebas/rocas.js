@@ -1,3 +1,4 @@
+global.__viejo=true;   // el mundo de nueve paneles de antes (ver cargar.js)
 // Piedra: que los quince modelos dibujen, que el grano no salga a cuadros, que
 // la cara que da al sol se distinga de la otra y que el voladizo exista.
 const cargar=require('./cargar.js');
