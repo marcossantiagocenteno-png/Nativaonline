@@ -8,7 +8,7 @@ const NVi = window.NV;
 
 /* Sello de versión, puesto por sellar.sh al publicar. Se ve en el pie: así
    Marcos y yo sabemos al instante si está mirando la última versión. */
-NVi.VERSION='23/11 14:28';
+NVi.VERSION='23/11 15:13';
 
 NVi.MARCADO = `<div id="stage">
   <canvas id="cv"></canvas>
@@ -29,7 +29,8 @@ NVi.MARCADO = `<div id="stage">
 
   <div id="dios">
     <div id="diosTit">Modo Dios</div>
-    <div class="fila"><button id="diosModoObj" class="on">objetos</button><button id="diosModoCam">caminos</button><button id="diosModoTer">terreno</button></div>
+    <div class="pestanas"><button id="diosModoObj" class="on">Objetos</button><button id="diosModoCam">Caminos</button><button id="diosModoTer">Terreno</button></div>
+    <div class="cuerpo">
     <div id="diosPaleta"></div>
     <div id="diosCaminos">
       <div class="grupo">Familia</div>
@@ -46,8 +47,8 @@ NVi.MARCADO = `<div id="stage">
     </div>
     <div id="diosTerreno"></div>
     <div id="diosEstado"></div>
-    <div class="fila"><button id="diosDeshacer" title="Ctrl+Z">deshacer</button><button id="diosRehacer" title="Ctrl+Shift+Z">rehacer</button></div>
-    <div class="fila"><button id="diosExportar">exportar</button><button id="diosSalir">salir</button></div>
+    </div>
+    <div class="pie"><button id="diosDeshacer" title="Ctrl+Z">deshacer</button><button id="diosRehacer" title="Ctrl+Shift+Z">rehacer</button><button id="diosExportar">exportar</button><button id="diosSalir">salir</button></div>
   </div>
 
   <div id="creador">

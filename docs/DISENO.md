@@ -1561,3 +1561,10 @@ Pruebas: `pruebas/terreno.js` (motor) y `pruebas/terreno-juego.js` (mundo, dibuj
 - **Relieve:** sólo visual (luz y profundidad). Como geometría real (altura que se camina) NO está: tocaría `NV.alturaEn` y el caminar;
   queda para cuando se pida expresamente.
 - **Aislamiento:** cada metro sólo consulta los sectores que lo tocan (más su ancho de transición); editar o regenerar uno no mueve los demás.
+- **Flores (revisado):** son las del pasto de siempre (una celda, glifos `@ e o`, mismo brillo; las roja y amarilla son del mismo brillo que la blanca).
+  Cada sector elige abundancia (0–4: cuántas baldosas llevan grupo, no el tamaño de las flores), colores, disposición y una **zona** dentro del
+  sector (rectángulo en metros, relativo a él) donde se limitan. La disposición "natural" con los valores por defecto es exactamente el reparto del pasto real.
+- **Sin solapes:** crear, mover o cambiar el tamaño de un sector recorta lo que tenía debajo (cada sector tocado se parte en hasta cuatro rectángulos
+  con su misma configuración y lo cubierto desaparece). Todo va en un solo paso de deshacer (`lote`).
+- **Interfaz del Modo Dios:** ventana a la derecha, con pestañas (Objetos · Caminos · Terreno), filas "etiqueta · control" en dos columnas
+  (la de terreno), y botones abajo (deshacer, rehacer, exportar, salir). Misma paleta negro/blanco/oro viejo, letra de 11 px.

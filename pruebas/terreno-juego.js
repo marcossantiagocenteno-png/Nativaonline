@@ -75,5 +75,23 @@ const d9b=W.exportar().terreno.find(q=>q.id==='terreno-9');
 probar('los valores fuera de rango o desconocidos se corrigen', d9b.pasto.estado==='fresco'&&d9b.pasto.densidad===1);
 E.deshacer(); E.deshacer();
 probar('deshacer revierte los cambios de los controles', W.exportar().terreno.find(q=>q.id==='terreno-9').pasto.densidad===0.5);
+
+// ---- lo de abajo desaparece: nunca se solapan dos sectores ----
+const area=l=>l.reduce((a,q)=>a+q.w*q.h,0);
+const solapan=l=>{ for(let i=0;i<l.length;i++) for(let j=i+1;j<l.length;j++){ const a=l[i],b=l[j]; if(a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h) return true; } return false; };
+{ const A=W.exportar().terreno; const idA=A.find(q=>q.id==='terreno-9'), idB=A.find(q=>q.id==='terreno-2');
+  const antes=area(A); const solAntes=solapan(A);
+  M._modificar('terreno-2',{x:idA.x+2,y:idA.y+2},'x');
+  const D=W.exportar().terreno, trozos=D.filter(q=>q.id!=='terreno-2');
+  probar('mover un sector sobre otro lo parte: ya nadie se solapa', !solAntes&&!solapan(D)&&D.find(q=>q.id==='terreno-2').x===idA.x+2);
+  probar('...y lo tapado desaparece (se pierde exactamente el área cubierta)', Math.abs(area(D)-(antes-16))<1e-9);
+  probar('...los trozos que quedan conservan la configuración', trozos.filter(q=>q.terreno===idA.terreno&&q.x<idA.x+6&&q.x+q.w>idA.x).length>=2);
+  E.deshacer(); const R=W.exportar().terreno;
+  probar('deshacer devuelve todo en un solo paso', R.length===A.length&&area(R)===antes&&R.find(q=>q.id==='terreno-9').w===6); }
+// flores con zona por el editor
+{ M._modificar('terreno-9',{'flores.zona':{x:1,y:1,w:3,h:3},'flores.roja':true,'flores.cantidad':4},'x');
+  const z=W.exportar().terreno.find(q=>q.id==='terreno-9').flores.zona; probar('la zona de flores se guarda dentro del sector', z&&z.x===1&&z.w===3);
+  M._modificar('terreno-9',{'flores.zona':{x:50,y:50,w:99,h:99}},'x'); const z2=W.exportar().terreno.find(q=>q.id==='terreno-9').flores.zona;
+  probar('una zona fuera del sector se ajusta a él', !z2||(z2.x+z2.w<=6&&z2.y+z2.h<=6)); }
 console.log(ok.length+' bien, '+mal.length+' mal'); mal.forEach(x=>console.log('  MAL: '+x));
 process.exit(mal.length?1:0);

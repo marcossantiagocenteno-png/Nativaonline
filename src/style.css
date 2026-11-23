@@ -52,17 +52,30 @@ button.on{border-color:var(--oro);color:var(--oro)}
   text-align:center;line-height:1;letter-spacing:1px;pointer-events:none;opacity:.6;z-index:30}
 #compass span{font-size:10px}
 
-/* el Modo Dios: la paleta y su estado, sólo cuando se está editando */
-#dios{position:absolute;left:4px;top:78px;z-index:32;display:none;width:150px;
-  background:var(--velo);border:1px solid var(--oro);padding:4px 5px}
-#dios.show{display:block}
-#diosTit{color:var(--oro);font-size:10px;letter-spacing:1px;margin-bottom:3px}
-#diosPaleta{max-height:46vh;overflow-y:auto}
-#diosPaleta .grupo{color:var(--dim);font-size:8px;margin:4px 0 1px;letter-spacing:.6px;text-transform:uppercase}
-#diosPaleta button{display:block;width:100%;text-align:left;margin-top:2px}
-#diosEstado{color:var(--dim);font-size:9px;line-height:1.35;margin-top:5px;min-height:3.9em;white-space:pre-wrap}
-#diosEstado b{color:var(--oro);font-weight:400}
+/* el Modo Dios: una ventana de opciones, con pestañas, filas "etiqueta · control" y botones abajo.
+   Negro de fondo, letra clara y filetes de oro viejo: la misma paleta de la interfaz, con más aire que el resto del HUD. */
+#dios{position:absolute;right:8px;top:8px;z-index:32;display:none;width:min(330px,94vw);max-height:calc(100% - 16px);
+  background:#0b0d10f2;border:1px solid var(--oro);box-shadow:0 0 0 1px #000,inset 0 0 0 1px #2a2412;padding:6px 8px 8px;
+  flex-direction:column;font-size:11px}
+#dios.show{display:flex}
+#dios.terMode{width:min(660px,94vw)}
+#diosTit{color:var(--oro);font-size:12px;letter-spacing:3px;text-align:center;text-transform:uppercase;padding:2px 0 6px;
+  border-bottom:1px solid var(--oroflojo);margin-bottom:6px}
+#dios .pestanas{display:flex;gap:3px;margin-bottom:-1px;position:relative;z-index:1}
+#dios .pestanas button{flex:1;font-size:11px;padding:4px 6px;background:#13161a;color:var(--dim);border:1px solid var(--oroflojo);border-bottom-color:var(--oro)}
+#dios .pestanas button.on{background:#0b0d10;color:var(--ink);border-color:var(--oro);border-bottom-color:#0b0d10}
+#dios .cuerpo{border:1px solid var(--oro);background:#0b0d10;padding:8px 10px;overflow-y:auto;min-height:0;flex:1}
+#dios .pie{display:flex;gap:6px;margin-top:8px;justify-content:center}
+#dios .pie button{flex:1;font-size:11px;padding:4px 6px;background:linear-gradient(#1b1f24,#101317);border:1px solid var(--oro);color:var(--ink)}
+#dios .pie button:hover{background:#2a2412}
+#dios button,#dios select,#dios input[type=number]{font-size:11px}
+#dios select,#dios input[type=number]{background:#050607;color:var(--ink);border:1px solid var(--oroflojo);font:inherit;font-size:11px;padding:2px 4px}
 #dios .fila button{flex:1}
+#diosPaleta{max-height:56vh;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:3px 6px}
+#diosPaleta .grupo{grid-column:1/-1;color:var(--ink);font-size:11px;margin:6px 0 1px;padding-bottom:2px;border-bottom:1px solid var(--oroflojo)}
+#diosPaleta button{display:block;width:100%;text-align:left;margin:0}
+#diosEstado{color:var(--dim);font-size:10px;line-height:1.4;margin-top:8px;padding-top:6px;border-top:1px solid #2a2412;min-height:3.9em;white-space:pre-wrap}
+#diosEstado b{color:var(--oro);font-weight:400}
 /* la ventana de diseño: negro, blanco y oro, sin colores de la escena */
 #creador{position:absolute;right:6px;top:6px;z-index:36;display:none;width:min(520px,58vw);max-height:calc(100% - 12px);
   overflow-y:auto;background:var(--velo);border:1px solid var(--oro);padding:6px 8px}
@@ -83,24 +96,28 @@ button.on{border-color:var(--oro);color:var(--oro)}
 #creador .fila{display:flex;gap:4px;margin-top:5px}
 #creador .fila button{flex:1}
 #diosCaminos{display:none}
-#dios.camMode #diosPaleta{display:none}
-#dios.camMode #diosCaminos{display:block}
-#diosCaminos .grupo{color:var(--dim);font-size:8px;margin:4px 0 1px;letter-spacing:.6px;text-transform:uppercase}
-#diosCaminos .camFam{display:block;width:100%;text-align:left;margin-top:2px}
-#diosCaminos .fila{margin-top:2px}
-#diosCaminos .camVar{font-size:9px;padding-left:1px;padding-right:1px}
-#diosTerreno{display:none;max-height:52vh;overflow-y:auto}
-#dios.terMode #diosPaleta{display:none}
+#dios.camMode #diosPaleta,#dios.terMode #diosPaleta{display:none}
+#dios.camMode #diosCaminos{display:grid;grid-template-columns:1fr 1fr;gap:3px 6px}
+#diosCaminos .grupo{grid-column:1/-1;color:var(--ink);font-size:11px;margin:6px 0 1px;padding-bottom:2px;border-bottom:1px solid var(--oroflojo)}
+#diosCaminos .camFam{display:block;width:100%;text-align:left;margin:0}
+#diosCaminos .fila{grid-column:1/-1;margin-top:2px}
+#diosCaminos .camVar{padding-left:2px;padding-right:2px}
+#diosTerreno{display:none}
 #dios.terMode #diosTerreno{display:block}
-#diosTerreno .grupo{color:var(--dim);font-size:8px;margin:5px 0 1px;letter-spacing:.6px;text-transform:uppercase}
-#diosTerreno select{width:100%;margin-top:2px;background:#000;color:var(--ink);border:1px solid var(--oroflojo);font:inherit;font-size:9px}
-#diosTerreno .tcampo{display:grid;grid-template-columns:44% 1fr;align-items:center;gap:4px;margin-top:2px;font-size:9px;color:var(--ink)}
-#diosTerreno .tcampo input[type=range]{width:100%;accent-color:var(--oro)}
-#diosTerreno .tcampo input[type=number]{width:100%;background:#000;color:var(--ink);border:1px solid var(--oroflojo);font:inherit;font-size:9px}
-#diosTerreno .tchk{display:flex;gap:8px;font-size:9px;margin-top:2px}
+#diosTerreno .tcols{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+#diosTerreno .tcab{color:var(--ink);font-size:11px;margin:10px 0 4px;padding-bottom:2px;border-bottom:1px solid var(--oroflojo)}
+#diosTerreno .tcab:first-child{margin-top:0}
+#diosTerreno .trow{display:grid;grid-template-columns:42% 1fr;align-items:center;gap:6px;margin-top:3px}
+#diosTerreno .tet{color:#c9cfd6;font-size:11px}
+#diosTerreno .tctl{display:flex;align-items:center;gap:5px;min-width:0}
+#diosTerreno .tctl select,#diosTerreno .tctl input[type=number]{width:100%;min-width:0}
+#diosTerreno .tctl input[type=range]{flex:1;min-width:0;accent-color:var(--oro)}
+#diosTerreno .tval{color:var(--oro);font-size:10px;min-width:34px;text-align:right}
+#diosTerreno .tchk{display:flex;gap:8px;font-size:11px;color:#c9cfd6}
 #diosTerreno .tchk label{display:flex;align-items:center;gap:3px}
-#diosTerreno .fila{margin-top:2px}
-#diosTerreno .fila button{font-size:9px;padding-left:2px;padding-right:2px}
+#diosTerreno .tnota{color:var(--dim);font-size:10px;margin-top:2px}
+#diosTerreno .fila{margin-top:4px}
+#diosTerreno .fila button,#diosTerreno .tctl button{flex:1;padding:3px 4px}
 #camAncho{flex:2;text-align:center;color:var(--oro);font-size:9px;letter-spacing:1px;align-self:center;overflow:hidden;white-space:nowrap}
 
 /* lo que se dice al explorar */

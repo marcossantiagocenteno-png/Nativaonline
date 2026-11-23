@@ -66,15 +66,19 @@ const TONOS={natural:{n:'Verde natural (el aprobado)',rgb:null,media:[58,86,78]}
   apagado:{n:'Verde apagado',rgb:[100,122,108],media:[88,102,92]}, seco:{n:'Verde seco',rgb:[150,142,76],media:[124,116,66]},
   marron:{n:'Marrón seco',rgb:[116,84,48],media:[96,72,44]}};
 
+/* Las flores son las del pasto de siempre: una marca por celda (@ e o), en grupitos de baldosa. Cada distribución cambia sólo el
+   reparto de los grupos (tamaño de baldosa, cuántas baldosas llevan, cuántas flores por grupo, cuánto se abre el grupo).
+   'natural' es EXACTAMENTE el reparto del pasto real. La abundancia multiplica cuántas baldosas llevan grupo, no el tamaño de las flores. */
 const DISTRIBUCIONES={
-  dispersas:   {n:'Dispersas individualmente', TS:3,  p:0.40, nmin:1,  nmax:1,  rx:1.0, ry:0.5},
-  grupos:      {n:'En pequeños grupos',        TS:5,  p:0.20, nmin:2,  nmax:4,  rx:0.9, ry:0.45},
-  natural:     {n:'En agrupaciones naturales (como hoy)', TS:6, p:0.11, nmin:3, nmax:6, rx:1.1, ry:0.55},
-  concentradas:{n:'En zonas concentradas',     TS:12, p:0.45, nmin:14, nmax:30, rx:4.4, ry:2.2},
-  irregular:   {n:'Irregular por toda la superficie', TS:2, p:0.30, nmin:1, nmax:2, rx:0.9, ry:0.45, ruido:1}
+  dispersas:   {n:'Dispersas, una a una',         TS:3,  p:0.35, nmin:1,  nmax:1,  rx:1.0, ry:0.5},
+  grupos:      {n:'En pequeños grupos',           TS:4,  p:0.22, nmin:2,  nmax:3,  rx:0.7, ry:0.35},
+  natural:     {n:'Agrupaciones naturales (como el pasto de siempre)', TS:6, p:0.11, nmin:3, nmax:6, rx:1.1, ry:0.55},
+  concentradas:{n:'Zonas concentradas',           TS:8,  p:0.40, nmin:6,  nmax:10, rx:2.2, ry:1.1},
+  irregular:   {n:'Irregular, por toda la superficie', TS:3, p:0.45, nmin:1, nmax:2, rx:1.0, ry:0.5, ruido:1}
 };
-const CANTIDADES=[['Sin flores',0],['Muy pocas flores',0.25],['Pocas flores',0.5],['Cantidad normal',1],['Muchas flores',1.8],['Flores abundantes',3.2]];
-const COLORES_FLOR={roja:[206,58,60],amarilla:[230,198,64],blanca:[205,218,208]};
+const CANTIDADES=[['Sin flores',0],['Muy pocas',0.25],['Pocas',0.5],['Normal',1],['Muchas',1.8],['Abundantes',3.2]];
+/* la blanca es la del pasto real; las otras, del mismo brillo para que no salten a la vista */
+const COLORES_FLOR={roja:[196,84,80],amarilla:[214,190,100],blanca:[205,218,208]};
 
 const RELIEVES={plano:{n:'Terreno prácticamente plano',amp:0},suave:{n:'Relieve suave',amp:0.30,esc:14,oct:1},
   ondulado:{n:'Ondulaciones naturales',amp:0.42,esc:7,oct:2},irregular:{n:'Relieve irregular',amp:0.50,esc:3.4,oct:3},
@@ -87,7 +91,7 @@ const DEF={
   nombre:'', x:0, y:0, w:20, h:20, sem:0,
   terreno:'pradera',
   pasto:{densidad:0.5, alto:0.5, tono:'natural', claridad:0, oscuridad:0, saturacion:0.5, variacion:0.5, estado:'fresco', nieve:0.5},
-  flores:{cantidad:1, roja:false, amarilla:false, blanca:true, distribucion:'natural'},
+  flores:{cantidad:1, roja:false, amarilla:false, blanca:true, distribucion:'natural', zona:null},
   relieve:{tipo:'plano', intensidad:0.5, geometria:false},
   visual:{sombra:0.5, contraste:0.5, profundidad:0.5, variacionLuz:0.5, humedad:0, textura:0.5},
   trans:{tipo:'gradual', ancho:3}
@@ -104,8 +108,9 @@ function normalizar(s){
   if(!TERRENOS[o.terreno]) o.terreno='pradera';
   const P=o.pasto; for(const k of ['densidad','alto','claridad','oscuridad','saturacion','variacion','nieve']) P[k]=clamp(+P[k],0,1);
   if(!TONOS[P.tono]) P.tono='natural'; if(!ESTADOS[P.estado]) P.estado='fresco';
-  const F=o.flores; F.cantidad=clamp(+F.cantidad,0,3.2); if(!DISTRIBUCIONES[F.distribucion]) F.distribucion='natural';
+  const F=o.flores; F.cantidad=clamp(+F.cantidad,0,4); if(!DISTRIBUCIONES[F.distribucion]) F.distribucion='natural';
   for(const k of ['roja','amarilla','blanca']) F[k]=!!F[k];
+  { const z=F.zona; F.zona=null; if(z&&[z.x,z.y,z.w,z.h].every(v=>typeof v==='number'&&isFinite(v))){ const x=clamp(z.x,0,o.w-1), y=clamp(z.y,0,o.h-1); F.zona={x,y,w:clamp(z.w,1,o.w-x),h:clamp(z.h,1,o.h-y)}; } }
   if(!RELIEVES[o.relieve.tipo]) o.relieve.tipo='plano'; o.relieve.intensidad=clamp(+o.relieve.intensidad,0,1); o.relieve.geometria=!!o.relieve.geometria;
   for(const k in o.visual) o.visual[k]=clamp(+o.visual[k],0,1);
   if(!TRANSICIONES[o.trans.tipo]) o.trans.tipo='gradual'; o.trans.ancho=clamp(+o.trans.ancho,0,30);
@@ -394,28 +399,37 @@ function envoltorio(c,r,ch,col){
    defecto reproduce las flores de hoy, posición por posición. */
 function floresDelMetro(mx,my,cand,out){
   out.length=0;
-  /* qué distribuciones hay cerca: se mira cada una que algún sector use (o la base) */
-  const dist=new Set([DEF.flores.distribucion]);
-  if(cand) for(const s of cand) dist.add(s.flores.distribucion);
-  for(const dn of dist){
-    const D=DISTRIBUCIONES[dn], TS=D.TS, tx=Math.floor(mx/TS), ty=Math.floor(my/TS);
-    const hh=NV.hash3(tx+500,ty+500,9+(dn==='natural'?0:dn.length*11)), m=Math.max(D.rx,0.2*TS), span=Math.max(0.1,TS-2*m);
-    const cx=tx*TS+m+((hh>>8)%100)/100*span, cy=ty*TS+Math.max(D.ry,0.2*TS)+((hh>>16)%100)/100*Math.max(0.1,TS-2*Math.max(D.ry,0.2*TS));
-    /* el sector del centro del grupo decide cantidad y colores del grupo entero */
-    const P=perfilEn(cx,cy,cand&&candidatos(cx,cy)), F=P.flores;
-    if(F.distribucion!==dn) continue;
-    if(!P.TR.flor||P.mask<0.5||F.cantidad<=0) continue;
+  /* fuentes de grupos: el mundo sin sector (como hoy) y cada sector que toca este metro, con su propia distribución y su zona */
+  const fuentes=[{sec:BASE_SEC,F:DEF.flores,ox:0,oy:0,z:null,sem:0}];
+  if(cand) for(const s of cand){ const F=s.flores, z=F.zona?{x0:s.x+F.zona.x,y0:s.y+F.zona.y,x1:s.x+F.zona.x+F.zona.w,y1:s.y+F.zona.y+F.zona.h}:null;
+    fuentes.push({sec:s,F,ox:z?z.x0:0,oy:z?z.y0:0,z,sem:s.sem|0}); }
+  const vistos=new Set();
+  for(const f of fuentes){
+    const F=f.F, D=DISTRIBUCIONES[F.distribucion], TS=D.TS, dn=F.distribucion, off=dn==='natural'?0:dn.length;
+    const tx=Math.floor((mx+0.5-f.ox)/TS), ty=Math.floor((my+0.5-f.oy)/TS);
+    const k=f.sec.id+'|'+dn+'|'+tx+'|'+ty; if(vistos.has(k)) continue; vistos.add(k);
+    const salt=9+off*11+f.sem*97;
+    const hh=NV.hash3(tx+500,ty+500,salt), mxr=Math.max(D.rx,0.2*TS), myr=Math.max(D.ry,0.2*TS);
+    const cx=f.ox+tx*TS+mxr+((hh>>8)%100)/100*Math.max(0.1,TS-2*mxr), cy=f.oy+ty*TS+myr+((hh>>16)%100)/100*Math.max(0.1,TS-2*myr);
+    if(f.z&&(cx<f.z.x0||cx>=f.z.x1||cy<f.z.y0||cy>=f.z.y1)) continue;
+    /* el sector que manda en el centro del grupo es el único que puede ponerlo */
+    const P=perfilEn(cx,cy,cand&&candidatos(cx,cy));
+    if(P.sec!==f.sec||F.cantidad<=0) continue;
+    if(!P.TR.flor||P.mask<0.5) continue;
     const est=P.pasto.estado; if(est==='quemado'||est==='nieve-total') continue;
     let p=D.p*F.cantidad*clamp(P.pasto.densidad*P.TR.veg*2,0,1);
+    if(f.sec===BASE_SEC) p=D.p;
     if(D.ruido) p*=clamp(tex2(cx,cy,6.5)*1.7-0.2,0,1.4);
-    if((hh%100)/100>=p) continue;
-    const n=Math.round((D.nmin+((hh>>3)%(D.nmax-D.nmin+1)))*Math.max(1,F.cantidad*0.8));
+    if(f.z&&dn!=='natural') p=Math.min(0.95,p*1.0);
+    if((hh%100)/100>=Math.min(0.95,p)) continue;
+    const n=D.nmin+((hh>>3)%(D.nmax-D.nmin+1));
     const cols=[]; if(F.roja) cols.push('roja'); if(F.amarilla) cols.push('amarilla'); if(F.blanca) cols.push('blanca'); if(!cols.length) continue;
     const principal=cols[(hh>>20)%cols.length];
     for(let i=0;i<n;i++){
-      const hi=NV.hash3(tx+500,ty+500,40+i+(dn==='natural'?0:dn.length*100));
+      const hi=NV.hash3(tx+500,ty+500,40+i+off*100+f.sem*97);
       const fx=cx+(((hi%100)/100)-0.5)*2*D.rx, fy=cy+((((hi>>8)%100)/100)-0.5)*2*D.ry;
       if(Math.floor(fx)!==mx||Math.floor(fy)!==my) continue;
+      if(f.z&&(fx<f.z.x0||fx>=f.z.x1||fy<f.z.y0||fy>=f.z.y1)) continue;
       const cn=(cols.length>1&&((hi>>4)%100)>=70)?cols[(hi>>12)%cols.length]:principal;
       out.push({c:Math.min(CPM-1,Math.floor((fx-mx)*CPM)), s:Math.min(RPM-1,Math.floor((fy-my)*RPM)),
                 g:'@eo'.charCodeAt((hi>>16)%3), col:COLORES_FLOR[cn], P, h:(hi>>9)%100});
@@ -467,9 +481,7 @@ T.dibujarMetro=function(mx,my,o){
     for(const f of _fl) if(f.s===sy){
       const P=f.P, st=P.pasto.estado; let rr=f.col[0], gg=f.col[1], bb=f.col[2];
       if(st==='seco'||st==='marchito'){ rr=rr*0.55+40; gg=gg*0.5+30; bb=bb*0.4+16; }
-      const rise=P.pasto.alto>0.55?Math.round((P.pasto.alto-0.5)*2*3*(0.4+0.6*f.h/100)):0;
-      const hid=P.pasto.alto>0.8&&f.h<22;       // entre el pasto muy largo algunas flores no se ven
-      if(!hid) put0(o.base+f.c,rb-rise,f.g,packc(rr,gg,bb));
+      put0(o.base+f.c,rb,f.g,packc(rr,gg,bb));
     }
   }
   return Pc;

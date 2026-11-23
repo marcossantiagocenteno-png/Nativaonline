@@ -17,11 +17,39 @@
   const clamp=(v,a,b)=>v<a?a:v>b?b:v;
   const GRUPOS=['pasto','flores','relieve','visual','trans'];
 
-  let sel=null, pincel=null, cur=null, drag=null, copiado=null, ultVista=null;
+  let sel=null, pincel=null, cur=null, drag=null, copiado=null, ultVista=null, armando=false;
   const datos=()=>NV.mundo.terrenoDatos();
   const datosDe=id=>datos().find(d=>d.id===id)||null;
   const pinc=()=>pincel||(pincel=T().normalizar({}));
-  function libre(){ let n=1; const u=new Set(datos().map(d=>d.id)); while(u.has('terreno-'+n)) n++; return 'terreno-'+n; }
+  function libre(extra){ let n=1; const u=new Set(datos().map(d=>d.id)); if(extra) for(const x of extra) u.add(x); while(u.has('terreno-'+n)) n++; return 'terreno-'+n; }
+  /* Un sector nuevo (o movido, o con otro tamaño) BORRA lo que había debajo: cada sector que toca el rectángulo se parte en lo que
+     queda fuera de él (hasta cuatro rectángulos con la misma configuración). Así nunca se solapan dos terrenos.
+     Devuelve las operaciones del mundo; el llamador las junta con la suya en un solo paso de deshacer. */
+  function recortar(r,exceptoId,reservados){
+    const ops=[], res=reservados||[];
+    for(const d of datos()){
+      if(d.id===exceptoId) continue;
+      if(d.x>=r.x+r.w||d.x+d.w<=r.x||d.y>=r.y+r.h||d.y+d.h<=r.y) continue;
+      ops.push({t:'terreno',id:d.id,datos:null});
+      const trozos=[];
+      if(r.y>d.y) trozos.push({x:d.x,y:d.y,w:d.w,h:r.y-d.y});
+      if(r.y+r.h<d.y+d.h) trozos.push({x:d.x,y:r.y+r.h,w:d.w,h:d.y+d.h-(r.y+r.h)});
+      const y0=Math.max(d.y,r.y), y1=Math.min(d.y+d.h,r.y+r.h);
+      if(r.x>d.x) trozos.push({x:d.x,y:y0,w:r.x-d.x,h:y1-y0});
+      if(r.x+r.w<d.x+d.w) trozos.push({x:r.x+r.w,y:y0,w:d.x+d.w-(r.x+r.w),h:y1-y0});
+      for(const t of trozos){
+        if(t.w<0.5||t.h<0.5) continue;
+        const id=libre(res.concat(ops.map(o=>o.id))); res.push(id);
+        const n=copia(d); n.id=id; n.x=t.x; n.y=t.y; n.w=t.w; n.h=t.h; n.historial=[];
+        const z=d.flores&&d.flores.zona;
+        if(z){ const zx=d.x+z.x, zy=d.y+z.y, ax=Math.max(zx,t.x), ay=Math.max(zy,t.y), bx=Math.min(zx+z.w,t.x+t.w), by=Math.min(zy+z.h,t.y+t.h);
+          n.flores.zona=(bx-ax>=1&&by-ay>=1)?{x:ax-t.x,y:ay-t.y,w:bx-ax,h:by-ay}:null; }
+        { const pn=T().normalizar(n); pn.id=id; pn.historial=[]; ops.push({t:'terreno',id,datos:pn}); }
+      }
+    }
+    return ops;
+  }
+  const hacerLote=(ops,aviso)=>E.hacer(ops.length===1?ops[0]:{t:'lote',ops},aviso);
   function escribir(id,d,aviso){ return E.hacer({t:'terreno',id,datos:d},aviso); }
   const config=d=>{ const c=copia(d); delete c.id; delete c.historial; return c; };
   /* aplica un cambio {ruta:valor} sobre la copia de un sector y lo normaliza */
@@ -33,7 +61,9 @@
   function modificar(id,cambios,aviso){
     const d=datosDe(id); if(!d){ E.decir('Ese sector ya no está.'); return false; }
     const n=parchar(d,cambios), h=(d.historial||[]).slice(); h.push(config(d)); while(h.length>12) h.shift(); n.historial=h;
-    return escribir(id,n,aviso);
+    /* si cambió de lugar o de tamaño, lo que tenga debajo desaparece */
+    const cortes=('x' in cambios||'y' in cambios||'w' in cambios||'h' in cambios)?recortar({x:n.x,y:n.y,w:n.w,h:n.h},id):[];
+    return hacerLote(cortes.concat([{t:'terreno',id,datos:n}]),aviso);
   }
 
   /* ---------- el puntero ---------- */
@@ -54,6 +84,7 @@
     const p=puntero(e); if(!p) return; cur=p;
     if(e.button===2){ if(e.ctrlKey) return; const s=T().sectorEn(p.wx,p.wy); if(s) borrar(s.id); else E.decir('Ahí no hay ningún sector.'); return; }
     if(e.button!==0) return;
+    if(armando&&sel&&datosDe(sel)){ const d=datosDe(sel); drag={tipo:'zona',x0:clamp(Math.floor(p.wx),d.x,d.x+d.w-1),y0:clamp(Math.floor(p.wy),d.y,d.y+d.h-1)}; drag.x1=drag.x0; drag.y1=drag.y0; vistaZona(); return; }
     const s=T().sectorEn(p.wx,p.wy);
     if(s&&!e.shiftKey){
       if(s.id===sel) drag={tipo:'mover',ox:p.wx-s.x,oy:p.wy-s.y,orig:copia(datosDe(s.id)||s),movido:false};
@@ -63,13 +94,17 @@
     sel=null; drag={tipo:'nuevo',x0:Math.floor(p.wx),y0:Math.floor(p.wy),x1:Math.floor(p.wx),y1:Math.floor(p.wy)};
     cargarUI(); vistaNuevo();
   }
+  function rectZona(){ const d=datosDe(sel); const r=rectDe(drag,drag); const x=clamp(r.x,d.x,d.x+d.w-1), y=clamp(r.y,d.y,d.y+d.h-1);
+    return {x,y,w:Math.min(r.w,d.x+d.w-x),h:Math.min(r.h,d.y+d.h-y)}; }
+  function vistaZona(){ const d=datosDe(sel), z=rectZona(); vista(parchar(d,{'flores.zona':{x:z.x-d.x,y:z.y-d.y,w:z.w,h:z.h}})); }
   function vistaNuevo(){
     const r=rectDe(drag,drag), d=Object.assign(copia(pinc()),{id:'__vista',x:r.x,y:r.y,w:r.w,h:r.h}); vista(d);
   }
   function mover(e){
     const p=puntero(e); cur=p;
     if(drag&&p){
-      if(drag.tipo==='nuevo'){ const x1=Math.floor(p.wx), y1=Math.floor(p.wy); if(x1!==drag.x1||y1!==drag.y1){ drag.x1=x1; drag.y1=y1; vistaNuevo(); } }
+      if(drag.tipo==='zona'){ const d=datosDe(sel); const x1=clamp(Math.floor(p.wx),d.x,d.x+d.w-1), y1=clamp(Math.floor(p.wy),d.y,d.y+d.h-1); if(x1!==drag.x1||y1!==drag.y1){ drag.x1=x1; drag.y1=y1; vistaZona(); } }
+      else if(drag.tipo==='nuevo'){ const x1=Math.floor(p.wx), y1=Math.floor(p.wy); if(x1!==drag.x1||y1!==drag.y1){ drag.x1=x1; drag.y1=y1; vistaNuevo(); } }
       else { const x=Math.round(p.wx-drag.ox), y=Math.round(p.wy-drag.oy);
         if(x!==drag.orig.x||y!==drag.orig.y){ drag.movido=true; vista(Object.assign(copia(drag.orig),{x,y})); } }
     }
@@ -77,10 +112,15 @@
   }
   function soltar(){
     if(!drag) return; const d0=drag; drag=null;
-    if(d0.tipo==='nuevo'){
+    if(d0.tipo==='zona'){
+      const d=datosDe(sel); limpiar(); armando=false;
+      if(d){ drag=d0; const z=rectZona(); drag=null; modificar(sel,{'flores.zona':{x:z.x-d.x,y:z.y-d.y,w:z.w,h:z.h}},'Zona de flores marcada.'); }
+      cargarUI();
+    } else if(d0.tipo==='nuevo'){
       limpiar(); const r=rectDe(d0,d0), id=libre();
       const n=T().normalizar(Object.assign(copia(pinc()),{x:r.x,y:r.y,w:r.w,h:r.h,nombre:'Sector '+id.split('-')[1]})); n.id=id; n.historial=[];
-      if(escribir(id,n,'Sector de '+r.w+'×'+r.h+' m creado.')){ sel=id; cargarUI(); }
+      const cortes=recortar(r,null,[id]);
+      if(hacerLote(cortes.concat([{t:'terreno',id,datos:n}]),'Sector de '+r.w+'×'+r.h+' m creado'+(cortes.length?' (lo que había debajo se quitó).':'.'))){ sel=id; cargarUI(); }
     } else if(d0.movido&&cur){
       limpiar(); const x=Math.round(cur.wx-d0.ox), y=Math.round(cur.wy-d0.oy);
       modificar(d0.orig.id,{x,y},'Sector movido.');
@@ -90,50 +130,40 @@
   function borrar(id){ limpiar(); if(escribir(id,null,'Sector borrado.')&&sel===id){ sel=null; cargarUI(); } }
   function tecla(e,k){
     if(e.ctrlKey||e.metaKey) return false;
-    if(k==='escape'){ if(drag){ drag=null; limpiar(); return true; } if(sel){ sel=null; cargarUI(); E.refrescar(); if(typeof programarCuadro==='function') programarCuadro(); return true; } return false; }
+    if(k==='escape'){ if(armando){ armando=false; cargarUI(); return true; } if(drag){ drag=null; limpiar(); return true; } if(sel){ sel=null; cargarUI(); E.refrescar(); if(typeof programarCuadro==='function') programarCuadro(); return true; } return false; }
     if(k==='delete'&&sel){ borrar(sel); return true; }
     return false;
   }
 
   /* ---------- los controles ---------- */
-  const CAMPOS=[
-    ['grupo','Superficie (metros)'],
-    ['num','x','x','x',1],['num','y','y','y',1],['num','w','ancho','ancho',1],['num','h','largo','largo',1],
-    ['tam'],
-    ['grupo','Terreno'],['terreno'],
-    ['grupo','Pasto'],
-    ['rng','pasto.densidad','densidad'],['rng','pasto.alto','altura'],['tono'],['rng','pasto.claridad','claridad'],['rng','pasto.oscuridad','oscuridad'],
-    ['rng','pasto.saturacion','saturación'],['rng','pasto.variacion','variación'],['estado'],['rng','pasto.nieve','nieve'],
-    ['grupo','Flores'],['cantidad'],['colores'],['dist'],
-    ['grupo','Relieve y aspecto'],['relieve'],['rng','relieve.intensidad','intensidad'],
-    ['rng','visual.sombra','sombra'],['rng','visual.contraste','contraste'],['rng','visual.profundidad','profundidad'],
-    ['rng','visual.variacionLuz','luz variable'],['rng','visual.humedad','humedad'],['rng','visual.textura','textura'],
-    ['grupo','Transición'],['transtipo'],['rng','trans.ancho','ancho (m)',0,20,0.5]
-  ];
+  /* la ventana: dos columnas de filas "etiqueta · control", como las opciones de un juego */
   function html(){
-    const t=T(); let h='';
-    const opt=(v,tx)=>'<option value="'+v+'">'+tx+'</option>';
-    for(const c of CAMPOS){
-      switch(c[0]){
-        case 'grupo': h+='<div class="grupo">'+c[1]+'</div>'; break;
-        case 'num': h+='<div class="tcampo"><span>'+c[3]+'</span><input type="number" data-k="'+c[1]+'" step="1"></div>'; break;
-        case 'tam': h+='<div class="fila">'+[[5,5],[10,10],[20,10],[10,30],[50,20]].map(a=>'<button class="terTam" data-w="'+a[0]+'" data-h="'+a[1]+'">'+a[0]+'×'+a[1]+'</button>').join('')+'</div>'; break;
-        case 'terreno': h+='<select data-k="terreno">'+t.GRUPOS_TERRENO.map(g=>'<optgroup label="'+g+'">'+Object.keys(t.TERRENOS).filter(k=>t.TERRENOS[k].g===g).map(k=>opt(k,t.TERRENOS[k].n)).join('')+'</optgroup>').join('')+'</select>'; break;
-        case 'rng': h+='<div class="tcampo"><span>'+c[2]+'</span><input type="range" data-k="'+c[1]+'" min="'+(c[3]===undefined?0:c[3])+'" max="'+(c[4]===undefined?1:c[4])+'" step="'+(c[5]||0.01)+'"></div>'; break;
-        case 'tono': h+='<select data-k="pasto.tono">'+Object.keys(t.TONOS).map(k=>opt(k,t.TONOS[k].n)).join('')+'</select>'; break;
-        case 'estado': h+='<select data-k="pasto.estado">'+Object.keys(t.ESTADOS).map(k=>opt(k,t.ESTADOS[k])).join('')+'</select>'; break;
-        case 'cantidad': h+='<select data-k="flores.cantidad" data-num="1">'+t.CANTIDADES.map(a=>opt(a[1],a[0])).join('')+'</select>'; break;
-        case 'colores': h+='<div class="tchk">'+['roja','amarilla','blanca'].map(k=>'<label><input type="checkbox" data-k="flores.'+k+'">'+k+'</label>').join('')+'</div>'; break;
-        case 'dist': h+='<select data-k="flores.distribucion">'+Object.keys(t.DISTRIBUCIONES).map(k=>opt(k,t.DISTRIBUCIONES[k].n)).join('')+'</select>'; break;
-        case 'relieve': h+='<select data-k="relieve.tipo">'+Object.keys(t.RELIEVES).map(k=>opt(k,t.RELIEVES[k].n)).join('')+'</select>'; break;
-        case 'transtipo': h+='<select data-k="trans.tipo">'+Object.keys(t.TRANSICIONES).map(k=>opt(k,t.TRANSICIONES[k])).join('')+'</select>'; break;
-      }
-    }
-    h+='<div class="grupo">Preajustes</div><select id="terPre">'+opt('','— elegir —')+Object.keys(PRE).map(k=>opt(k,k)).join('')+'</select>';
-    h+='<div class="grupo">Sector</div>'+
-       '<div class="fila"><button id="terRegen" title="Otra semilla: sólo cambia este sector">regenerar</button><button id="terAnt" title="Volver a la configuración anterior">anterior</button></div>'+
-       '<div class="fila"><button id="terCopiar">copiar</button><button id="terPegar">pegar</button><button id="terBorrar" title="Supr">borrar</button></div>';
-    return h;
+    const t=T(); const opt=(v,tx)=>'<option value="'+v+'">'+tx+'</option>';
+    const fila=(et,ctl)=>'<div class="trow"><span class="tet">'+et+'</span><span class="tctl">'+ctl+'</span></div>';
+    const rng=(k,et,mn,mx,st)=>fila(et,'<input type="range" data-k="'+k+'" min="'+mn+'" max="'+mx+'" step="'+st+'"><span class="tval" data-v="'+k+'"></span>');
+    const sel=(k,et,ops,num)=>fila(et,'<select data-k="'+k+'"'+(num?' data-num="1"':'')+'>'+ops+'</select>');
+    const num=(k,et)=>fila(et,'<input type="number" data-k="'+k+'" step="1">');
+    const O=(o)=>Object.keys(o).map(k=>opt(k,typeof o[k]==='string'?o[k]:o[k].n)).join('');
+    const cab=x=>'<div class="tcab">'+x+'</div>';
+    const izq=cab('Superficie (metros)')+num('x','Posición este')+num('y','Posición sur')+num('w','Ancho')+num('h','Largo')+
+      '<div class="fila">'+[[5,5],[10,10],[20,10],[10,30],[50,20]].map(a=>'<button class="terTam" data-w="'+a[0]+'" data-h="'+a[1]+'">'+a[0]+'×'+a[1]+'</button>').join('')+'</div>'+
+      cab('Terreno')+sel('terreno','Superficie',t.GRUPOS_TERRENO.map(g=>'<optgroup label="'+g+'">'+Object.keys(t.TERRENOS).filter(k=>t.TERRENOS[k].g===g).map(k=>opt(k,t.TERRENOS[k].n)).join('')+'</optgroup>').join(''))+
+      cab('Pasto')+rng('pasto.densidad','Densidad',0,1,0.01)+rng('pasto.alto','Altura',0,1,0.01)+sel('pasto.tono','Tono',O(t.TONOS))+
+      rng('pasto.claridad','Claridad',0,1,0.01)+rng('pasto.oscuridad','Oscuridad',0,1,0.01)+rng('pasto.saturacion','Saturación',0,1,0.01)+
+      rng('pasto.variacion','Variación natural',0,1,0.01)+sel('pasto.estado','Estado',O(t.ESTADOS))+rng('pasto.nieve','Cobertura de nieve',0,1,0.01);
+    const der=cab('Flores')+rng('flores.cantidad','Abundancia',0,4,0.05)+
+      fila('Colores','<span class="tchk"><label><input type="checkbox" data-k="flores.roja">roja</label><label><input type="checkbox" data-k="flores.amarilla">amarilla</label><label><input type="checkbox" data-k="flores.blanca">blanca</label></span>')+
+      sel('flores.distribucion','Disposición',O(t.DISTRIBUCIONES))+
+      fila('Dónde','<button id="terZona" title="Después arrastrá sobre el sector">elegir zona</button><button id="terZonaQuitar">todo el sector</button>')+
+      '<div class="tnota" id="terZonaTxt"></div>'+
+      cab('Relieve y aspecto')+sel('relieve.tipo','Relieve',O(t.RELIEVES))+rng('relieve.intensidad','Intensidad',0,1,0.01)+
+      rng('visual.sombra','Sombra',0,1,0.01)+rng('visual.contraste','Contraste',0,1,0.01)+rng('visual.profundidad','Profundidad',0,1,0.01)+
+      rng('visual.variacionLuz','Luz variable',0,1,0.01)+rng('visual.humedad','Humedad',0,1,0.01)+rng('visual.textura','Textura',0,1,0.01)+
+      cab('Transición con el vecino')+sel('trans.tipo','Tipo',O(t.TRANSICIONES))+rng('trans.ancho','Ancho (m)',0,20,0.5)+
+      cab('Preajustes y sector')+fila('Preajuste','<select id="terPre">'+opt('','— elegir —')+Object.keys(PRE).map(k=>opt(k,k)).join('')+'</select>')+
+      '<div class="fila"><button id="terRegen" title="Otra semilla: sólo cambia este sector">regenerar</button><button id="terAnt" title="Volver a la configuración anterior">anterior</button></div>'+
+      '<div class="fila"><button id="terCopiar">copiar</button><button id="terPegar">pegar</button><button id="terBorrar" title="Supr">borrar</button></div>';
+    return '<div class="tcols"><div class="tcol">'+izq+'</div><div class="tcol">'+der+'</div></div>';
   }
   const PRE={
     'Pradera verde':{terreno:'pradera'},
@@ -151,7 +181,16 @@
   function cargarUI(){
     const c=actual();
     for(const el of campos()){ const v=leer(c,el.dataset.k);
-      if(el.type==='checkbox') el.checked=!!v; else el.value=String(v); }
+      if(el.type==='checkbox') el.checked=!!v; else el.value=String(v); mostrarVal(el); }
+    const zt=raiz()&&raiz().querySelector?raiz().querySelector('#terZonaTxt'):null;
+    if(zt){ const z=c.flores.zona; zt.textContent=armando?'Arrastrá sobre el sector para marcar la zona.':(z?'Zona de flores: '+z.w+' × '+z.h+' m dentro del sector.':'Flores en todo el sector.'); }
+  }
+  /* el número de al lado de cada deslizador */
+  function mostrarVal(el){
+    if(el.type!=='range'||!raiz()||!raiz().querySelector) return;
+    const v=raiz().querySelector('[data-v="'+el.dataset.k+'"]'); if(!v) return; const x=+el.value;
+    if(el.dataset.k==='flores.cantidad'){ let w=T().CANTIDADES[0][0]; for(const [n,q] of T().CANTIDADES) if(x>=q-1e-9) w=n; v.textContent=w; }
+    else v.textContent=el.dataset.k==='trans.ancho'?x.toFixed(1):Math.round(x*100)+'%';
   }
   function valorDe(el){
     if(el.type==='checkbox') return el.checked;
@@ -180,6 +219,7 @@
   /* ---------- lo que se ve ---------- */
   function estado(){
     if(sel&&!datosDe(sel)) sel=null;
+    if(armando) return '<b>Zona de flores</b>\nArrastrá sobre el sector elegido · Esc cancela';
     if(drag&&drag.tipo==='nuevo'){ const r=rectDe(drag,drag); return '<b>Nuevo sector</b> · '+r.w+' × '+r.h+' m\nSoltá el clic para crearlo'; }
     const d=sel&&datosDe(sel);
     if(d) return '<b>'+(d.nombre||d.id)+'</b> · '+d.w+' × '+d.h+' m en ('+d.x+', '+d.y+')\nLos controles lo editan · arrastrá para moverlo\nSupr o clic derecho: borrar';
@@ -201,7 +241,9 @@
     const oro=packc(ORO[0],ORO[1],ORO[2]), vivo=packc(ORO_VIVO[0],ORO_VIVO[1],ORO_VIVO[2]);
     for(const d of datos()) if(d.id!==sel) marco(d.x,d.y,d.w,d.h,oro);
     if(drag&&drag.tipo==='nuevo'){ const r=rectDe(drag,drag); marco(r.x,r.y,r.w,r.h,vivo); return; }
+    if(drag&&drag.tipo==='zona'&&sel&&datosDe(sel)){ const z=rectZona(); marco(z.x,z.y,z.w,z.h,vivo); }
     const d=sel&&datosDe(sel);
+    if(d&&d.flores&&d.flores.zona&&!(drag&&drag.tipo==='zona')) marco(d.x+d.flores.zona.x,d.y+d.flores.zona.y,d.flores.zona.w,d.flores.zona.h,oro);
     if(d){ const v=(drag&&drag.movido&&cur)?{x:Math.round(cur.wx-drag.ox),y:Math.round(cur.wy-drag.oy)}:d; marco(v.x,v.y,d.w,d.h,vivo); }
     if(cur&&!drag) cruz(cur.wx,cur.wy,vivo);
   }
@@ -210,13 +252,13 @@
   E.modos.terreno={
     bajar,mover,soltar,tecla,estado,pintar,
     abrir(){ cargarUI(); },
-    cerrar(){ drag=null; limpiar(); sel=null; cur=null; },
+    cerrar(){ drag=null; armando=false; limpiar(); sel=null; cur=null; },
     iniciar(){
       const r=raiz(); if(!r) return;
       r.innerHTML=html();
       for(const el of campos()){
         const rango=el.type==='range';
-        if(rango) el.addEventListener('input',()=>cambio(el,false));
+        if(rango) el.addEventListener('input',()=>{ mostrarVal(el); cambio(el,false); });
         el.addEventListener('change',()=>cambio(el,true));
       }
       for(const b of (r.querySelectorAll?r.querySelectorAll('.terTam'):[])) b.addEventListener('click',()=>{
@@ -234,6 +276,8 @@
         if(sel&&datosDe(sel)){ modificar(sel,cam,'Configuración pegada (posición y tamaño no cambian).'); cargarUI(); }
         else { pincel=parchar(pinc(),cam); E.decir('Pegada en el pincel.'); cargarUI(); } });
       bind('terBorrar',()=>{ if(sel) borrar(sel); });
+      bind('terZona',()=>{ if(!sel||!datosDe(sel)){ E.decir('Elegí un sector primero.'); return; } armando=true; E.decir('Arrastrá sobre el sector para marcar dónde van las flores.'); cargarUI(); });
+      bind('terZonaQuitar',()=>{ armando=false; if(sel&&datosDe(sel)) modificar(sel,{'flores.zona':null},'Las flores vuelven a todo el sector.'); cargarUI(); });
       addEventListener('pointerup',soltar); addEventListener('pointercancel',soltar);
       cargarUI();
     },

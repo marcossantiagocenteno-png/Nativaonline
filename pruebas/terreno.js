@@ -59,11 +59,20 @@ const flores=(F)=>{ T.nuevoMundo(); T.agregar({x:0,y:0,w:400,h:400,flores:F}); l
 probar('sin flores: cero', flores({cantidad:0})===0);
 probar('más cantidad, más flores', flores({cantidad:0.5})<flores({cantidad:1})&&flores({cantidad:1})<flores({cantidad:3.2}));
 const colores=(F)=>{ T.nuevoMundo(); T.agregar({x:0,y:0,w:400,h:400,flores:Object.assign({cantidad:3.2,blanca:false},F)}); const s=new Set(); for(let x=0;x<40;x++) for(let y=0;y<40;y++) for(const f of T.floresDelMetro(100+x,100+y)) s.add(f.col.join()); return [...s]; };
-probar('flores rojas: sólo rojo', colores({roja:true}).join('|')==='206,58,60');
-probar('flores amarillas: sólo amarillo', colores({amarilla:true}).join('|')==='230,198,64');
+probar('flores rojas: sólo rojo', colores({roja:true}).join('|')==='196,84,80');
+probar('flores amarillas: sólo amarillo', colores({amarilla:true}).join('|')==='214,190,100');
 probar('mezcla: más de un color', colores({roja:true,amarilla:true}).length===2);
 T.nuevoMundo(); T.agregar({x:0,y:0,w:400,h:400,terreno:'arena',flores:{cantidad:3.2,roja:true}}); let fa=0; for(let x=0;x<40;x++) fa+=T.floresDelMetro(100+x,100).length;
 probar('en arena las flores no aparecen (incompatibles)', fa===0);
+// flores: zona elegida y abundancia dentro de ella
+{ T.nuevoMundo(); T.agregar({x:100,y:100,w:40,h:40,flores:{cantidad:4,roja:true,distribucion:'grupos',zona:{x:10,y:10,w:8,h:8}}});
+  let dentro=0,fuera=0; for(let x=0;x<40;x++) for(let y=0;y<40;y++){ const n=T.floresDelMetro(100+x,100+y).length; if(x>=10&&x<18&&y>=10&&y<18) dentro+=n; else fuera+=n; }
+  probar('con zona, las flores sólo caen dentro de ella (y hay)', dentro>0&&fuera===0);
+  T.nuevoMundo(); T.agregar({x:100,y:100,w:40,h:40,flores:{cantidad:0.5,roja:true,distribucion:'grupos',zona:{x:10,y:10,w:8,h:8}}}); let poca=0; for(let x=10;x<18;x++) for(let y=10;y<18;y++) poca+=T.floresDelMetro(100+x,100+y).length;
+  probar('más abundancia en la zona, más flores', poca<dentro); }
+// la flor es de una celda y de un metro: nunca hay más de 8 en un metro (como el pasto real)
+{ T.nuevoMundo(); T.agregar({x:0,y:0,w:300,h:300,flores:{cantidad:4,roja:true,amarilla:true,blanca:true,distribucion:'concentradas'}}); let mx=0; for(let x=0;x<60;x++) for(let y=0;y<60;y++) mx=Math.max(mx,T.floresDelMetro(100+x,100+y).length);
+  probar('ningún metro lleva más de 8 flores (igual que el pasto real)', mx>0&&mx<=8); }
 // 11. guardado
 T.nuevoMundo(); T.agregar({x:3,y:4,w:12,h:7,terreno:'pantano',pasto:{densidad:0.3,tono:'oscuro'},trans:{tipo:'organica',ancho:6}}); T.agregar({x:20,y:4,w:5,h:5,flores:{roja:true,cantidad:1.8}});
 const j=T.exportar(); const muestra=[m.capa(5,5).join('|'),m.capa(22,6).join('|'),m.capa(16,5).join('|')];
