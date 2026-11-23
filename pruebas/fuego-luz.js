@@ -20,6 +20,7 @@ const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
 const DIA=30*86400e3/430, base=Date.UTC(2026,4,1,0,0,0);
 const hora=i=>{ NV.actualizarCielo(base+DIA*i/8); };
 m.tictac();
+NV.alturaEn=()=>0;     // miden otra cosa sobre suelo plano: la altura tiene su propia prueba (altura.js)
 const HX=55, HY=52;                          // dónde arde la hoguera
 
 /* Dibuja el cuadro con o sin fuego y devuelve una copia de los buffers. */

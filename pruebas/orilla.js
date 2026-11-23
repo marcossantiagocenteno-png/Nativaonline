@@ -29,6 +29,7 @@ const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
 m.tictac();
 NV.actualizarCielo(Date.UTC(2026,4,1,0,0,0));
 const sueloReal=NV.sueloEn, objetosReal=NV.objetosEn;
+NV.alturaEn=()=>0;     // estas pruebas miden otra cosa sobre un suelo plano: la altura tiene su propia prueba (altura.js)
 const sinFuego=()=>{ NV.fuegoEn=()=>0; NV.calorCerca=()=>false; NV.calorEn=()=>0; };
 sinFuego();
 

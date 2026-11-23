@@ -2,6 +2,9 @@
    Reglas en docs/DISENO.md. Sin dependencias ni compilación:
    los módulos se cargan en orden y comparten el objeto global NV. */
 
+/* metros de más que se dibujan hacia el norte este cuadro (ver draw_) */
+let _extN=0;
+function extNorte(){ return _extN; }
 function draw(){
   try{ draw_(); }
   catch(err){
@@ -33,20 +36,38 @@ function draw_(){
   if(Math.abs(destY-NV.camYf)<0.01) NV.camYf=destY;
   camX=Math.floor(NV.camXf); camY=Math.floor(NV.camYf);
   NV.desplaceX=-(NV.camXf-camX)*CPM*cw;
-  NV.desplaceY=-(NV.camYf-camY)*RPM*chh;
+  /* La vista sube con el jugador: sin esto, al trepar una loma se iría hacia el borde
+     de arriba de la pantalla. Se amortigua para que subir no sacuda la cámara. */
+  const pp=NV.posDibujo?NV.posDibujo(Date.now()):me;
+  const alzaJ=NV.alturaEn(pp.x+0.5,pp.y+0.5)*HPM;
+  if(NV.camAlz===undefined) NV.camAlz=alzaJ;
+  NV.camAlz+=(alzaJ-NV.camAlz)*0.12;
+  if(Math.abs(alzaJ-NV.camAlz)<0.05) NV.camAlz=alzaJ;
+  const liftF=Math.floor(NV.camAlz);
+  NV.desplaceY=-(NV.camYf-camY)*RPM*chh+(NV.camAlz-liftF)*chh;
   NV.camQuieta = NV.camXf===destX && NV.camYf===destY;
-  fbG.fill(0); fbL.fill(0);
+  fbG.fill(0); fbL.fill(0); fbO.fill(0);
   _ft.clear(); _ftX0=camX-3; _ftN=colsM+10;
   const t=frame*0.11;
   const lastRow=Math.min(LIM.y1-1,camY+rowsM+22);
-  const objetos=NV.objetosEn(camX-2, camY-2, camX+colsM+2, lastRow+2);
-  let ti=0; while(ti<objetos.length&&objetos[ti].y<camY) ti++;
+  /* Con altura, un metro del norte puede caer más abajo en pantalla (la vista sube con
+     el jugador) y uno del sur más arriba (una loma lo levanta). Sólo se dibujan los
+     metros de más que hacen falta: al norte, lo que baja la vista; al sur, lo que
+     sube la loma más alta de la franja de abajo. En un llano son dos. */
+  const extN=_extN=Math.ceil(NV.camAlz/RPM)+2;
+  let hS=0;
+  for(let x=camX;x<=camX+colsM;x+=3) for(let y=camY+rowsM;y<=camY+rowsM+10;y+=3) hS=Math.max(hS,NV.alturaEn(x,y));
+  const extS=Math.min(14,Math.ceil(hS*HPM/RPM)+2);
+  const objetos=NV.objetosEn(camX-2, camY-extN-2, camX+colsM+2, lastRow+2);
+  let ti=0; while(ti<objetos.length&&objetos[ti].y<camY-extN) ti++;
+  liftR=liftF; NV.liftFila=liftF;
 
-  for(let my=camY;my<=lastRow;my++){
+  for(let my=camY-extN;my<=lastRow;my++){
     const rBase=(my-camY)*RPM+RPM-1;                       // fila del suelo
-    const haze=0.60+0.40*((my-camY)/Math.max(1,rowsM));
+    const haze=0.60+0.40*(Math.max(0,my-camY)/Math.max(1,rowsM));
+    ordR=my-camY+extN+1;
     layer=0;
-    if(my<camY+rowsM) drawGroundRow(my,rBase,haze,t);
+    if(my<camY+rowsM+extS) drawGroundRow(my,rBase,haze,t);
     layer=2;
     while(ti<objetos.length&&objetos[ti].y<=my){ if(objetos[ti].y===my) drawTree(objetos[ti],haze,t); ti++; }
     layer=3;
@@ -58,7 +79,7 @@ function draw_(){
        personaje queda medio metro al sur de su fila, y el pasto y los árboles
        de las filas siguientes —que se pintan después— le pasan por encima. Eso
        se ve como glifos sueltos encima de la figura mientras camina. */
-    if(my===Math.round(NV.posDibujo?NV.posDibujo(Date.now()).y:me.y)) drawPlayer(haze);
+    if(my===Math.round(pp.y)){ alzaR=Math.round(alzaJ); drawPlayer(haze); alzaR=0; }
     const otros=NV.personajes;
     if(otros&&otros.length){
       const Wc=Math.max(3,Math.round(0.55*CPM));
@@ -66,19 +87,24 @@ function draw_(){
         const o=otros[q];
         if(Math.round(NV.posPersonaje(o,Date.now()).y)!==my) continue;
         layer=3;
+        const po=NV.posPersonaje(o,Date.now());
+        alzaR=Math.round(NV.alturaEn(po.x+0.5,po.y+0.5)*HPM);
         if(!NV.dibujarPersonaje(o,haze,t,lienzoDe(Wc))) figuraRespaldo(o,haze);
+        alzaR=0;
       }
     }
   }
   if(NV.destino){                       // adónde se va, mientras se va
     const d=NV.destino;
+    ordR=65535; alzaR=Math.round(NV.alturaEn(d.x+0.5,d.y+0.5)*HPM);
     const c0=(d.x-camX)*CPM+Math.floor(CPM/2), r0=(d.y-camY)*RPM+RPM-1;
     const pulso=0.6+0.4*Math.sin(Date.now()/230);
     const col=packc(120+120*pulso, 220, 150+80*pulso);
     layer=3;
     for(const [dx,dy] of [[0,0],[-2,0],[2,0],[0,-1],[0,1]]) put(c0+dx,r0+dy,43,col);
-    layer=0;
+    layer=0; alzaR=0;
   }
+  liftR=0; alzaR=0; usaCol=false; ordR=65535;       // lluvia y niebla van sobre la pantalla
   dibujarLluvia(Date.now()/1000);
   dibujarNiebla(t);
   flush();
@@ -462,6 +488,38 @@ function celdaSuelo(mt,wx,wy,cx,cyb,light,calor,t){
   return true;
 }
 
+/* Filas que sube cada columna de celdas de un metro (_a0) y las que subirá el metro
+   de al sur (_a1). Se mide en la línea media del metro, interpolando entre sus
+   esquinas, así que entre una celda y la siguiente no hay escalón. */
+const _a0=[], _a1=[];
+function fijarAlza(mx,my,base){
+  const P=(x,y)=>NV.alturaEn(x,y);
+  const h00=P(mx,my), h10=P(mx+1,my), h01=P(mx,my+1), h11=P(mx+1,my+1), h02=P(mx,my+2), h12=P(mx+1,my+2);
+  const L0=(h00+h01)/2, R0=(h10+h11)/2, L1=(h01+h02)/2, R1=(h11+h12)/2;
+  for(let k=0;k<CPM;k++){
+    const u=(k+0.5)/CPM, c=base+k;
+    _a0[k]=Math.round((L0+(R0-L0)*u)*HPM);
+    _a1[k]=Math.round((L1+(R1-L1)*u)*HPM);
+    if(c>=0&&c<cols) colAlza[c]=_a0[k];
+  }
+}
+/* Si el terreno baja hacia el sur queda un hueco entre este metro y el siguiente:
+   es la cara de la pendiente, y se rellena con el mismo suelo estirado hacia abajo.
+   Donde el de al sur sube, simplemente lo tapa. */
+function rellenarFrente(base,rBase){
+  for(let k=0;k<CPM;k++){
+    const c=base+k; if(c<0||c>=cols) continue;
+    const g=_a0[k]-_a1[k]; if(g<=0) continue;
+    const fondo=rBase-_a0[k]+liftR;                 // la última fila de este metro, en pantalla
+    for(let j=1;j<=g;j++){
+      const r=fondo+j; if(r<0||r>=rowsN) continue;
+      const rs=fondo-((j-1)%RPM); if(rs<0||rs>=rowsN) continue;
+      const si=rs*cols+c, di=r*cols+c;
+      if(fbO[di]>ordR) continue;
+      fbG[di]=fbG[si]; fbC[di]=fbC[si]; fbL[di]=0; fbO[di]=ordR;
+    }
+  }
+}
 function drawGroundRow(my,rBase,haze,t){
   const colsM=Math.ceil(cols/CPM);
   traerFilas(my,camX-1,camX+colsM+1);
@@ -511,6 +569,9 @@ function drawGroundRow(my,rBase,haze,t){
     const det=(grass&&!mezclar&&mt.detalle)?mt.detalle:null;
     if(det) prepararDetalle(mx,my,det);
 
+    /* altura: cada columna de celdas sube lo que sube el terreno ahí */
+    fijarAlza(mx,my,base);
+    usaCol=true;
     /* las RPM franjas se recorren de norte a sur: lo de más al sur tapa */
     for(let sy=0;sy<RPM;sy++){
       const rb=top+sy;
@@ -664,6 +725,8 @@ function drawGroundRow(my,rBase,haze,t){
       }
       if((hash3(mx,my*RPM+sy,29)%140)<3) put(base+((hash3(mx,my+sy,31))%CPM),rb-((sy*5)%3),46,packc(205,230,215));
     }
+    usaCol=false;
+    rellenarFrente(base,rBase);
 
   }
   if(wn) wind=wsum/wn;
@@ -1149,7 +1212,7 @@ function dibujarReflejo(tr,br,t){
   const D=NV.grabados, B=D.B, n=D.n();
   if(!n) return;
   const alto=Math.max(4,Math.round((tr.h||2)*HPM));
-  const prev=layer; layer=1;
+  const prev=layer, ordObj=ordR; layer=1;
   for(let q=0;q<n;q++){
     const c=B[q*4], r=B[q*4+1], code=B[q*4+2], col=B[q*4+3];
     const h=br-r; if(h<0) continue;
@@ -1160,13 +1223,14 @@ function dibujarReflejo(tr,br,t){
     const mx=camX+Math.floor(c2/CPM), my=camY+Math.floor(r2/RPM);
     const letra=filaT(my)[mx-_ftX0];
     if(!letra||!esAgua(letra)) continue;
+    ordR=my-camY+extNorte()+1;                  // el reflejo cae sobre el agua de ESA fila
     const f=0.85-0.60*Math.min(1,h/alto);
     /* el brillo propio del agua depende de cuánta luz haya: de noche un árbol
        casi negro no puede salir más claro en el agua que en el aire */
     const a=0.10+0.90*Math.min(1,NV.luz.amb);
     put(c2,r2,code,packc(((col>>16)&255)*f*0.34+4*a, ((col>>8)&255)*f*0.44+9*a, (col&255)*f*0.62+18*a));
   }
-  layer=prev;
+  layer=prev; ordR=ordObj;
 }
 
 /* Lo que se levanta del suelo —árboles, rocas, muros— también recibe el calor
@@ -1180,10 +1244,11 @@ function drawTree(tr,haze,t){
     if(k>=0.02) tinte=k;
   }
   const br=(tr.y-camY)*RPM+RPM-1;
-  if(tinte) NV.tinteFuego(tinte,br);
+  alzaR=Math.round(NV.alturaEn(tr.x+0.5,tr.y+0.5)*HPM);
+  if(tinte) NV.tinteFuego(tinte,br-alzaR+liftR);
   if(refl) NV.grabar(true);
   try{ drawObjeto(tr,haze,t); }
-  finally{ if(tinte) NV.tinteFuego(0,0); if(refl) NV.grabar(false); }
+  finally{ if(tinte) NV.tinteFuego(0,0); if(refl) NV.grabar(false); alzaR=0; }
   if(refl) dibujarReflejo(tr,br,t);
 }
 function drawObjeto(tr,haze,t){

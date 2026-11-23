@@ -808,11 +808,51 @@ espaldas al sol, y queda en penumbra; la que baja hacia el este se ilumina
   luminosidad sin relieve, y lo que mira al este sube al 120 %. Entre metros
   vecinos el salto mayor es de 0,088, así que no hay escalones.
 
-**Lo que no es**: no sube ni baja nada. Los árboles y las rocas siguen apoyados
-en una línea recta y no hay sombra de una loma sobre otra; es un sombreado, no
-una altura. Subir de verdad (desplazar filas, que los objetos acompañen la
-pendiente, caminar cuesta arriba) es un cambio de mundo y queda abierto.
 Los valores `ganancia`, `piso` y `techo` están en `RELIEVE` y son estimados.
+
+#### La altura: el relieve hecho geometría (etapa 1: se dibuja, no se camina)
+
+El relieve de arriba sólo sombreaba. Ahora el mismo campo **sube** el terreno:
+`NV.alturaEn(x,y)` da **metros sobre el agua**, siempre ≥ 0, de 0 a unos 2,1 m
+(`NV.ALTURA`: `amp` 5, `ribera0` 2 m, `ribera1` 14 m). Se aplana hacia el agua —cero a
+menos de 2 m de una orilla, entero a más de 14— para que playas, riberas y el nivel
+del agua queden como estaban. Se interpola entre metros enteros: en 25 cm no salta más
+de 6 cm. La luz de la ladera y la altura salen del mismo campo, así que cuentan lo mismo.
+
+**Cómo se dibuja.** Cada columna de celdas de cada metro sube `altura × HPM` filas
+(`fijarAlza`, medido en la línea media del metro; `colAlza` en el motor). Todo lo que
+se escribe con `put` pasa por ese desplazamiento: el suelo por columna, y cada objeto,
+personaje y marcador de destino por un `alzaR` fijo, medido donde está parado.
+
+- **Cara de la pendiente.** Donde el terreno baja hacia el sur queda un hueco entre un
+  metro y el siguiente; `rellenarFrente` lo llena con el mismo suelo estirado hacia
+  abajo (filas del propio metro, de atrás hacia adelante, para no repetir una raya).
+  Donde sube hacia el sur, el de al sur simplemente tapa.
+- **Orden de pintado.** La regla de capas (`fbL`) dejaba pasar a un árbol por delante de
+  una loma que está al sur. Ahora cada celda guarda además la fila de metros que la
+  escribió (`fbO`, `ordR`) y manda primero eso: lo del sur tapa lo del norte aunque sea de
+  otra capa; dentro de una fila siguen valiendo las capas. Las pasadas de pantalla
+  (lluvia, niebla) escriben con el orden máximo. El reflejo se escribe con el orden de la
+  fila del agua donde cae, si no el agua de esa fila lo borraría.
+- **La vista sube con el jugador** (`NV.camAlz`, amortiguado al 12 % por cuadro). Sin
+  eso, al trepar una loma el jugador se iría hacia el borde de arriba. Se aplica entero
+  en filas (`liftR`) y la parte fraccionaria en píxeles (`desplaceY`).
+- **Metros de más.** Al norte se dibujan los que baja la vista, y al sur los que sube la
+  loma más alta de la franja de abajo (se muestrea). En un llano son dos de cada lado.
+- **Tocar la pantalla** (`NV.casillaEn`) deshace todo esto: busca el metro **más al sur**
+  cuya franja (más su cara) contiene la celda, porque es el que se ve.
+- La grabadora de reflejos anota las filas **sin** alza ni vista; el reflejo vive en el
+  espacio sin desplazar. Consecuencia conocida: el reflejo de algo sobre una loma
+  sale como si estuviera al nivel del agua. Cerca del agua la altura es cero, así que no
+  se nota.
+- Costo medido: un cuadro cuesta alrededor de un 10 % más que antes de la altura.
+
+**Qué NO hace todavía (etapa 2):** no cambia dónde se camina, ni la velocidad, ni la
+colisión: Myrella sube y baja la loma pero el paso es el mismo, y la sombra de un
+árbol no sigue la pendiente. Tampoco hay acantilados: harían falta alturas de 3 m o más
+con paredes, y eso cambia la costa (ver más arriba, "sigue abierto"). Las pruebas que
+miden otra cosa sobre un suelo inventado fijan `NV.alturaEn=()=>0`; la altura tiene la
+suya (`pruebas/altura.js`).
 
 #### Detalle suelto: flores, guijarros y hojarasca
 

@@ -12,6 +12,7 @@ const NV=m.NV;
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
 NV.actualizarCielo(Date.UTC(2026,4,1,12,0,0));
 m.tictac();
+NV.alturaEn=()=>0;     // miden otra cosa sobre suelo plano: la altura tiene su propia prueba (altura.js)
 
 console.log('=== los materiales nuevos están en el mundo ===');
 const DONDE={h:'pasto seco', n:'pasto nevado', b:'barro', y:'arena de mar', K:'canto de mar',

@@ -77,8 +77,9 @@ function layout(){
   if(cols*rowsN>150000){ const k=Math.sqrt(150000/(cols*rowsN)); cols=Math.floor(cols*k); rowsN=Math.floor(rowsN*k); }
   /* el zoom llama acá en cada cuadro: no reservar memoria si el tamaño no cambió */
   if(!fbG || fbG.length!==cols*rowsN){
-    fbG=new Uint16Array(cols*rowsN); fbC=new Int32Array(cols*rowsN); fbL=new Uint8Array(cols*rowsN);
+    fbG=new Uint16Array(cols*rowsN); fbC=new Int32Array(cols*rowsN); fbL=new Uint8Array(cols*rowsN); fbO=new Uint16Array(cols*rowsN);
   }
+  if(!colAlza||colAlza.length!==cols) colAlza=new Int16Array(cols);
   animMsBase = cols*rowsN>90000?340:cols*rowsN>45000?240:160;
   if(animMs!==animMsBase && !(NV.cielo&&NV.cielo.clima&&NV.cielo.clima.tormenta)){
     animMs=animMsBase; restartAnim();
@@ -102,9 +103,11 @@ let gn=0, gr=false;
 NV.grabar=on=>{ gr=!!on; if(on) gn=0; };
 NV.grabados={B:gB, n:()=>gn};
 function put(c,r,code,col){
+  const r0=r;                       // sin alza ni vista: es lo que anota la grabadora
+  if(c>=0&&c<cols) r+=liftR-alzaR-(usaCol?colAlza[c]:0);
   if(c<0||r<0||c>=cols||r>=rowsN) return;
   const i=r*cols+c;
-  if(fbG[i]&&fbL[i]>layer) return;
+  if(fbG[i]&&(fbO[i]>ordR||(fbO[i]===ordR&&fbL[i]>layer))) return;
   if(tK){
     const h=(tBr-r)/HPM, q=h>0?h/TINTE_ALT:0, k=tK/(1+q*q);
     if(k>0.02){
@@ -112,8 +115,8 @@ function put(c,r,code,col){
       col=packc(((col>>16)&255)+168*w, ((col>>8)&255)+84*w, (col&255)+22*w);
     }
   }
-  if(gr&&gn<GMAX){ const q=gn*4; gB[q]=c; gB[q+1]=r; gB[q+2]=code; gB[q+3]=col; gn++; }
-  fbG[i]=code; fbC[i]=col; fbL[i]=layer;
+  if(gr&&gn<GMAX){ const q=gn*4; gB[q]=c; gB[q+1]=r0; gB[q+2]=code; gB[q+3]=col; gn++; }
+  fbG[i]=code; fbC[i]=col; fbL[i]=layer; fbO[i]=ordR;
 }
 const packc=(r,g,b)=>(clamp(r|0,0,255)<<16)|(clamp(g|0,0,255)<<8)|clamp(b|0,0,255);
 /* El multiplicador tiene techo. step() ya elige el escalón más claro de la

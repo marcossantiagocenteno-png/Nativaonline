@@ -145,6 +145,43 @@ function luzRelieve(wx,wy){
   return Math.max(RELIEVE.piso, Math.min(RELIEVE.techo, 1-dx*RELIEVE.ganancia));
 }
 NVp.relieveEn=relieveEn; NVp.luzRelieve=luzRelieve; NVp.RELIEVE=RELIEVE;
+/* ---------- altura: el relieve de arriba, hecho geometría ----------
+   alturaEn(wx,wy) son METROS sobre el nivel del agua, siempre >= 0. Sale del mismo
+   campo del relieve (así la luz de la ladera y la altura cuentan lo mismo) y se
+   aplana hacia el agua: a menos de 2 m de una orilla vale cero y a más de 14 m vale
+   entera, para que playas y riberas sigan planas y el nivel del agua no se parta.
+   Etapa 1: sólo se DIBUJA. Dónde se camina y dónde van las cosas no cambia. */
+const ALTURA={amp:5, base:0.04, ribera0:2, ribera1:14, max:5*(0.5+0.04)};
+const _dAgua=new Map();
+function distAgua(mx,my){
+  const k=(mx+2000)*8192+(my+2000), c=_dAgua.get(k); if(c!==undefined) return c;
+  let d=ALTURA.ribera1;
+  for(let r=0;r<ALTURA.ribera1&&d>r;r++){
+    for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){
+      if(Math.max(Math.abs(dx),Math.abs(dy))!==r) continue;
+      const t=sueloEn(mx+dx,my+dy); if(!t) continue;
+      const m=NVp.MAT[t]; if(m&&m.ola){ const e=Math.hypot(dx,dy); if(e<d) d=e; }
+    }
+  }
+  _dAgua.set(k,d); return d;
+}
+const _hPunto=new Map();               // el terreno no cambia: cada punto se calcula una vez
+function alturaPunto(mx,my){          // en la retícula de metros enteros
+  const k=(mx+2000)*8192+(my+2000), c=_hPunto.get(k); if(c!==undefined) return c;
+  const v=alturaCalc(mx,my); _hPunto.set(k,v); return v;
+}
+function alturaCalc(mx,my){
+  const rb=relieveEn(mx,my)+ALTURA.base; if(rb<=0) return 0;
+  const t=Math.max(0,Math.min(1,(distAgua(mx,my)-ALTURA.ribera0)/(ALTURA.ribera1-ALTURA.ribera0)));
+  return rb*ALTURA.amp*(t*t*(3-2*t));
+}
+function alturaEn(wx,wy){             // interpolada: sin escalones entre metros
+  const x0=Math.floor(wx), y0=Math.floor(wy), u=wx-x0, v=wy-y0;
+  const a=alturaPunto(x0,y0), b=alturaPunto(x0+1,y0), c=alturaPunto(x0,y0+1), d=alturaPunto(x0+1,y0+1);
+  return (a*(1-u)+b*u)*(1-v)+(c*(1-u)+d*u)*v;
+}
+NVp.alturaEn=alturaEn; NVp.ALTURA=ALTURA;
+
 NVp.sueloEn=sueloEn; NVp.solidoEn=solidoEn; NVp.sombraEn=sombraEn;
 NVp.fuegoEn=fuegoEn; NVp.flujoEn=flujoEn; NVp.calorEn=calorEn; NVp.calorCerca=calorCerca;
 NVp.objetosEn=objetosEn; NVp.olvidarObjetos=olvidarObjetos;

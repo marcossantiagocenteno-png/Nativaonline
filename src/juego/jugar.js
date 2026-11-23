@@ -6,7 +6,13 @@
 let world=null, me={x:50,y:62}, facing='norte';
 let cv,ctx,dpr=1,cw=6,chh=9,cols=0,rowsN=0,camX=0,camY=0;
 let fontSize=11, animOn=true, frame=0, animTimer=null, animMs=120, animMsBase=120;
-let fbG=null,fbC=null,fbL=null, db=null,userNs=null,docRef=null;
+let fbG=null,fbC=null,fbL=null,fbO=null, db=null,userNs=null,docRef=null;
+/* alza: altura del terreno. alzaR = filas que sube TODO lo que se escribe (un objeto
+   parado en una loma); colAlza = filas que sube cada columna (el suelo, que cambia
+   celda a celda); liftR = filas que baja la vista para seguir al jugador cuando
+   sube. ordR = orden de pintado (la fila de metros): lo del sur tapa lo del norte
+   aunque sea de otra capa, que es lo que hace que una loma tape lo que queda atrás. */
+let alzaR=0, liftR=0, ordR=0, colAlza=null, usaCol=false;
 let layer=0, calidad=1, pend=false, lastMs=16;
 const patch=makeNoise(mulberry(41099));
 const gustN=makeNoise(mulberry(7717));
@@ -424,7 +430,24 @@ function init(){
     if(dir) dejarDeCaminar(dir[0],dir[1]);
   });
   addEventListener('blur',()=>dejarDeCaminar());
-  /* un toque corto manda caminar; arrastrar o pellizcar, no */
+  /* Qué metro está bajo una celda de pantalla. Con altura, el suelo se dibuja corrido hacia
+   arriba lo que sube el terreno y la vista baja lo que sube el jugador. Cada metro ocupa
+   unas filas de pantalla (su franja, más la cara de la pendiente si el de al sur es más
+   bajo); se busca el metro de más al sur cuya franja contiene la celda, porque en el
+   dibujo lo del sur tapa lo del norte. */
+NV.casillaEn=function(col,fil){
+  const wx=camX+(col+0.5)/CPM, gx=camX+Math.floor(col/CPM), lift=NV.liftFila||0;
+  const g0=camY+Math.floor((fil-lift)/RPM);
+  const alza=y=>Math.round(NV.alturaEn(wx,y+0.5)*HPM);
+  const tope=g0+Math.ceil((NV.ALTURA.max*HPM)/RPM)+1;
+  for(let gy=tope;gy>=g0-1;gy--){
+    const a=alza(gy), arriba=(gy-camY)*RPM-a+lift;
+    const abajo=arriba+RPM-1+Math.max(0,a-alza(gy+1));
+    if(fil>=arriba&&fil<=abajo) return {x:gx,y:gy};
+  }
+  return {x:gx,y:g0};
+};
+/* un toque corto manda caminar; arrastrar o pellizcar, no */
   let tocó=null;
   cv.addEventListener('pointerdown',e=>{ tocó={x:e.clientX,y:e.clientY,t:Date.now()}; });
   cv.addEventListener('pointerup',e=>{
@@ -436,7 +459,7 @@ function init(){
     const r=cv.getBoundingClientRect();
     const col=Math.floor((e.clientX-r.left)/cw), fil=Math.floor((e.clientY-r.top)/chh);
     if(col<0||fil<0||col>=cols||fil>=rowsN) return;
-    const gx=camX+Math.floor(col/CPM), gy=camY+Math.floor(fil/RPM);
+    const q=NV.casillaEn(col,fil), gx=q.x, gy=q.y;
     /* tocar lo que uno tiene al lado es mirarlo, no caminar hacia ello */
     if(Math.abs(gx-me.x)<=1 && Math.abs(gy-me.y)<=1) look();
     else irHacia(gx,gy);
