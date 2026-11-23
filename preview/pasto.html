@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, max-age=0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vista previa del pasto</title>
+</head>
+<body>
+<noscript>La vista previa necesita JavaScript.</noscript>
+<script>
+/* Igual que index.html: nada adentro salvo un cargador que pide cada archivo con la hora
+   actual, para que la caché del alojamiento no sirva algo viejo. Solo carga la base del
+   motor (sin tocarla) y la propia vista previa; no arranca el juego. */
+(function(){
+  var v='?v='+Date.now();
+  ['../src/motor/base.js','pasto.js'].forEach(function(f){
+    document.write('<script src="'+f+v+'"><\/script>');
+  });
+})();
+</script>
+</body>
+</html>
