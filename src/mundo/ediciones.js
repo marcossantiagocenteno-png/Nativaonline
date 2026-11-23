@@ -106,6 +106,14 @@ function reindexar(){
 
 /* ---------- aplicar las ediciones a un panel recién generado ---------- */
 const OCUPAN={arbol:1,roca:1,hoguera:1};
+/* las casillas (índices del panel) que ocupa un objeto: un tronco, len a lo largo; una roca grande, su ancho */
+function huella(t){
+  const out=[];
+  if(t.k==='caido'){ for(let q=0;q<(t.len||1);q++) if(t.x+q<L) out.push(t.y*L+t.x+q); return out; }
+  const fx=t.fx||0, fy=t.fy||0;
+  for(let dy=-fy;dy<=fy;dy++) for(let dx=-fx;dx<=fx;dx++){ const x=t.x+dx, y=t.y+dy; if(x>=0&&y>=0&&x<L&&y<L) out.push(y*L+x); }
+  return out;
+}
 const ponerSuelo=(p,lx,ly,c)=>{ const f=p.ground[ly]; if(f[lx]===c) return false; p.ground[ly]=f.slice(0,lx)+c+f.slice(lx+1); return true; };
 function distSeg(px,py,ax,ay,bx,by){
   const dx=bx-ax, dy=by-ay, l2=dx*dx+dy*dy;
@@ -138,16 +146,21 @@ function aplicar(p){
   if(P){
     for(const [c,m] of P.suelo){ const [x,y]=partir(c); if(x>=ox&&x<ox+L&&y>=oy&&y<oy+L) cambio=ponerSuelo(p,x-ox,y-oy,m)||cambio; }
     if(P.quitar.size){
-      const antes=p.trees.length;
-      p.trees=p.trees.filter(t=>{ if(!P.quitar.has(claveXY(t.x+ox,t.y+oy))) return true; p.occ[t.y*L+t.x]=0; return false; });
+      const antes=p.trees.length, quitados=[];
+      p.trees=p.trees.filter(t=>{ if(!P.quitar.has(claveXY(t.x+ox,t.y+oy))) return true; quitados.push(t); return false; });
+      if(quitados.length){
+        /* se libera lo que ocupaban; si otro objeto cubría esas casillas, las vuelve a ocupar */
+        const liberadas=new Set();
+        for(const t of quitados) for(const i of huella(t)){ p.occ[i]=0; liberadas.add(i); }
+        for(const t of p.trees){ const h=huella(t); if(h.some(i=>liberadas.has(i))) for(const i of h) p.occ[i]=1; }
+      }
       cambio=cambio||p.trees.length!==antes;
     }
     for(const a of P.agregar){
       const lx=a.x-ox, ly=a.y-oy; if(lx<0||ly<0||lx>=L||ly>=L) continue;
       const o=Object.assign({},a,{x:lx,y:ly}); if(o.s===undefined) o.s=(Math.imul(a.x,73856093)^Math.imul(a.y,19349663))>>>0&0xfffff;
       p.trees.push(o);
-      if(OCUPAN[a.k]) p.occ[ly*L+lx]=1;
-      else if(a.k==='caido') for(let q=0;q<(a.len||1)&&lx+q<L;q++) p.occ[ly*L+lx+q]=1;
+      if(OCUPAN[a.k]||a.k==='caido') for(const i of huella(o)) p.occ[i]=1;
       cambio=true;
     }
   }
@@ -164,19 +177,26 @@ function aplicar(p){
 
 /* ---------- cambios: lo único que el editor necesita para escribir ----------
    editar(op) devuelve la operación INVERSA, así deshacer es aplicar lo que devolvió. */
-function tocar(claves){
+function tocar(claves,terreno){
   version++;
   for(const k of claves){ const [pi,pj]=partir(k); NVe.olvidarPanel(pi,pj); }
-  /* el relieve y las paredes dependen del agua de alrededor: se recalculan al cambiar el suelo */
-  NVe.olvidarTerreno();
+  /* el relieve y las paredes dependen del agua de alrededor: se recalculan al cambiar el suelo, la altura
+     o un panel; una piedra o un árbol no los tocan */
+  if(terreno!==false) NVe.olvidarTerreno();
   for(const f of oyentes) f(Array.from(claves));
 }
 const vecinos=k=>{ const [pi,pj]=partir(k); const s=[]; for(let j=-1;j<=1;j++) for(let i=-1;i<=1;i++) s.push(clavePanel(pi+i,pj+j)); return s; };
-function editar(op){
-  if(!D) D=datosVacios();
-  let inv=null; const toca=new Set();
-  const marca=(x,y)=>{ for(const k of vecinos(panelDeXY(x,y))) toca.add(k); };
+/* aplica UNA operación sobre los datos y anota qué paneles hay que regenerar en `toca`.
+   toca.soloObjetos queda en true mientras todas las operaciones sean de objetos: entonces se regenera
+   sólo el panel tocado (16 ms) en vez de él y sus ocho vecinos (124 ms), y no se recalcula el terreno. */
+function aplicarUna(op,toca){
+  let inv=null;
+  const marca=(x,y)=>{ toca.soloObjetos=false; for(const k of vecinos(panelDeXY(x,y))) toca.add(k); };
+  const marcaObj=(x,y)=>{ toca.add(panelDeXY(x,y)); };
   switch(op.t){
+    case 'lote': {
+      const invs=[]; for(const o of op.ops){ const r=aplicarUna(o,toca); if(r) invs.unshift(r); }
+      inv=invs.length?{t:'lote',ops:invs}:null; break; }
     case 'suelo': {
       if(!NVe.MAT[op.m]) throw new Error('material desconocido "'+op.m+'"');
       const P=pDe(panelDeXY(op.x,op.y),true), c=claveXY(op.x,op.y), antes=P.suelo.get(c);
@@ -193,14 +213,14 @@ function editar(op){
       if(typeof o.k!=='string') throw new Error('objeto sin tipo');
       const i=P.agregar.findIndex(a=>a.x===op.x&&a.y===op.y);
       inv=i<0?{t:'objeto-',x:op.x,y:op.y}:{t:'objeto+',x:op.x,y:op.y,objeto:P.agregar[i]};
-      if(i<0) P.agregar.push(o); else P.agregar[i]=o; marca(op.x,op.y); break; }
+      if(i<0) P.agregar.push(o); else P.agregar[i]=o; marcaObj(op.x,op.y); break; }
     case 'objeto-': {
       const P=pDe(panelDeXY(op.x,op.y),true), i=P.agregar.findIndex(a=>a.x===op.x&&a.y===op.y);
       if(i>=0){ inv={t:'objeto+',x:op.x,y:op.y,objeto:P.agregar[i]}; P.agregar.splice(i,1); }
       else { P.quitar.add(claveXY(op.x,op.y)); inv={t:'objeto-restaurar',x:op.x,y:op.y}; }
-      marca(op.x,op.y); break; }
+      marcaObj(op.x,op.y); break; }
     case 'objeto-restaurar': {
-      const P=pDe(panelDeXY(op.x,op.y)); if(P&&P.quitar.delete(claveXY(op.x,op.y))){ inv={t:'objeto-',x:op.x,y:op.y}; marca(op.x,op.y); } break; }
+      const P=pDe(panelDeXY(op.x,op.y)); if(P&&P.quitar.delete(claveXY(op.x,op.y))){ inv={t:'objeto-',x:op.x,y:op.y}; marcaObj(op.x,op.y); } break; }
     case 'rasgo+': {
       const r=op.rasgo; validar({formato:FORMATO,semilla:NVe.CONFIG.seed,paneles:{},rasgos:[r]});
       const i=D.rasgos.findIndex(q=>q.id===r.id), previo=i<0?null:D.rasgos[i];
@@ -231,7 +251,13 @@ function editar(op){
       P.def=op.def?JSON.parse(JSON.stringify(op.def)):null; for(const c of vecinos(k)) toca.add(c); break; }
     default: throw new Error('operación desconocida: '+op.t);
   }
-  if(toca.size) tocar(toca);
+  return inv;
+}
+function editar(op){
+  if(!D) D=datosVacios();
+  const toca=new Set(); toca.soloObjetos=true;
+  const inv=aplicarUna(op,toca);
+  if(toca.size) tocar(toca,!toca.soloObjetos);
   return inv;
 }
 

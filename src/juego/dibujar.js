@@ -66,7 +66,7 @@ function draw_(){
   const liftF=Math.floor(NV.camAlz);
   NV.desplaceY=-(NV.camYf-camY)*RPM*chh+(NV.camAlz-liftF)*chh;
   NV.camQuieta = NV.camXf===destX && NV.camYf===destY;
-  fbG.fill(0); fbL.fill(0); fbO.fill(0);
+  fbG.fill(0); fbL.fill(0); fbO.fill(0); if(pickOn) fbP.fill(0);
   _ft.clear(); _ftX0=camX-3; _ftN=colsM+10;
   const t=NV.tAmb||0;
   NV.vientoCentro(camX+colsM/2);                       // la corriente de viento se mide desde el centro de la pantalla
@@ -80,7 +80,9 @@ function draw_(){
   let hS=0;
   for(let x=camX;x<=camX+colsM;x+=3) for(let y=camY+rowsM;y<=camY+rowsM+10;y+=3) hS=Math.max(hS,NV.alturaEn(x,y));
   const extS=Math.min(14,Math.ceil(hS*HPM/RPM)+2);
-  const objetos=NV.objetosEn(camX-2, camY-extN-2, camX+colsM+2, lastRow+2);
+  let objetos=NV.objetosEn(camX-2, camY-extN-2, camX+colsM+2, lastRow+2);
+  if(NV.editor&&NV.editor.activo) objetos=NV.editor.conFantasma(objetos);   // la vista previa de lo que se va a colocar
+  NV.objetosVista=objetos;                                                    // el editor apunta por índice en esta lista
   let ti=0; while(ti<objetos.length&&objetos[ti].y<camY-extN) ti++;
   liftR=liftF; NV.liftFila=liftF;
 
@@ -91,7 +93,7 @@ function draw_(){
     layer=0;
     if(my<camY+rowsM+extS) drawGroundRow(my,rBase,haze,t);
     layer=2;
-    while(ti<objetos.length&&objetos[ti].y<=my){ if(objetos[ti].y===my) drawTree(objetos[ti],haze,t); ti++; }
+    while(ti<objetos.length&&objetos[ti].y<=my){ if(objetos[ti].y===my){ pickId=objetos[ti].fantasma?65535:ti+1; drawTree(objetos[ti],haze,t); pickId=0; } ti++; }
     layer=3;
     /* Los personajes se dibujan en la fila que les toca, igual que los
        árboles: así el que está más al sur tapa al que está más al norte.
@@ -127,6 +129,7 @@ function draw_(){
     for(const [dx,dy] of [[0,0],[-2,0],[2,0],[0,-1],[0,1]]) put(c0+dx,r0+dy,43,col);
     layer=0; alzaR=0;
   }
+  if(NV.editor&&NV.editor.activo) NV.editor.pintar();      // resaltado, indicador de casilla
   liftR=0; alzaR=0; usaCol=false; ordR=65535;
   flush();
   /* el viento y el rumbo, en una línea */
@@ -500,7 +503,7 @@ function caraDeRoca(c,r,wx,z,haze){
   const dens=clamp(0.25+lz*0.45+(hash3(c,r,41)%100)/100*0.35,0,1);
   const g=pick(MAT.M.ramp,dens);
   const i=r*cols+c;
-  fbG[i]=g.charCodeAt(0); fbC[i]=packs(fam,lz); fbL[i]=0; fbO[i]=ordR;
+  fbG[i]=g.charCodeAt(0); fbC[i]=packs(fam,lz); fbL[i]=0; fbO[i]=ordR; if(pickOn) fbP[i]=0;
 }
 /* Si el terreno baja hacia el sur queda un hueco entre este metro y el siguiente:
    es la cara de la pendiente, y se rellena con el mismo suelo estirado hacia abajo.
@@ -520,7 +523,7 @@ function rellenarFrente(base,rBase,mx,haze){
       const rs=fondo-((j-1)%RPM); if(rs<0||rs>=rowsN) continue;
       const si=rs*cols+c, di=r*cols+c;
       if(fbO[di]>ordR) continue;
-      fbG[di]=fbG[si]; fbC[di]=fbC[si]; fbL[di]=0; fbO[di]=ordR;
+      fbG[di]=fbG[si]; fbC[di]=fbC[si]; fbL[di]=0; fbO[di]=ordR; if(pickOn) fbP[di]=0;
     }
   }
 }

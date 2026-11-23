@@ -6,7 +6,7 @@
 let world=null, me={x:50,y:62}, facing='norte';
 let cv,ctx,dpr=1,cw=6,chh=9,cols=0,rowsN=0,camX=0,camY=0;
 let fontSize=11, animOn=true, frame=0, animTimer=null, animMs=120, animMsBase=120;
-let fbG=null,fbC=null,fbL=null,fbO=null, db=null,userNs=null,docRef=null;
+let fbG=null,fbC=null,fbL=null,fbO=null,fbP=null, db=null,userNs=null,docRef=null;
 /* alza: altura del terreno. alzaR = filas que sube TODO lo que se escribe (un objeto
    parado en una loma); colAlza = filas que sube cada columna (el suelo, que cambia
    celda a celda); liftR = filas que baja la vista para seguir al jugador cuando
@@ -385,6 +385,7 @@ function drawMap(){
 /* ---------- arranque ---------- */
 function init(){
   cv=$('cv'); ctx=cv.getContext('2d');
+  if(NV.editor) NV.editor.arrancar();            // el mundo editado (borrador) se carga antes de generar el primer panel
   if(matchMedia('(pointer:coarse)').matches) document.body.classList.add('touch');
 
   tictac();
@@ -405,6 +406,7 @@ function init(){
       : 'Volvés donde lo dejaste.'), 400);
   }
   layout(); restartAnim(); connect();
+  if(NV.editor) NV.editor.iniciar();
   addEventListener('visibilitychange',()=>{ if(document.hidden) guardar(true); });
   addEventListener('pagehide',()=>guardar(true));
 
@@ -457,12 +459,14 @@ NV.casillaEn=function(col,fil){
   cv.addEventListener('pointerdown',e=>{ tocó={x:e.clientX,y:e.clientY,t:Date.now()}; });
   cv.addEventListener('pointerup',e=>{
     if(!tocó) return;
+    if(NV.editor&&NV.editor.activo){ tocó=null; return; }       // en Modo Dios los clics editan, no caminan
     const quieto=Math.abs(e.clientX-tocó.x)<12&&Math.abs(e.clientY-tocó.y)<12;
     const corto=Date.now()-tocó.t<600;
     tocó=null;
     if(!quieto||!corto) return;
     const r=cv.getBoundingClientRect();
-    const col=Math.floor((e.clientX-r.left)/cw), fil=Math.floor((e.clientY-r.top)/chh);
+    /* la celda que se ve bajo el dedo: el lienzo se corre unos píxeles con la cámara (desplaceX/Y) */
+    const col=Math.floor((e.clientX-r.left-(NV.desplaceX||0))/cw), fil=Math.floor((e.clientY-r.top-(NV.desplaceY||0))/chh);
     if(col<0||fil<0||col>=cols||fil>=rowsN) return;
     const q=NV.casillaEn(col,fil), gx=q.x, gy=q.y;
     /* tocar lo que uno tiene al lado es mirarlo, no caminar hacia ello */

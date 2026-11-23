@@ -361,7 +361,7 @@ function gigantes(p,L,ox,oy,rnd,n){
       if(!libre(p,L,x+dx,y+dy)) ok=false;
     if(!ok) continue;
     for(let dy=-1;dy<=1;dy++) for(let dx=-an;dx<=an;dx++) p.occ[(y+dy)*L+x+dx]=1;
-    p.trees.push({x,y,h:h,k:'roca',s:(rnd()*1e6)|0});
+    p.trees.push({x,y,h:h,k:'roca',s:(rnd()*1e6)|0,fx:an,fy:1});   // fx,fy: medio ancho y medio alto de lo que ocupa (el editor lo usa para liberarlo)
     puestas++;
   }
   circuloMenhires(p,L,ox,oy);
@@ -387,7 +387,7 @@ function circuloMenhires(p,L,ox,oy){
     if(!ok) continue;
     for(const q of lug){
       for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++) p.occ[(q[1]+dy)*L+q[0]+dx]=1;
-      p.trees.push({x:q[0],y:q[1],h:q[2],k:'roca',s:q[3]});
+      p.trees.push({x:q[0],y:q[1],h:q[2],k:'roca',s:q[3],fx:1,fy:1});
     }
     return;
   }

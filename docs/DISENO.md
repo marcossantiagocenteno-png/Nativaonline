@@ -1325,3 +1325,33 @@ la vuelve recta; eso pediría movimiento diagonal real, que es una decisión de 
 casi celda por celda). El cálculo del cuadro es el resto (~27 ms). Bajar ese costo de verdad exige
 guardar el suelo ya pintado y moverlo, en vez de repintarlo entero cada cuadro: un cambio de arquitectura
 que se decide aparte.
+
+## Modo Dios: herramienta de objetos (22/11)
+
+Archivo: `src/juego/editor.js` (`NV.editor`). Es sólo interfaz de edición: no sabe dibujar nada. La paleta
+sale de la cara `objetos` que cada motor registra (`catalogo`, `crear`, `variar`; ver `src/mundo/objetos.js`:
+árboles, rocas, troncos). Un motor nuevo con esa cara aparece solo en la paleta, sin tocar el editor.
+
+**Entrar / salir:** `Shift+G` (otra vez para salir) o abrir el juego con `?dios` en el enlace. No hay botón en
+el juego normal.
+
+**Controles dentro del modo:**
+- Clic en la paleta elige qué poner; segundo clic en el terreno lo coloca ahí (sigue activo para poner más; `Esc` suelta).
+- `Ctrl` + clic izquierdo sobre un objeto: lo cambia por otra variante real (otra semilla; en rocas, otro molde),
+  misma posición y escala. Tiene prioridad sobre colocar.
+- Clic derecho sobre un objeto: elimina sólo ese. `Ctrl` + clic derecho (Mac) no hace nada.
+- `Ctrl+Z` / `Ctrl+Shift+Z` (o `Ctrl+Y`) y botones: deshacer / rehacer (hasta 300 pasos; regenerar es una sola operación `lote`).
+- Resaltado dorado sobre el objeto apuntado, vista previa tintada del que se va a poner (roja si no cabe), marcador en la casilla y mensaje al pie de la paleta.
+
+**Cómo se apunta:** el lienzo lleva un búfer `fbP` (id de objeto por celda, sólo activo con `NV.pick(true)`). Colocar usa
+la casilla bajo el cursor; eliminar y regenerar usan la silueta dibujada. Si la vista previa tapa un objeto, se
+busca por casilla.
+
+**Persistencia:** todo pasa por `NV.mundo.editar()`. Cada cambio se guarda en el borrador local (`nativa.mundo.v1`)
+y al reentrar sigue ahí. Para publicarlo, botón "Exportar": baja `mundo-datos.js`; reemplaza `src/mundo/mundo-datos.js`.
+Cada operación sobre objetos invalida un solo panel (16 ms) en vez de los 9 vecinos (124 ms), y libera/marca su huella en `occ`.
+
+**Límites actuales:** no hay arbustos, flores, ramas ni decoración como objetos; la hoguera sale de `p.fuego`, no se coloca.
+Árboles manuales permitidos aunque `CONFIG.arboles=false`.
+
+Prueba: `node pruebas/editor.js`.

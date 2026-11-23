@@ -82,6 +82,7 @@ function layout(){
   /* el zoom llama acá en cada cuadro: no reservar memoria si el tamaño no cambió */
   if(!fbG || fbG.length!==cols*rowsN){
     fbG=new Uint16Array(cols*rowsN); fbC=new Int32Array(cols*rowsN); fbL=new Uint8Array(cols*rowsN); fbO=new Uint16Array(cols*rowsN);
+    fbP=new Uint16Array(cols*rowsN);        // qué objeto escribió cada celda (sólo se llena en Modo Dios)
   }
   if(!colAlza||colAlza.length!==cols) colAlza=new Int16Array(cols);
   animMsBase = cols*rowsN>90000?340:cols*rowsN>45000?240:160;
@@ -97,6 +98,10 @@ function layout(){
    nivel del suelo alumbra el pie de un tronco, no la copa: a la altura
    TINTE_ALT el calor ya vale la mitad y sigue cayendo con el cuadrado. */
 let tK=0, tBr=0;
+/* APUNTAR: en Modo Dios cada celda recuerda el objeto que la escribió (0 = ninguno o suelo), para saber
+   qué hay bajo el cursor y resaltar su silueta exacta. Apagado cuesta una comparación por celda escrita. */
+let pickOn=false, pickId=0;
+NV.pick=on=>{ pickOn=!!on; pickId=0; };
 const TINTE_ALT=1.8;                       // metros
 NV.tinteFuego=(k,filaBase)=>{ tK=k||0; tBr=filaBase||0; };
 /* Grabadora: mientras está encendida, cada casilla que escribe put se anota,
@@ -121,6 +126,7 @@ function put(c,r,code,col){
   }
   if(gr&&gn<GMAX){ const q=gn*4; gB[q]=c; gB[q+1]=r0; gB[q+2]=code; gB[q+3]=col; gn++; }
   fbG[i]=code; fbC[i]=col; fbL[i]=layer; fbO[i]=ordR;
+  if(pickOn) fbP[i]=pickId;
 }
 const packc=(r,g,b)=>(clamp(r|0,0,255)<<16)|(clamp(g|0,0,255)<<8)|clamp(b|0,0,255);
 /* El multiplicador tiene techo. step() ya elige el escalón más claro de la

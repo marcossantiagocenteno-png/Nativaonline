@@ -8,6 +8,7 @@
      dibujar(ctx, fila)  imagen: pinta en el búfer de glifos
      ambiente(x,y,t)     consulta: responde en un punto y un instante (el viento, la luz)
      editor              qué ofrece al Modo Dios: {parametros:{nombre:{tipo,min,max,def}}, herramientas:[...]}
+     objetos             {catalogo,crear,variar}: lo que el Modo Dios puede colocar, borrar y regenerar de este motor
    y datos de ubicación:
      id, nombre, version, estado ('integrado' | 'en-dibujar' | 'pendiente'),
      preview ('preview/x.html'), prueba ('pruebas/x.js'), archivo ('src/...').
@@ -17,7 +18,7 @@
 
 const NVr = window.NV;
 
-const CARAS=['generar','dibujar','ambiente','editor'];
+const CARAS=['generar','dibujar','ambiente','editor','objetos'];
 const ESTADOS=['integrado','en-dibujar','pendiente'];
 const motores=new Map();
 
@@ -27,7 +28,15 @@ function registrar(def){
   const caras=def.caras||{};
   for(const c of Object.keys(caras)){
     if(CARAS.indexOf(c)<0) throw new Error(def.id+': cara desconocida "'+c+'"');
-    if(c==='editor'){ if(caras[c]&&typeof caras[c]!=='object') throw new Error(def.id+': editor debe ser un objeto'); }
+    if(c==='objetos'){
+      /* lo que el Modo Dios necesita de un motor de objetos para colocarlos sin conocerlo:
+           catalogo()          -> [{id,nombre,k,...}]   lo que se puede colocar
+           crear(id,x,y)       -> objeto de datos       {k,h,sp?,s,...} listo para NV.mundo
+           variar(objeto)      -> campos nuevos         otra variante REAL de la misma categoría */
+      const o=caras[c]; if(!o||typeof o.catalogo!=='function'||typeof o.crear!=='function'||typeof o.variar!=='function')
+        throw new Error(def.id+': la cara "objetos" necesita catalogo, crear y variar');
+    }
+    else if(c==='editor'){ if(caras[c]&&typeof caras[c]!=='object') throw new Error(def.id+': editor debe ser un objeto'); }
     else if(caras[c]&&typeof caras[c]!=='function') throw new Error(def.id+': la cara "'+c+'" debe ser una función');
   }
   const estado=def.estado||'integrado';

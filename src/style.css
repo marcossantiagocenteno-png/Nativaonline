@@ -52,6 +52,18 @@ button.on{border-color:var(--oro);color:var(--oro)}
   text-align:center;line-height:1;letter-spacing:1px;pointer-events:none;opacity:.6;z-index:30}
 #compass span{font-size:10px}
 
+/* el Modo Dios: la paleta y su estado, sólo cuando se está editando */
+#dios{position:absolute;left:4px;top:78px;z-index:32;display:none;width:150px;
+  background:var(--velo);border:1px solid var(--oro);padding:4px 5px}
+#dios.show{display:block}
+#diosTit{color:var(--oro);font-size:10px;letter-spacing:1px;margin-bottom:3px}
+#diosPaleta{max-height:46vh;overflow-y:auto}
+#diosPaleta .grupo{color:var(--dim);font-size:8px;margin:4px 0 1px;letter-spacing:.6px;text-transform:uppercase}
+#diosPaleta button{display:block;width:100%;text-align:left;margin-top:2px}
+#diosEstado{color:var(--dim);font-size:9px;line-height:1.35;margin-top:5px;min-height:3.9em;white-space:pre-wrap}
+#diosEstado b{color:var(--oro);font-weight:400}
+#dios .fila button{flex:1}
+
 /* lo que se dice al explorar */
 #bubble{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);
   max-width:min(460px,76%);background:#000000ee;border:1px solid var(--oro);

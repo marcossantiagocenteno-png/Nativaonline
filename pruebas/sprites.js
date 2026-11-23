@@ -41,7 +41,7 @@ function lienzoFalso(){
           getContext:()=>ctx};
 }
 global.document.createElement=t=>t==='canvas'?lienzoFalso():
-  ({style:{},textContent:'',appendChild(){}});
+  ({style:{},textContent:'',dataset:{},classList:{toggle(){},add(){},remove(){}},addEventListener(){},appendChild(){}});
 global.Image=function(){ this.set=null;
   Object.defineProperty(this,'src',{set(v){ this._src=v; if(this.onload) this.onload(); }}); };
 

@@ -16,9 +16,9 @@ const els={};
 const el=id=>IDS.has(id) ? (els[id]||(els[id]={id,textContent:'',innerHTML:'',value:'',dataset:{},style:{},
   clientWidth:1200,clientHeight:700,width:1200,height:700,
   classList:{toggle(){},add(){},remove(){},contains(){return false}},
-  addEventListener(){},querySelectorAll:()=>[],getContext:()=>ctx})) : null;
+  addEventListener(){},appendChild(){},querySelectorAll:()=>[],getBoundingClientRect:()=>({left:0,top:0,width:1200,height:700}),getContext:()=>ctx})) : null;
 global.window={claude:{use:async()=>null}, addEventListener(){}, removeEventListener(){}};
-global.document={getElementById:el,createElement:()=>({style:{},textContent:'',appendChild(){}}),querySelector:()=>null,querySelectorAll:()=>[],hidden:false,body:{classList:{add(){}},insertAdjacentHTML(){},appendChild(){}}};
+global.document={getElementById:el,createElement:()=>({style:{},textContent:'',dataset:{},classList:{toggle(){},add(){},remove(){}},addEventListener(){},appendChild(){}}),querySelector:()=>null,querySelectorAll:()=>[],hidden:false,body:{classList:{add(){}},insertAdjacentHTML(){},appendChild(){}}};
 global.matchMedia=()=>({matches:false});
 global.addEventListener=()=>{};
 /* El navegador llama a esto en el próximo cuadro; acá se ejecuta al instante.

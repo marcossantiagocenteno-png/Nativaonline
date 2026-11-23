@@ -10,7 +10,7 @@ window.NV_MODULOS=[
   'mundo/mundo-datos',       // el archivo del mundo editado (vacío mientras no haya ediciones)
   'mundo/generar',
   'mundo/paneles',
-  'mundo/ediciones',         // aplica las ediciones del mundo sobre cada panel generado
+  'mundo/ediciones','mundo/objetos',         // aplica las ediciones del mundo sobre cada panel generado
   'luz-de-lunas/luz',
   'mundo/viento',
   'motor/lienzo',
@@ -20,5 +20,6 @@ window.NV_MODULOS=[
   'juego/personajes',
   'juego/pasto','juego/dibujar',
   'juego/particulas',
+  'juego/editor',
   'juego/jugar'
 ];

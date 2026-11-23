@@ -26,7 +26,7 @@ function lienzoFalso(){
   return {get width(){return W}, set width(v){W=v;}, get height(){return H}, set height(v){H=v;},
           getContext:()=>ctx};
 }
-global.document.createElement=t=>t==='canvas'?lienzoFalso():({style:{},textContent:'',appendChild(){}});
+global.document.createElement=t=>t==='canvas'?lienzoFalso():({style:{},textContent:'',dataset:{},classList:{toggle(){},add(){},remove(){}},addEventListener(){},appendChild(){}});
 global.Image=function(){ Object.defineProperty(this,'src',{set(v){ if(this.onload) this.onload(); }}); };
 
 const m=cargar(`module.exports={
