@@ -773,7 +773,8 @@ function drawGroundRow(my,rBase,haze,t){
       /* pocas briznas, largas y finas sobre el fondo oscuro, como la muestra: menos de una
          por franja y metro, así que el número se reparte con un dado en vez de redondear */
       const nPer=CPM*(largo?0.12:0.09)*calidad;      // el triple de la primera versión rala y un poco más
-      const nf=nPer*clamp(0.20+densMata*1.10,0.12,1.7);
+      /* más pasto donde hay luz y menos en la sombra: la luz de la fila (sombras, manchas de claridad) manda */
+      const nf=nPer*clamp(0.20+densMata*1.10,0.12,1.7)*clamp(0.10+light0*1.15,0.14,1.5);
       const n=Math.floor(nf)+((hash3(mx*53+sy,my*71,19)%1000)<(nf%1)*1000?1:0);
       /* tres tonos de verde por brizna (oscuro, medio, claro): el prado no es de un solo color */
       const TONOS=[0.70,1,1.30];
@@ -788,7 +789,7 @@ function drawGroundRow(my,rBase,haze,t){
         const ti=(hb>>17)%3;
         let colT=_gT[ti], colM=_gM[ti], colB=_gB[ti];
         if(cerca){ afinar(c0-base,sy); colT=packs(mt.fam2||mt.fam,_lz*1.3*TONOS[ti]); colM=packs(mt.fam,_lz*0.95*TONOS[ti]); colB=packs(mt.fam,_lz*0.55*TONOS[ti]); }
-        const mAlto=(largo?0.30:0.13)+(((hb>>5)%100)/100)*(largo?1.10:0.27);      // de brizna corta a larga: 0,3 a 1,4 m
+        const mAlto=(largo?0.16:0.13)+(((hb>>5)%100)/100)*(largo?0.50:0.27);      // pasto corto: 0,16 a 0,66 m
         const alto=Math.max(2,Math.round(mAlto*HPM));
         const own=((((hb>>9)%9)-4)/4)*0.95;
         /* el pasto seco o pisado se acuesta: la brizna sale tendida y no parada */

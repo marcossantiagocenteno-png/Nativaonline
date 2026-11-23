@@ -16,8 +16,8 @@ let CPM=13, RPM=4, HPM=6.8;
 const CONFIG={ name:'Claro del norte', seed:'bosque-02', arboles:false, luzFija:true, w:100, h:100,
                treeDensity:0.009, clearing:true, sunElev:30 };
 const FAM={
-  verde:  ['#0c2412','#14391c','#245f2e','#54b56c'],   // el pasto de la muestra: verde sobrio, punta clara
-  verdeO: ['#081a0e','#0f2c17','#1b4a26','#34803f'],   // follaje en sombra propia
+  verde:  ['#0b2418','#14412b','#226447','#4cb585'],   // el pasto de la muestra: verde sobrio, punta clara
+  verdeO: ['#07181a','#0d2e26','#1a4c3b','#2f8265'],   // follaje en sombra propia
   corteza:['#1c1917','#2a2420','#3d342c','#584b3f'],
   piedra: ['#262c33','#3b4550','#5a6975','#8797a5'],
   tierra: ['#26231f','#38342b','#524b3c','#70664f'],

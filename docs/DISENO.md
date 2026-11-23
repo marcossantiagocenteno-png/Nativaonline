@@ -1381,8 +1381,10 @@ lo demás no se mueva. Siguen los arbustos, los troncos caídos y las piedras. C
   la luz viva (`global.__luzFija` en `pruebas/cargar.js`, apagado por defecto).
 - **Un solo pasto, hecho sólo de `|`, `/` y `\`.** Los materiales `g`, `G`, `h` y `n` se
   dibujan con la misma definición. Cada brizna es una columna de esos tres glifos (la
-  inclinación decide cuál, y el viento la mece), de 0,3 a 1,4 m, en uno de tres tonos de
-  verde (oscuro, medio, claro) con la base en sombra y la punta clara. No hay alfombra de
+  inclinación decide cuál, y el viento la mece), de 0,16 a 0,66 m (pasto corto), en uno de tres tonos de
+  verde (oscuro, medio, claro) con la base en sombra y la punta clara. Hay más briznas donde
+  la fila está iluminada y menos en la sombra (la luz de la fila escala la cantidad). El
+  verde es frío (azulado) sin llegar a turquesa. No hay alfombra de
   relleno: el fondo oscuro se ve entre las briznas. Una de cada siete remata en una flor
   blanca (`@`, `e` u `o`) y hay puntitos sueltos de los mismos glifos. El detalle del
   suelo en el pasto es sólo la flor `+`; los guijarros y la hojarasca ya no se dibujan ahí.

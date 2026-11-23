@@ -81,7 +81,7 @@ console.log(`  metros en penumbra: ${grupos.oscuro[2]} · metros iluminados: ${g
 console.log(`  luminosidad con relieve / sin relieve: en penumbra ${(rOsc*100).toFixed(0)}% · iluminados ${(rCla*100).toFixed(0)}%`);
 probar('en un mismo cuadro conviven metros en penumbra y metros iluminados', grupos.oscuro[2]>5&&grupos.claro[2]>5);
 probar('lo que mira al oeste se ve más oscuro que sin relieve, y lo que mira al este más claro',
-       rOsc<0.97 && rCla>1.03 && rCla-rOsc>0.10);
+       rOsc<0.97 && rCla>1.02 && rCla-rOsc>0.08);     // umbral 0,08 y no 0,10: el verde frío rinde menos luminosidad por canal
 probar('el cuadro consulta el relieve una vez por metro de tierra (no por casilla)', con.llamadas>300&&con.llamadas<3000);
 
 console.log('\n=== el agua no se toca ===');
