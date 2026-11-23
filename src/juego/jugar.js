@@ -288,7 +288,7 @@ function tictac(){
 function restartAnim(){
   if(animTimer) clearInterval(animTimer);
   animTimer=null; if(!animOn) return;
-  animTimer=setInterval(()=>{ if(!document.hidden){ frame++; tictac(); requestDraw(); } },animMs);
+  animTimer=setInterval(()=>{ if(!document.hidden){ frame++; NV.tViento=(NV.tViento||0)+animMs/1000; tictac(); requestDraw(); } },animMs);
 }
 
 /* ---------- nube (solo lectura) ---------- */

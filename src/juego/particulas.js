@@ -30,7 +30,7 @@ function hojas(ts,objetos,L){
   const f=(HOJA_ESTACION[est]||0.15)*calidad;
   if(f<=0.02) return;
   const fam=est==='otoño'||est==='invierno'?'hoja':'verde';
-  const deriva=0.45+wind*1.3;                                   // m/s hacia el este
+  const deriva=0.45+wind*1.3;                                   // m/s hacia el oeste
   let n=0;
   for(const tr of objetos){
     if(tr.k!=='arbol'||(tr.sp!=='encino'&&tr.sp!=='alamo')) continue;
@@ -41,7 +41,7 @@ function hojas(ts,objetos,L){
       if(u>0.97) continue;
       const alto=tr.h*(0.55+_u(h,17,0.35));
       const vuelo=u*T;
-      const x=tr.x+0.5+(_u(h,21,1)-0.5)*tr.h*0.5+deriva*vuelo+Math.sin(vuelo*2.1+_u(h,5,6))*0.35;
+      const x=tr.x+0.5+(_u(h,21,1)-0.5)*tr.h*0.5-deriva*vuelo+Math.sin(vuelo*2.1+_u(h,5,6))*0.35;
       const y=tr.y+0.5+(_u(h,25,1)-0.5)*tr.h*0.4;
       const z=alto*(1-u);
       const g=((Math.floor(vuelo*3)+j)%3)===0?96:44;          // ` o , según cómo vaya girando
@@ -65,7 +65,7 @@ function polvo(ts,colsM,rowsM,L){
     for(let j=0;j<cuantos;j++){
       const hj=hash3(cx*5+j,cy,93), T=2+_u(hj,5,2.5), u=((ts/T)+_u(hj,11,1))%1;
       const v=_fade(u); if(v<0.15) continue;
-      const x=cx*CELDA+_u(hj,15,CELDA)+vel*u*T, y=cy*CELDA+_u(hj,21,CELDA)+Math.sin(u*T*1.7+j)*0.4;
+      const x=cx*CELDA+_u(hj,15,CELDA)-vel*u*T, y=cy*CELDA+_u(hj,21,CELDA)+Math.sin(u*T*1.7+j)*0.4;
       const z=0.15+_u(hj,25,0.5)+0.25*Math.sin(u*T*2.3);
       punto(x,y,z,v>0.7?45:46,packs(m.fam,0.55+0.5*v));
     }
@@ -78,7 +78,7 @@ function chispas(ts,objetos){
     if(tr.k!=='hoguera') continue;
     for(let j=0;j<8;j++){
       const h=hash3(tr.s,j,31), T=0.9+_u(h,5,1.3), u=((ts/T)+_u(h,11,1))%1;
-      const x=tr.x+0.5+Math.sin(u*T*5+_u(h,15,6))*0.22*u+wind*0.5*u*u+(_u(h,19,1)-0.5)*0.3;
+      const x=tr.x+0.5+Math.sin(u*T*5+_u(h,15,6))*0.22*u-wind*0.5*u*u+(_u(h,19,1)-0.5)*0.3;
       const y=tr.y+0.5+(_u(h,23,1)-0.5)*0.3;
       const z=0.35+u*(2.0+_u(h,3,1.6));
       const v=1-u;                                              // brillo: nace blanca-naranja y se va a rojo

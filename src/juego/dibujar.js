@@ -49,6 +49,7 @@ function draw_(){
   fbG.fill(0); fbL.fill(0); fbO.fill(0);
   _ft.clear(); _ftX0=camX-3; _ftN=colsM+10;
   const t=frame*0.11;
+  NV.vientoCentro(camX+colsM/2);                       // la corriente de viento se mide desde el centro de la pantalla
   prepararLuna(colsM,rowsM);
   const lastRow=Math.min(LIM.y1-1,camY+rowsM+22);
   /* Con altura, un metro del norte puede caer más abajo en pantalla (la vista sube con
@@ -568,8 +569,8 @@ function drawGroundRow(my,rBase,haze,t){
     const fg0=NV.fuegoEn(mx,my);
     let calor = fg0 ? fg0*gananciaFuego : 0;
     if(calor) light=clamp(light+calor*0.85,0,2.0);
-    const w=windAt(mx,my,t); wsum+=w; wn++;
-    const bend = w>1.02?2 : w>0.66?1 : 0;
+    const w=NV.windAt(mx,my,t); wsum+=w; wn++;
+    const dPasto=NV.vientoPasto(mx+0.5,my+0.5,t);       // el empuje del viento sobre este metro de pasto
     let colG=packs(fam,light*(mt.agua||1)*(mt.mata?0.62:1),calor*0.75);   // el suelo del pasto, oscuro: que las briznas resalten
     if(cerca) prepararFuego(mx,my,light0,gananciaFuego,fam,mt.agua||1);
     const base=(mx-camX)*CPM;
@@ -710,8 +711,11 @@ function drawGroundRow(my,rBase,haze,t){
           const col=pcColor(tono,u,lum,lf,cal);
           if(((h>>14)%100)/100<PC_TRAZO){
             const q=((h>>24)%100)/100, lr=((h>>8)%100)/100;
-            const l0=corr+0.10*Math.sin(t*0.22+cx*0.5+cyb*0.3)-bend*0.05;
-            const lean=q<0.22?-1:q>0.78?1:(l0<0.40?-1:l0>0.60?1:0);
+            /* el reposo es la textura aprobada; el viento sólo la inclina hacia el oeste, nunca al este,
+               y cada trazo cambia en su propio momento (su dado) */
+            const base0=q<0.22?-1:q>0.78?1:(corr<0.40?-1:corr>0.60?1:0);
+            const vv=base0-dPasto*(1+0.45*(((h>>12)%1000)/1000-0.5));
+            const lean=vv<-0.5?-1:vv>0.5?1:0;
             const L=lr<0.70?1:lr<0.94?2:3;
             const ch=(lean>0?'/':lean<0?'\\':'|').charCodeAt(0);
             for(let j=0;j<L;j++)
@@ -1039,7 +1043,7 @@ function drawArbolGlifo(tr,haze,t){
   const m=M?M[tr.s%M.length]:sp.modelo, G=sp.glifos, luzC=(sp.luzC||1)*(G.tono||1);
   const bc=(tr.x-camX)*CPM+Math.floor(CPM/2), br=(tr.y-camY)*RPM+RPM-1;
   const h=tr.h, H=Math.max(6,Math.round(h*HPM));
-  const viento=windAt(tr.x,tr.y,t*0.8)*sp.sway;
+  const viento=-NV.windArbol(tr.x,tr.y,t)*sp.sway;           // hacia el oeste
   const grosorC=Math.max(1.2,m.grosor*h*CPM/2), anchoC=Math.max(2,m.ancho*h*CPM/2);
   const desde=m.pisos?m.pisos.desde:m.columna?m.columna.desde:m.horqueta;
   const yT=m.lider||m.horqueta;
@@ -1104,7 +1108,7 @@ function drawArbol(tr,haze,t){
   const h=tr.h, grosor=m.grosor*h, ancho=m.ancho*h;
   const yH=h*m.horqueta, yT=h*(m.lider||m.horqueta), yPie=h*0.045;
   /* el viento dobla la copa y deja el pie quieto */
-  const viento=windAt(tr.x,tr.y,t*0.8)*sp.sway;
+  const viento=-NV.windArbol(tr.x,tr.y,t)*sp.sway;           // hacia el oeste
   const aC=(x,y)=>bc+Math.round(x*CPM+viento*1.1*Math.pow(clamp(y/h,0,1),1.3));
   const aR=y=>br-Math.round(y*HPM);
   const bandaAlto=tr.sp==='alamo'?7:4;
@@ -1428,7 +1432,7 @@ function drawObjeto(tr,haze,t){
   const trunkR=isB?0:Math.max(2,Math.round(tall*sp.troncoFrac));
   const canR=tall-trunkR;
   const maxHW=Math.max(1.5,(tr.h*CPM*(isB?0.7:sp.w))/2);
-  const sway=windAt(tr.x,tr.y,t*0.8)*(isB?0.8:sp.sway);
+  const sway=-NV.windArbol(tr.x,tr.y,t)*(isB?0.8:sp.sway);   // hacia el oeste
   const copa=isB?SPECIES.encino.copa:sp.copa, borde=isB?SPECIES.encino.borde:sp.borde;
   const famC=isB?'verdeO':sp.fam;
   for(let r=0;r<canR;r++){

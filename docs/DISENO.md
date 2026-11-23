@@ -89,10 +89,22 @@ más decide la luz. Todo el dibujo lee `NV.luz` (ya multiplicada por la cantidad
 sombras de los paneles leen `NV.LUZ_LUNAS.sombra`. `NV.cieloEnPalabras()` devuelve una
 sola frase.
 
-**Lo que queda del clima es el viento** (`src/mundo/viento.js`): ráfagas que entran por
-el este y viajan al oeste. Lo demás —lluvia, niebla, mal tiempo— no existe, y el mar
-está siempre en calma. Las hojas caen como en primavera; las luciérnagas salen siempre
-sobre el pasto.
+**Lo que queda del clima es el viento: un motor global** (`src/mundo/viento.js`, `NV.viento`).
+Un solo sistema que da dirección (siempre de ESTE a OESTE; x crece al este, así que empuja a
+-x), intensidad local, velocidad de la corriente y fase del ciclo. Pasto, árboles, hojas, polvo
+y chispas lo consultan; nada tiene viento propio. Ciclo de 20 s que se repite sin saltos:
+**0-12 s calma** (quieto; cada 4 a 8 s un grupito disperso se inclina apenas), **12-15 s brisa**
+(sube a 0,30), **15-18 s ráfaga** (máximo, con una onda que cruza el terreno), **18-20 s
+reposo** (baja hasta 0). La corriente viaja: lo que está más al este recibe cada fase antes, y
+cada sector de 1,7 m tiene su intensidad y su desfase. El perfil elegido es el **A, muy sutil y
+natural** (los perfiles B y C siguen en la demo). Cada tipo de vegetación se registra con sus
+propiedades (`NV.viento.registrar(nombre,{amp,lag,inercia,expo,oscila})`): pasto, tronco, rama,
+hoja, arbusto, flor y cultivo ya existen, y un tipo nuevo no toca el motor. Lo pesado llega tarde
+y no se detiene de golpe. La demo para comparar está en `preview/viento.html`. Reloj: `NV.tViento`,
+en segundos, lo suma el tictac del juego. El pasto parte de la textura aprobada y el viento solo
+la inclina hacia el oeste, nunca hacia el este. Lo demás —lluvia, niebla, mal tiempo— no existe,
+y el mar está siempre en calma. Las hojas caen como en primavera y derivan hacia el oeste; las
+luciérnagas salen siempre sobre el pasto.
 
 **Cómo se probó.** Las pruebas del sistema viejo se borraron (`astro`, `eclipses`,
 `tormenta`, `mareas-clima`; la hoguera de `niebla-fuego` pasó a `hoguera.js`). Las demás
@@ -1074,7 +1086,7 @@ medidor; se leen por lo que hacen.
 
 | qué | cuándo sale | de dónde | cómo se mueve |
 |---|---|---|---|
-| **hojas** | encinos y álamos (los pinos no); siempre como en primavera (poco) | de la copa de cada árbol en la vista | caen, el viento las lleva hacia el este y se mecen |
+| **hojas** | encinos y álamos (los pinos no); siempre como en primavera (poco) | de la copa de cada árbol en la vista | caen, el viento las lleva hacia el oeste y se mecen |
 | **polvo** | sólo con viento racheado, sobre arena y tierra | celdas de 4 m del mundo | rasante, rápido, en rachas |
 | **chispas** | de cada hoguera, siempre | del fuego | suben hasta unos 3,5 m, se van de lado y pasan de blanco-naranja a rojo apagado |
 | **luciérnagas** | siempre (el mundo vive de noche), sobre pasto y orillas | celdas de 5 m | vagan despacio y se encienden y apagan |
@@ -1226,3 +1238,5 @@ variantes A y B, en `preview/pasto.html`. El detalle `+` de `DET.flores` no se t
 
 El pasto anterior (briznas largas, alfombra de `|`, manchas de tierra, puntitos sueltos y los tres
 tonos por brizna) se borró del código: no queda otro camino de dibujo para el pasto.
+
+El pasto compacto ya no se mece con un seno propio: su inclinación sale del motor de viento global (sección 5).
