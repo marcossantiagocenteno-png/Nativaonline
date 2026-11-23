@@ -1240,3 +1240,54 @@ El pasto anterior (briznas largas, alfombra de `|`, manchas de tierra, puntitos 
 tonos por brizna) se borró del código: no queda otro camino de dibujo para el pasto.
 
 El pasto compacto ya no se mece con un seno propio: su inclinación sale del motor de viento global (sección 5).
+
+## Arquitectura del mundo editable (preparación del Modo Dios)
+
+Esta sección fija **cómo se prepara** el juego para un futuro editor permanente del mundo. No hay
+editor todavía, ni mapa final: sólo las costuras para que ambos entren sin tocar lo que ya anda.
+
+**Regla madre.** El mundo = lo que genera la semilla (`bosque-02`) **más** un archivo de ediciones.
+Las ediciones son *datos puros* y no saben que existe el Modo Dios: el editor las escribe, el
+juego las lee. El mapa jamás depende del estado del editor (el estado del editor vivirá aparte,
+en `NV.editor`). Sin ediciones el juego sale idéntico: lo vigila `node pruebas/dorado.js`.
+
+### Piezas
+
+| Pieza | Dónde | Qué es |
+|---|---|---|
+| Lista de módulos | `src/modulos.js` | El único lugar donde se declara el orden de carga. Lo leen `index.html` y `pruebas/cargar.js`. |
+| Registro de motores | `src/motor/registro.js` → `NV.motores` | Catálogo con un contrato común para luz, viento y los que vienen. |
+| Ediciones del mundo | `src/mundo/ediciones.js` → `NV.mundo` | Carga, valida, aplica, edita (con inversa para deshacer), exporta e importa. |
+| Archivo del mundo | `src/mundo/mundo-datos.js` → `NV.MUNDO_DATOS` | Datos. Vive como script porque `index.html` tiene que abrirse sin servidor (nada de `fetch`). Hoy está vacío. |
+| Borrador | `localStorage['nativa.mundo.v1']` | Lo que el editor guarda mientras trabaja. **Separado** del guardado del jugador (`nativa.guardado.v1`). |
+| Enganches | `paneles.js` | Tres: `aplicar(p)` tras generar un panel, `defDe(k)` para paneles definidos por datos, y `deltaAltura` en la altura. Sin ediciones no hacen nada. |
+
+### El contrato de un motor
+
+Un motor se da de alta con `NV.motores.registrar({id, nombre, estado, archivo, preview, prueba, caras})`.
+Las caras son opcionales: `generar` (datos deterministas), `dibujar` (pinta en el búfer),
+`ambiente(x,y,t)` (consulta) y `editor` (parámetros y herramientas que ofrece al Modo Dios).
+`estado` es `integrado`, `en-dibujar` (aún vive dentro de `dibujar.js`) o `pendiente`.
+Cada motor trae su `preview` y su `prueba`, para poder probarlo solo. Hoy están dados de alta
+`luz` y `viento`. Pasto, agua, árboles, caminos, empedrado, vegetación y rocas se extraen
+**uno por uno**, con el test dorado como red, y cada uno se registra al salir.
+
+### El formato del archivo (formato 1)
+
+```
+{formato:1, semilla:'bosque-02',
+ paneles:{ 'pi,pj':{ def:{bioma,nombre,esq?}, suelo:[[x,y,'d'],..],
+                     objetos:{agregar:[{x,y,k,h,..}], quitar:[[x,y],..]},
+                     alturas:[[x,y,metros],..] } },
+ rasgos:[{id,tipo,puntos:[[x,y],..],ancho,material}]}
+```
+
+Coordenadas del interior del juego (x al este, **y al sur**), en metros. Orden de aplicación por
+panel: rasgos (caminos, ríos) → pinceladas de suelo → objetos (quitar, agregar). Las alturas son una
+diferencia sobre el relieve. El archivo sale ordenado y estable, para que git muestre sólo lo que cambió.
+Cambiar el formato exige subir `FORMATO` y escribir su migración en `MIGRACIONES`.
+
+### Qué falta (y no se hace aún)
+
+El editor mismo; mover los archivos de `src/` a su carpeta final; extraer pasto/agua/árboles de
+`dibujar.js`; que los rasgos de río afecten la altura del agua; una pantalla para exportar.

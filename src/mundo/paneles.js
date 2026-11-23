@@ -36,10 +36,11 @@ function panel(pi,pj){
   const k=clave(pi,pj);
   let p=cache.get(k);
   if(p) return p;
-  const def=BIOMAS[k];
-  if(!def) return null;                 // por ahora el mundo tiene cinco paneles
+  const def=BIOMAS[k]||(NVp.mundo&&NVp.mundo.defDe(k));   // los paneles del editor vienen del archivo del mundo
+  if(!def) return null;
   p=NVp.generarPanel(pi,pj,def,LADO);
   p.pi=pi; p.pj=pj; p.clave=k; p.nombre=def.nombre; p.coord=nombreDe(pi,pj);
+  if(NVp.mundo) NVp.mundo.aplicar(p);   // las ediciones del mundo, encima de lo generado (vacías = nada)
   cache.set(k,p);
   return p;
 }
@@ -123,7 +124,8 @@ function recalcularSombras(){
 
 function limites(){
   let i0=0,i1=0,j0=0,j1=0;
-  for(const k in BIOMAS){ const [i,j]=k.split(',').map(Number);
+  const claves=Object.keys(BIOMAS).concat(NVp.mundo?NVp.mundo.clavesDefinidas():[]);
+  for(const k of claves){ const [i,j]=k.split(',').map(Number);
     i0=Math.min(i0,i); i1=Math.max(i1,i); j0=Math.min(j0,j); j1=Math.max(j1,j); }
   return {x0:i0*LADO, x1:(i1+1)*LADO, y0:j0*LADO, y1:(j1+1)*LADO};
 }
@@ -173,7 +175,9 @@ function distAgua(mx,my){
 const _hPunto=new Map();               // el terreno no cambia: cada punto se calcula una vez
 function alturaPunto(mx,my){          // en la retícula de metros enteros
   const k=(mx+2000)*8192+(my+2000), c=_hPunto.get(k); if(c!==undefined) return c;
-  const v=alturaCalc(mx,my); _hPunto.set(k,v); return v;
+  let v=alturaCalc(mx,my);
+  if(NVp.mundo){ const d=NVp.mundo.deltaAltura(mx,my); if(d) v=Math.max(0,v+d); }   // altura editada: diferencia sobre el relieve
+  _hPunto.set(k,v); return v;
 }
 const ruidoMeseta=NVp.makeNoise(NVp.mulberry((NVp.CONFIG&&NVp.CONFIG.seed?NVp.hashStr(NVp.CONFIG.seed+':meseta'):5521)));
 const ruidoRampa =NVp.makeNoise(NVp.mulberry((NVp.CONFIG&&NVp.CONFIG.seed?NVp.hashStr(NVp.CONFIG.seed+':rampa'):7919)));
@@ -215,3 +219,9 @@ NVp.sueloEn=sueloEn; NVp.solidoEn=(x,y)=>solidoEn(x,y)||paredEn(x,y); NVp.sombra
 NVp.fuegoEn=fuegoEn; NVp.flujoEn=flujoEn; NVp.calorEn=calorEn; NVp.calorCerca=calorCerca;
 NVp.objetosEn=objetosEn; NVp.olvidarObjetos=olvidarObjetos;
 NVp.recalcularSombras=recalcularSombras; NVp.cachePaneles=cache;
+
+/* ---------- invalidación: lo que el editor necesita para que un cambio se vea ----------
+   Un panel se vuelve a generar la próxima vez que se pide; las cachés del terreno (altura,
+   distancia al agua, paredes) dependen del suelo y se vacían. Nada de esto corre sin ediciones. */
+NVp.olvidarPanel=(pi,pj)=>{ cache.delete(clave(pi,pj)); olvidarObjetos(); };
+NVp.olvidarTerreno=()=>{ _dAgua.clear(); _hPunto.clear(); _pared.clear(); olvidarObjetos(); };

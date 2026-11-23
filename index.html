@@ -19,11 +19,17 @@
      se sube a mano cuando se regenera el dibujo. */
   var va='?a=2';
   document.write('<link rel="stylesheet" href="src/style.css'+v+'">');
-  ['motor/base','mundo/diccionario','mundo/generar','mundo/paneles','luz-de-lunas/luz',
-   'mundo/viento','motor/lienzo','arte/myrella','motor/sprites',
-    'juego/interfaz','juego/personajes','juego/dibujar','juego/particulas',
-   'juego/jugar'].forEach(function(f){
-    document.write('<script src="src/'+f+'.js'+(f.indexOf('arte/')===0?va:v)+'"><\/script>');
+  /* La lista de módulos vive en src/modulos.js (una sola, también para las pruebas). Se carga
+     primero y el segundo bloque, ya con la lista en mano, pide cada archivo en orden. */
+  document.write('<script src="src/modulos.js'+v+'"><\/script>');
+  window.NV_VA=va;
+})();
+</script>
+<script>
+(function(){
+  var v='?v='+Date.now();
+  window.NV_MODULOS.forEach(function(f){
+    document.write('<script src="src/'+f+'.js'+(f.indexOf('arte/')===0?window.NV_VA:v)+'"><\/script>');
   });
 })();
 </script>

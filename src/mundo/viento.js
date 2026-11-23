@@ -138,4 +138,9 @@ NVv.windArbol=(mx,my,t)=>{ V.cfg.intensidad=factor(); return V.respuesta('arbol.
 NVv.vientoPasto=(mx,my,t)=>{ V.cfg.intensidad=factor(); return V.respuesta('pasto',mx,my,reloj(t)).mov; };
 /* la ráfaga viaja con la cámara: el centro de la pantalla es la referencia del ciclo */
 NVv.vientoCentro=x=>{ V.cfg.x0=x; };
+/* Alta en el registro de motores. El viento es una consulta de ambiente: cuánto y hacia dónde se mueve cada tipo de cosa. */
+if(NVv.motores) NVv.motores.registrar({id:'viento',nombre:'Viento',estado:'integrado',
+  archivo:'src/mundo/viento.js',preview:'preview/viento.html',prueba:'pruebas/viento.js',
+  caras:{ambiente:(mx,my,t,tipo)=>V.respuesta(tipo||'pasto',mx,my,t),
+         editor:{parametros:{intensidad:{tipo:'cantidad',min:0,max:2,def:1},perfil:{tipo:'eleccion',opciones:['A','B','C'],def:V.perfilActivo}}}}});
 })(window);

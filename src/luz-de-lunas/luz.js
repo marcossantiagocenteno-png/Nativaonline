@@ -31,3 +31,9 @@ NVl.luz = {amb: LUZ_LUNAS.amb,
 NVl.cieloEnPalabras = function(){
   return 'El sol alto lo baña todo de una luz clara y tibia.';
 };
+
+/* Alta en el registro de motores. La luz es una consulta de ambiente: color y cantidad. */
+if(NVl.motores) NVl.motores.registrar({id:'luz',nombre:'Luz del cielo',estado:'integrado',
+  archivo:'src/luz-de-lunas/luz.js',prueba:'pruebas/personajes.js',
+  caras:{ambiente:()=>NVl.luz,
+         editor:{parametros:{amb:{tipo:'cantidad',min:0,max:1.2,def:LUZ_LUNAS.amb}}}}});

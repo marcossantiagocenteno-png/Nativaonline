@@ -1,9 +1,8 @@
 // Carga los módulos en orden en un navegador simulado y devuelve el motor.
 const fs=require('fs');
 const R='/home/claude/nativaonline/';
-const ORDEN=['src/motor/base.js','src/mundo/diccionario.js','src/mundo/generar.js',
-  'src/mundo/paneles.js','src/luz-de-lunas/luz.js','src/mundo/viento.js','src/motor/lienzo.js',
-  'src/arte/myrella.js','src/motor/sprites.js','src/juego/interfaz.js','src/juego/personajes.js','src/juego/dibujar.js','src/juego/particulas.js','src/juego/jugar.js'];
+/* la lista de módulos es la de src/modulos.js: la misma que lee index.html */
+const ORDEN=new Function('window',fs.readFileSync(R+'src/modulos.js','utf8')+';return window.NV_MODULOS;')({}).map(f=>'src/'+f+'.js');
 const ctx={font:'',textBaseline:'',textAlign:'',fillStyle:'',letterSpacing:'0px',
   measureText:t=>({width:6*(t?t.length:1)}),setTransform(){},fillRect(){},fillText(){},
   save(){},restore(){},translate(){},

@@ -26,8 +26,12 @@ Antes de tocar nada, leer `docs/DISENO.md`. Ese documento manda sobre el código
   archivo con la hora actual. **La interfaz vive en `src/juego/interfaz.js`**, no
   en el HTML, justamente para que un cambio de botones llegue al instante con el
   mismo enlace de siempre. Nunca devolver marcado a `index.html`.
-- Si se agrega un módulo, va en la lista del cargador de `index.html` **y** en
-  `pruebas/cargar.js`, en el mismo orden.
+- Si se agrega un módulo, va **sólo** en la lista de `src/modulos.js`; de ahí leen
+  `index.html` y `pruebas/cargar.js`. Los motores nuevos además se dan de alta en
+  `NV.motores` (ver "Arquitectura del mundo editable" en el diseño).
+- `node pruebas/dorado.js` compara 40 cuadros contra una huella. Si un cambio no debía
+  mover la imagen y el test falla, el cambio está mal. Si debía moverla, se regenera la
+  huella a propósito y se dice en el commit.
 - Todo elemento que el código busque con `$('algo')` tiene que existir en el
   marcado de `interfaz.js`.
 - **La hoja de estilos es `src/style.css` y ninguna otra.** Hubo un `style.css` en
