@@ -22,6 +22,7 @@ window.NV_MODULOS=[
   'juego/pasto',
   'juego/caminos',
   'juego/arbolado',          // motor de árboles (laboratorio: el juego todavía no lo llama)
+  'juego/rocoso',            // motor de rocas y formaciones (laboratorio: el juego todavía no lo llama)
   'juego/dibujar',
   'juego/particulas',
   'juego/editor',

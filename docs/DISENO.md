@@ -1447,3 +1447,27 @@ ramas y raíces como tramos con radio. Sólo usa glifos del diccionario. El vien
 sale de las mismas masas ya corridas, y el contorno (glifo 35, `ORLA`) se calcula sobre la silueta ya movida. Estado `pendiente`,
 sin cara `objetos`: **no está en el juego ni en la paleta del Modo Dios**. Integrarlo (fase 4) toca `drawTree`, `calcularSombras` y el
 catálogo de objetos y requiere autorización. Laboratorio: `preview/arbolado.html`. Pruebas: `pruebas/entorno.js`, `pruebas/arbolado.js`.
+
+## Motor de rocas y formaciones (23/11, laboratorio)
+
+**`NV.rocoso` (`src/juego/rocoso.js`)** es un motor nuevo e independiente; no reemplaza ni toca el motor de piedra del juego
+(`NV.ROCAS`, `drawRoca`). Recibe luz, sombra y contorno de `NV.entorno`; no recibe viento. Estado `pendiente`, sin cara `objetos`:
+**no está en el juego ni en la paleta del Modo Dios**. Integrarlo (tocaría `drawRoca`, `generar.js` y el catálogo de objetos)
+necesita tu autorización.
+- **Roca** = spec chica y determinista `{mat,tam,forma,estado:{musgo,liquen,humedad,erosion,enterrada},sem,escala,yaw}` + un sólido
+  (elipsoide, facetas por planos de corte, cavidades, hendidura, ledges y rugosidad). Cada celda lanza un rayo con la inclinación de
+  cámara del juego (RPM/HPM); de ahí salen normal, oclusión, sombra propia y contacto con el suelo. Diez formas, tres tamaños.
+- **Seis materiales con estructura propia**: granito (dos juegos de juntas + fleco mineral), caliza (estratos suaves + cavidades),
+  arenisca (estratos con `=` y erosión por viento), basalto (columnas + poros), pizarra (láminas finas), rojiza (bandas fuertes). Las
+  grietas son la intersección de la superficie con planos de junta reales, así que siguen la estructura. Extremo denso exclusivo por material.
+- **Estados** (musgo, líquen, humedad, enterrada): se reparten por lo que la roca ya sabe (sombra, cavidades, base, cerca de grietas) con
+  puntillado, no con manchas pegadas; la tierra al pie y el pasto se funden por probabilidad.
+- **Formaciones** (acantilado, pared, risco, escalonada, erosionada, macizo, pie de monte, ladera): mismo sólido con otra receta
+  (estratos que retroceden por dureza, bloques de frente, columnas, canaletas, derrumbe, cavidades, cima con relieve, bloques que emergen).
+  Se dibujan por **tramos de 64 columnas**; el sólido es global, así que `invalidarFormacion(F,u0,u1)` rehace sólo lo tocado.
+- **Agrupaciones**: `grupo(tipo,sem,opt)` (pequeño, alrededor de un árbol, bloques apilados, pie de monte, río, ladera, peñascos), por azar
+  con separación según tamaño; `perturbacion()` da la estela en la corriente sin tocar el motor de agua.
+- Costo medido en laboratorio (Node, una vez, luego en caché): roca grande ≈ 20–45 ms; pared de 30 m ≈ 1,2 s en total. **Pendiente antes de
+  integrar**: rasterizar tramos sólo en la ventana visible y fuera del hilo del cuadro.
+- Laboratorio: `preview/rocoso.html` (muestrario de las doce, materiales, banco con controles reales, agrupaciones, formaciones, favoritas
+  guardadas como receta). Pruebas: `pruebas/rocoso.js`.
