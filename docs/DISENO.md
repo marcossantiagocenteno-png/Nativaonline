@@ -1153,6 +1153,10 @@ beige que quedaba. La piedra mezcla dígitos y letras (`a e 9 & @`) en el medio 
 la rampa, como la piedra de la referencia; el extremo denso sigue siendo
 exclusivo (regla 3). Las sombras de árboles y rocas son más largas y hondas
 (`0,16 + 0,66·d` en `calcularSombras`, antes `0,32 + 0,58·d`).
+Los troncos son más gruesos (×1,7 encino, ×1,5 pino, ×1,35 álamo) y las copas
+más ralas (`umbral` y `gamma` subidos en pino y encino): el bosque viejo se lee
+por el fuste ancho, no por la copa. El árbol místico (`hueso`) es pálido de luna.
+Hay dos menhires en los gigantes (`gig-4`, `gig-5`): columnas angostas de 5 a 6 m.
 Si algo se ve «primavera», casi siempre es un verde
 saturado de brillo medio: bajarlo, no subir otro color.
 

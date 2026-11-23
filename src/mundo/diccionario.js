@@ -168,12 +168,12 @@ const SPECIES={
           copa:[' ','.',':',';','*','A','#'], borde:[' ','.',':','^'],
           w:0.42, troncoFrac:0.46, tiers:4, sway:0.5, alto:[4.5,6.5],
           placa:['H','#','%'], veta:'|', nudo:['0','o'], luzC:1.00,
-          famS:'pino',  gamma:0.66, umbral:0.20, grumo:2},
+          famS:'pino',  gamma:0.78, umbral:0.26, grumo:2},
   encino:{n:'encino', fam:'verde',  corteza:'corteza',
           copa:[' ','.',',','o','e','8','@'], borde:[' ','.',',','`','o'],
           w:0.80, troncoFrac:0.24, tiers:0, sway:1.0, alto:[3.0,4.6],
           placa:['H','%','#'], veta:'|', nudo:['@','0'], luzC:0.88,
-          famS:'verdeO', gamma:0.92, umbral:0.26, grumo:1},
+          famS:'verdeO', gamma:1.00, umbral:0.32, grumo:2},
   alamo:{ n:'álamo',  fam:'alamo',  corteza:'cortezaClara',
           copa:[' ','.','"','v','o','8'], borde:[' ','.','"','v'],
           w:0.38, troncoFrac:0.40, tiers:0, sway:1.8, alto:[4.0,5.6],
@@ -196,42 +196,44 @@ const WOOD={ tronco:['t','h','H'], rama:['y','Y'], tocon:['o','0','U'], caido:['
    pisos    : el pino reparte sus ramas en pisos (n), que caen (cae)
    manchas  : el encino lleva una rama y una mancha de follaje por lóbulo [x,y,r]
    columna  : el álamo apila manchas angostas; llama las ensancha al medio */
+/* grosor: troncos más gruesos que antes (×1,7 encino, ×1,5 pino, ×1,35 álamo):
+   el bosque viejo se lee por el fuste ancho y torcido, no por la copa. */
 const MODELOS={
  pino:[
-  {id:'pino-1', n:'joven, cerrado hasta abajo', grosor:0.039, ancho:0.462,
+  {id:'pino-1', n:'joven, cerrado hasta abajo', grosor:0.058, ancho:0.462,
    horqueta:0.96, inclina:0,     pisos:{desde:0.14,n:8,cae:0.34,p:0.85},
    nudos:[], muertas:[]},
-  {id:'pino-2', n:'adulto de fuste limpio', grosor:0.038, ancho:0.422,
+  {id:'pino-2', n:'adulto de fuste limpio', grosor:0.057, ancho:0.422,
    horqueta:0.96, inclina:0.03,  pisos:{desde:0.48,n:6,cae:0.40,p:0.80},
    nudos:[0.22,0.33,0.42], muertas:[0.46]},
-  {id:'pino-3', n:'viejo, descopado', grosor:0.048, ancho:0.586,
+  {id:'pino-3', n:'viejo, descopado', grosor:0.072, ancho:0.586,
    horqueta:0.90, inclina:-0.05, pisos:{desde:0.42,n:5,cae:0.16,p:0.40},
    nudos:[0.26,0.36,0.46,0.56], muertas:[0.44,0.60]}
  ],
  encino:[
-  {id:'encino-1', n:'copa en dos lóbulos', grosor:0.081, ancho:0.952,
-   horqueta:0.34, lider:0.86, inclina:0,
+  {id:'encino-1', n:'copa en dos lóbulos', grosor:0.138, ancho:0.952,
+   horqueta:0.34, lider:0.86, inclina:-0.06,
    manchas:[[-0.321,0.643,0.205],[0.298,0.726,0.224],[-0.024,0.845,0.167]],
    nudos:[0.20], muertas:[]},
-  {id:'encino-2', n:'bifurcado desde abajo', grosor:0.100, ancho:1.158,
-   horqueta:0.22, inclina:0,
+  {id:'encino-2', n:'bifurcado desde abajo', grosor:0.170, ancho:1.158,
+   horqueta:0.22, inclina:0.07,
    manchas:[[-0.447,0.539,0.232],[0.408,0.618,0.221],[-0.118,0.789,0.195],
             [0.184,0.829,0.184]],
    nudos:[], muertas:[]},
-  {id:'encino-3', n:'viejo, copa despareja', grosor:0.091, ancho:1.043,
+  {id:'encino-3', n:'viejo, copa despareja', grosor:0.155, ancho:1.043,
    horqueta:0.38, lider:0.90, inclina:0.05,
    manchas:[[-0.413,0.533,0.143],[0.185,0.707,0.226],[0.435,0.489,0.126],
             [0.011,0.870,0.126]],
    nudos:[0.24,0.32], muertas:[0.42]}
  ],
  alamo:[
-  {id:'alamo-1', n:'columnar joven', grosor:0.030, ancho:0.280,
+  {id:'alamo-1', n:'columnar joven', grosor:0.041, ancho:0.280,
    horqueta:0.92, inclina:0,    columna:{desde:0.26,n:7,llama:0},
    nudos:[], muertas:[]},
-  {id:'alamo-2', n:'adulto, copa en llama', grosor:0.031, ancho:0.345,
+  {id:'alamo-2', n:'adulto, copa en llama', grosor:0.042, ancho:0.345,
    horqueta:0.90, inclina:0.02, columna:{desde:0.30,n:8,llama:1},
    nudos:[0.28,0.38], muertas:[]},
-  {id:'alamo-3', n:'ladeado, copa rala', grosor:0.032, ancho:0.352,
+  {id:'alamo-3', n:'ladeado, copa rala', grosor:0.043, ancho:0.352,
    horqueta:0.88, inclina:0.20, columna:{desde:0.28,n:7,llama:1,rala:0.68},
    nudos:[0.32], muertas:[0.44]}
  ]
@@ -352,7 +354,22 @@ const ROCAS={
    caras:[[-1.15,0.30],[-0.30,0.72],[0.25,1.16]],
    estrat:[], grietas:[[[-0.72,0.44],[-0.78,0.68]],[[-0.34,0.80],[-0.38,0.99]],
             [[0.26,0.72],[0.70,0.65]],[[0.66,0.34],[0.96,0.27]]],
-   liquen:[[0.40,0.46,0.20]], pie:1.0}
+   liquen:[[0.40,0.46,0.20]], pie:1.0},
+  /* Menhires: columnas de pie, angostas y altas, como las piedras del claro de
+     la referencia. El perfil casi no se ensancha, la cima se rompe en un hombro,
+     y llevan musgo bajo y pie de derrumbe corto. */
+  {id:'gig-4', n:'Menhir de cima rota', alto:6.20, tex:'granito',
+   perfil:[[-0.30,0],[-0.34,0.30],[-0.30,0.78],[-0.34,0.92],[-0.10,1],
+           [0.06,0.90],[0.30,0.94],[0.32,0.50],[0.28,0]],
+   caras:[[-0.40,0.24],[-0.10,0.62],[0.12,1.16]], estrat:[],
+   grietas:[[[-0.12,0.96],[-0.08,0.20]],[[0.14,0.88],[0.18,0.34]]],
+   liquen:[[-0.18,0.18,0.16],[0.10,0.10,0.12]], pie:0.35},
+  {id:'gig-5', n:'Menhir inclinado', alto:5.00, tex:'granito',
+   perfil:[[-0.34,0],[-0.30,0.40],[-0.20,0.80],[-0.10,1],[0.22,0.98],
+           [0.36,0.60],[0.40,0.22],[0.36,0]],
+   caras:[[-0.45,0.22],[-0.05,0.58],[0.20,1.14]], estrat:[],
+   grietas:[[[0.00,0.94],[0.10,0.30]]],
+   liquen:[[-0.15,0.24,0.18]], pie:0.30}
  ],
  /* Los acantilados NO llevan silueta dibujada a mano: se sintetizan. Un muro
     de dieciséis metros son más de doscientos caracteres de ancho, y una silueta

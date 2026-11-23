@@ -35,7 +35,7 @@ const FAM={
   honda:  ['#10212b','#1b3a4a','#2a5a6e','#3d7e94'],
   espuma: ['#5b7b86','#93b0ba','#c6dce2','#eef7fa'],
   nieve:  ['#6e7b84','#9fadb6','#ccd8de','#f0f6f9'],
-  hueso:  ['#45412f','#6b6450','#968d72','#c6bb9c'],
+  hueso:  ['#1f2629','#3a474b','#64767a','#9db0b3'],   // el árbol místico: pálido de luna, no beige
   piel:   ['#8d9a93','#b9c6bd','#dfe9e2','#f4faf5']
 };
 
