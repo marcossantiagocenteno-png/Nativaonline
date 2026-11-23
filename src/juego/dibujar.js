@@ -1325,6 +1325,7 @@ function drawObjeto(tr,haze,t){
   if(tr.k==='muro'){ drawMuro(tr,haze,t); return; }
   if(tr.k==='roca'){ drawRoca(tr,haze,t); return; }
   if(tr.k==='rocoso'){ NV.dibujarRocoso(tr,haze,t); return; }
+  if(tr.k==='arbolnv'){ NV.dibujarArbolado(tr,haze,t); return; }
   if(false){
     const hgt=Math.max(3,Math.round(tr.h*HPM*0.85));
     const hw=Math.max(2,(tr.h*CPM*0.95)/2);

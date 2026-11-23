@@ -11,7 +11,7 @@
   const ASP=1.393, FONT_K=1/0.42, CPM0=13, HPM0=6.8, RPM0=4;
   const clamp=(v,a,b)=>v<a?a:v>b?b:v;
   const C=NV.creador={};
-  let M=null, id=null, entrada=null, objeto=null, spec=null, pan=0.5, estudio=true, tmr=null, tn=null, SIM=null, abierto=false;
+  let M=null, id=null, entrada=null, objeto=null, spec=null, vistaOpt={}, SIMCFG=null, pan=0.5, estudio=true, tmr=null, tn=null, SIM=null, abierto=false;
 
   const get=(o,ruta)=>ruta.split('.').reduce((a,k)=>a==null?a:a[k],o);
   function poner(o,ruta,v){
@@ -60,7 +60,8 @@
     suelo(G,Cc,cols,rows);
     const put=(c,r,ch,col)=>{ if(c<0||c>=cols||r<0||r>=rows) return; const i=r*cols+c; G[i]=ch; Cc[i]=col; };
     const sombrear=(c,r,k)=>{ if(c<0||r<0||c>=cols||r>=rows) return; const i=r*cols+c; if(!G[i]) return; const f=1-k, v=Cc[i]; Cc[i]=(clamp((v>>16&255)*f,0,255)<<16)|(clamp((v>>8&255)*(f+0.02),0,255)<<8)|clamp((v&255)*(f+0.05),0,255); };
-    if(!SIM) SIM=NV.entorno.simulado({viento:{valor:0},luz:{dx:1,dy:0.45,porMetro:0.8,amb:1}});
+    if(!SIM){ SIMCFG={viento:{valor:0},luz:{dx:1,dy:0.45,porMetro:0.8,amb:1}}; SIM=NV.entorno.simulado(SIMCFG); }
+    SIMCFG.viento.valor=+vistaOpt.viento||0;
     const antes=NV.entorno.proveedor(), t0=performance.now();
     if(estudio) NV.entorno.usar(SIM);
     try{
@@ -79,6 +80,7 @@
   /* ---------- las perillas, armadas desde el descriptor del motor ---------- */
   function perilla(f){
     const fila=el('div','ccampo'), et=el('span','cet',f.etq), val=el('span','cval');
+    const dst=f.vista?vistaOpt:spec;                    // las perillas "sólo la vista" no entran en la receta
     let ctl;
     if(f.tipo==='sel'){
       ctl=el('select'); for(const [v,t] of f.opciones){ const o=el('option',null,t); o.value=v; ctl.appendChild(o); }
@@ -95,11 +97,11 @@
       fila.append(et,ctl); return fila;
     }
     ctl=el('input'); ctl.type='range'; ctl.min=f.min; ctl.max=f.max; ctl.step=f.paso;
-    let v=get(spec,f.ruta); if(v==null) v=f.auto!=null?f.auto:(f.def!=null?f.def:Math.max(f.min,Math.min(0,f.max)));
+    let v=get(dst,f.ruta); if(v==null) v=f.auto!=null?f.auto:(f.def!=null?f.def:Math.max(f.min,Math.min(0,f.max)));
     ctl.value=v;
     const mostrar=x=>{ val.textContent=(f.auto!=null&&Math.abs(x-f.auto)<1e-9)?'auto':f.fmt==='grados'?Math.round(x*180/Math.PI)+'°':(Math.round(x*100)/100); };
     mostrar(+v);
-    ctl.oninput=()=>{ const x=+ctl.value; mostrar(x); poner(spec,f.ruta,(f.auto!=null&&Math.abs(x-f.auto)<1e-9)?undefined:x); pronto(1); };
+    ctl.oninput=()=>{ const x=+ctl.value; mostrar(x); poner(dst,f.ruta,(f.auto!=null&&Math.abs(x-f.auto)<1e-9)?undefined:x); pronto(1); };
     ctl.onchange=()=>pronto(2);
     fila.append(et,ctl,val); return fila;
   }
@@ -117,7 +119,7 @@
     M=motor; objeto=obj||null;
     if(objeto){ const d=Cr().deObjeto(objeto); id=d.id; spec=d.spec; entrada=entradaDe(id)||ent; }
     else { id=ent.id; entrada=ent; spec=Cr().nuevo(id); }
-    pan=0.5; abierto=true;
+    pan=0.5; vistaOpt={}; abierto=true;
     $c('creaTit').textContent=(objeto?'Editar · ':'')+Cr().titulo(id);
     $c('creaColocar').style.display=objeto?'none':'';
     $c('creaAplicar').style.display=objeto?'':'none';

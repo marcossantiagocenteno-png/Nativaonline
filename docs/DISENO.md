@@ -1485,7 +1485,7 @@ mundo), `deObjeto(objeto)` (receta e id), `previa(receta,{pan,rapido})` (escena:
 
 **El objeto del mundo**: `{k:'rocoso', r:receta, h, s, fx, fy}`. La receta es el `spec` del motor tal cual (se exporta en
 `mundo-datos.js` sin tocar el formato 2); `fx,fy` son los metros que ocupa a cada lado (la formación ocupa todo su ancho).
-El dibujo lo hace `src/juego/rocoso-juego.js` (puente: entrega al motor la cámara, el búfer y la bruma del juego); el sólido
+El dibujo lo hace `src/juego/puente-motores.js` (puente: entrega al motor la cámara, el búfer y la bruma del juego); el sólido
 de cada receta se cachea. El juego sin ediciones **no cambia**: lo vigila el dorado.
 
 **Cómo se usa**: *nuevo*: paleta → perillas → "colocar" → clic en el terreno (la vista previa en el cursor es la pieza exacta;
@@ -1496,4 +1496,6 @@ la siguiente sale con otra semilla y las mismas perillas). *Editar*: clic sobre 
 formación ancha cuyo centro queda fuera de pantalla se sigue dibujando (`NV.mundo.margenAncho()` agranda la búsqueda de
 objetos sólo si hay piezas anchas); la caché de la luz se redondea para que el paso de la hora no rehaga cada roca en cada cuadro;
 durante el arrastre de una perilla la vista previa de una formación va a media resolución y se completa al soltar.
-Pruebas: `pruebas/rocoso-juego.js`.
+Pruebas: `pruebas/rocoso-juego.js` (rocas) y `pruebas/arbolado-juego.js` (árboles).
+
+**Árboles diseñados** (`NV.arbolado`, objeto `{k:'arbolnv', r:{fam,tam,sem,alto?,variante?}}`): misma ventana con familia, tamaño, altura, variante y una perilla de viento sólo para la vista previa. En el juego se mueven con el viento real, proyectan su sombra y no tocan los árboles de siempre (`k:'arbol'`).

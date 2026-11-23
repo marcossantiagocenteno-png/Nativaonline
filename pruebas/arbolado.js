@@ -48,7 +48,7 @@ const pts=[]; A.pintar(A.generar('pino','mediano',1),ctx({bc:50,br:80,cols:60,ro
 ok(pts.length>0&&pts.every(p=>p[0]>=0&&p[0]<60&&p[1]>=0&&p[1]<90),'pintar no se sale del recorte');
 /* registro: sin cara objetos (no toca el Modo Dios todavía) */
 const m=NV.motores.obtener('arbolado');
-ok(m&&m.estado==='pendiente'&&!m.caras.objetos,'registrado como pendiente, sin cara objetos');
+ok(m&&m.estado==='integrado'&&m.caras.objetos&&m.caras.creador,'registrado, con caras objetos y creador (Modo Dios)');
 ok(E.conexiones().some(c=>c.id==='arbolado'&&c.luz),'declara sus conexiones al entorno');
 /* el mundo y el juego no cambian */
 console.log(bien+' bien, '+mal+' mal'); process.exit(mal?1:0);

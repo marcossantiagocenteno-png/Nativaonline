@@ -1,7 +1,7 @@
-/* Nativa Online — PUENTE entre el juego y el motor de rocas (NV.rocoso).
-   El motor no sabe que existe el juego: recibe un `put` y unas medidas. Acá se le entregan las del juego
-   (cámara, búfer, altura del terreno, bruma) para dibujar los objetos {k:'rocoso', r:receta} que el Modo Dios
-   coloca. Una receta = una roca o una formación; la forma sale del motor, nunca de este archivo.
+/* Nativa Online — PUENTE entre el juego y los motores de objetos del Modo Dios (rocas y árboles diseñados).
+   Los motores no saben que existe el juego: recibe un `put` y unas medidas. Acá se le entregan las del juego
+   (cámara, búfer, altura del terreno, bruma) para dibujar los objetos {k:'rocoso'|'arbolnv', r:receta} que el Modo Dios
+   coloca. Una receta = una roca, una formación o un árbol; la forma sale del motor, nunca de este archivo.
    Se cachea el sólido de cada receta (la roca se calcula una vez; el motor cachea además su imagen por luz). */
 (function(NV){
   const cache=new Map();
@@ -42,6 +42,17 @@
     if(bc+ancho<-8||bc-ancho>cols+8) return;
     const ctx=ctxBase(tr,t,haze,bc,br,tr.x,tr.y);
     R.pintarSombra(S,ctx); R.pintar(S,ctx);
+  };
+  /* los árboles diseñados: mismo camino, con viento (el entorno lo trae del viento real del juego) */
+  const arboles=new Map();
+  NV.dibujarArbolado=function(tr,haze,t){
+    const R=NV.arbolado; if(!R||!tr.r) return;
+    const k=JSON.stringify(tr.r); let A=arboles.get(k);
+    if(!A){ if(arboles.size>160) arboles.clear(); A=R.generar(tr.r.fam,tr.r.tam,tr.r.sem,tr.r); arboles.set(k,A); }
+    const bc=(tr.x-camX)*CPM+Math.floor(CPM/2), br=(tr.y-camY)*RPM+RPM-1;
+    if(bc<-8*CPM||bc>cols+8*CPM) return;
+    const ctx=ctxBase(tr,t,haze,bc,br,tr.x,tr.y);
+    R.pintarSombra(A,ctx); R.pintar(A,ctx);
   };
   /* para pruebas y para el editor: la receta ya resuelta */
   NV.rocosoSolido=sólido;

@@ -472,11 +472,11 @@ function calcularSombras(p,L){
   const S=NVg.LUZ_LUNAS?NVg.LUZ_LUNAS.sombra:{dx:1,dy:0.30,porMetro:1.7};
   p.shade.fill(1);
   if(S.porMetro<=0.02){
-    for(const t of p.trees){ if(t.k==='rocoso') continue; const i=t.y*L+t.x; p.shade[i]=Math.min(p.shade[i],0.5); }
+    for(const t of p.trees){ if(t.k==='rocoso'||t.k==='arbolnv') continue; const i=t.y*L+t.x; p.shade[i]=Math.min(p.shade[i],0.5); }
     return;
   }
   for(const t of p.trees){
-    if(t.k==='rocoso') continue;                 // el motor de rocas proyecta su propia sombra al dibujar
+    if(t.k==='rocoso'||t.k==='arbolnv') continue;  // los motores de rocas y de árboles proyectan su propia sombra al dibujar
     const largo=Math.max(1,Math.round(t.h*S.porMetro));
     const ancho=t.k==='arbol'?1:0, span=t.k==='caido'?(t.len||1):1;
     for(let sx=0;sx<span;sx++) for(let d=0;d<=largo;d++){

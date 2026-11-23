@@ -317,8 +317,10 @@ function generar(fam,tam,sem,opt){
 /* -------------------------------------------------------------------- RASTER ----
    El árbol sin viento, en una rejilla de celdas con z-buffer. Se guarda en el árbol y sólo se rehace si cambia el
    zoom (CPM/HPM) o la luz. Después de esto el viento nada más desplaza celdas. */
+/* La clave de caché de la luz, redondeada: el paso de la hora no obliga a rehacer cada árbol en cada cuadro. */
+const LK=l=>{ const q=(v,k)=>Math.round((v||0)/k); return [q(l.L.x,0.03),q(l.L.y,0.03),q(l.L.z,0.03),q(l.amb,0.04),q(l.r,0.05),q(l.g,0.05),q(l.b,0.05),q(l.porMetro,0.05)].join(','); };
 function raster(A,CPM,HPM,luz){
-  const key=CPM+'|'+HPM+'|'+luz.firma;
+  const key=CPM+'|'+HPM+'|'+LK(luz);
   if(A._r&&A._r.key===key) return A._r;
   const F=FAMILIAS[A.fam], pad=3, e=A.ext;
   const c0=Math.ceil(-e.u0*CPM)+pad, W=c0+Math.ceil(e.u1*CPM)+pad+1;
@@ -495,7 +497,7 @@ function pintar(A,ctx){
   const F=cuadro(A,ctx), put=ctx.put, bc=ctx.bc, br=ctx.br, hz=ctx.haze==null?1:ctx.haze;
   const cMax=ctx.cols==null?1e9:ctx.cols, rMax=ctx.rows==null?1e9:ctx.rows;
   for(let r=0;r<F.H;r++){
-    const rr=br-(F.R0-r); if(rr<0||rr>=rMax) continue;
+    const rr=br-(F.R0-r); if(rr<(ctx.rmin||0)||rr>=rMax) continue;
     for(let q=0;q<F.W;q++){
       const i=r*F.W+q, g=F.G[i]; if(!g) continue;
       const cc=bc+q-F.c0; if(cc<0||cc>=cMax) continue;
@@ -511,7 +513,7 @@ function pintar(A,ctx){
    {c0,r0,w,h,k} relativa a la celda del pie; cada celda k de 0 a ~0,6 dice cuánto oscurece el suelo. */
 function sombra(A,ctx){
   const e=ENT(), CPM=ctx.CPM||13, RPM=ctx.RPM||4, luz=e.luz(ctx.x||0,ctx.y||0,ctx.t||0), w=vientoDe(A,ctx);
-  const key=Math.round(w.rama*2)+'|'+CPM+'|'+RPM+'|'+luz.firma;
+  const key=Math.round(w.rama*2)+'|'+CPM+'|'+RPM+'|'+LK(luz);
   if(A._s&&A._s.key===key) return A._s.h;
   const cuerpos=[], F=FAMILIAS[A.fam];
   for(const b of A.blobs) cuerpos.push({e:b.u,h:b.v,s:b.z,re:b.ru,rh:b.rv,rs:b.rz,f:0.85});
@@ -538,17 +540,60 @@ const catalogo=()=>{
   return out;
 };
 
-NV.arbolado={FAMILIAS,NOMBRES,TAMANOS,ETIQUETA,PAL,generar,raster,cuadro,pintar,sombra,pintarSombra,catalogo,ORLA};
+NV.arbolado={FAMILIAS,NOMBRES,TAMANOS,ETIQUETA,PAL,generar,raster,cuadro,pintar,sombra,pintarSombra,catalogo,ORLA,aObjeto,previa};
+
+/* ------------------------------------------------------------------ MODO DIOS ----
+   Cara "objetos" y cara "creador": el árbol que el Modo Dios coloca y diseña es {k:'arbolnv', r:receta, h, s, fx:0, fy:0};
+   la receta es {fam,tam,sem,alto?,variante?}. Convive con los árboles del juego (k:'arbol'), que no se tocan. */
+const azarEd=()=>(NV.azarEditor||Math.random)();
+const nuevaSem=()=>((azarEd()*60000)|0)+1;
+const clon=o=>JSON.parse(JSON.stringify(o));
+const ID_ARBOL='arbolado:arbol', ARBOL0={fam:'pino',tam:'mediano'};
+let DISENO=null;
+function limpiar(spec){ const o=clon(spec); if(!FAMILIAS[o.fam]) o.fam='pino'; if(TAMANOS.indexOf(o.tam)<0) o.tam='mediano'; o.sem=o.sem|0; return o; }
+function aObjeto(spec){
+  const r=limpiar(spec), A=generar(r.fam,r.tam,r.sem,r);
+  return {k:'arbolnv',r,h:+A.h.toFixed(2),s:r.sem,fx:0,fy:0};
+}
+const PCACHE=new Map();
+const arbolDe=r=>{ const k=JSON.stringify(r); let A=PCACHE.get(k); if(!A){ if(PCACHE.size>24) PCACHE.clear(); A=generar(r.fam,r.tam,r.sem,r); PCACHE.set(k,A); } return A; };
+const NOM_FAM=NOMBRES.reduce((a,f)=>{ a[f]=FAMILIAS[f].nombre; return a; },{});
+const CAMPOS_ARBOL=[
+  {ruta:'fam',etq:'Familia',tipo:'sel',opciones:NOMBRES.map(f=>[f,NOM_FAM[f]]),grupo:'Árbol'},
+  {ruta:'tam',etq:'Tamaño',tipo:'sel',opciones:TAMANOS.map(t=>[t,ETIQUETA[t]]),grupo:'Árbol'},
+  {ruta:'alto',etq:'Altura (m)',tipo:'rng',min:0,max:16,paso:0.5,auto:0,grupo:'Árbol'},
+  {ruta:'variante',etq:'Variante',tipo:'rng',min:-1,max:2,paso:1,auto:-1,grupo:'Árbol'},
+  {ruta:'viento',etq:'Viento (sólo la vista)',tipo:'rng',min:0,max:1.2,paso:0.05,def:0,vista:true,grupo:'Vista previa'}];
+function previa(spec,opt){
+  const r=limpiar(spec), A=arbolDe(r), E=A.ext, z=A.h<4.6?2:1, ancho=Math.max(E.u1-E.u0,2);
+  const mw=Math.max(Math.ceil(ancho)+2,4), mh=Math.ceil(A.h*1.7)+3;
+  return {mw,mh,z,S:A,items:[{x:mw/2-(E.u0+E.u1)/2,y:mh-1.5,pintar:ctx=>{ pintarSombra(A,ctx); pintar(A,ctx); }}],detalle:NOM_FAM[r.fam]+' · '+A.h.toFixed(1)+' m de alto'};
+}
+const resumen=o=>NOM_FAM[o.r.fam]+' · '+ETIQUETA[o.r.tam].toLowerCase()+' · '+o.h.toFixed(1)+' m';
 
 /* Conexiones con el entorno: lo que este motor recibe. */
 if(NV.entorno) NV.entorno.conectar('arbolado',{viento:['arbol.tronco','arbol.rama','arbol.hoja'],luz:true,sombra:true,contorno:true});
 
-/* Alta en el registro. 'pendiente' = todavía no lo llama el juego (laboratorio). */
-if(NV.motores) NV.motores.registrar({id:'arbolado',nombre:'Árboles: pinos, encinos, álamos y secos',estado:'pendiente',
+/* Alta en el registro. */
+if(NV.motores) NV.motores.registrar({id:'arbolado',nombre:'Árboles diseñados: pinos, encinos, álamos y secos',estado:'integrado',
   archivo:'src/juego/arbolado.js',preview:'preview/arbolado.html',prueba:'pruebas/arbolado.js',
   caras:{generar:(o)=>generar(o.familia,o.tam,o.sem,o), dibujar:(ctx,A)=>pintar(A,ctx),
+    objetos:{
+      catalogo:()=>[{id:ID_ARBOL,nombre:'Árbol (diseñar)',etiqueta:'Árbol diseñado',k:'arbolnv',disenar:true,encaja:o=>o.k==='arbolnv'&&!!o.r}],
+      crear:()=>aObjeto(Object.assign(clon(DISENO||ARBOL0),{sem:nuevaSem()})),
+      variar:o=>aObjeto(Object.assign(clon(o.r),{sem:nuevaSem()}))
+    },
+    creador:{
+      titulo:()=>'Diseñar un árbol',
+      campos:()=>CAMPOS_ARBOL,
+      nuevo:()=>Object.assign(clon(DISENO||ARBOL0),{sem:nuevaSem()}),
+      variar:spec=>Object.assign(clon(spec),{sem:nuevaSem()}),
+      aObjeto, deObjeto:o=>({id:ID_ARBOL,spec:clon(o.r)}), idDe:()=>ID_ARBOL,
+      recordar:(id,spec)=>{ DISENO=clon(spec); },
+      previa, resumen
+    },
     editor:{familias:NOMBRES.reduce((a,f)=>{ a[f]={nombre:FAMILIAS[f].nombre,variantes:FAMILIAS[f].variantes}; return a; },{}),
             tamanos:TAMANOS, parametros:{variante:{tipo:'eleccion',opciones:[0,1,2],def:null}},
             conexiones:['viento: arbol.tronco, arbol.rama, arbol.hoja','luz y sombra proyectada','contorno compartido'],
-            herramientas:['colocar','regenerar','eliminar']}}});
+            herramientas:['colocar','regenerar','eliminar','diseñar (ventana del Modo Dios)']}}});
 })(window.NV);

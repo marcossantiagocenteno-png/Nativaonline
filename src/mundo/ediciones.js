@@ -125,7 +125,7 @@ function reindexar(){
 }
 
 /* ---------- aplicar las ediciones a un panel recién generado ---------- */
-const OCUPAN={arbol:1,roca:1,hoguera:1,rocoso:1};
+const OCUPAN={arbol:1,roca:1,hoguera:1,rocoso:1,arbolnv:1};
 /* las casillas (índices del panel) que ocupa un objeto: un tronco, len a lo largo; una roca grande, su ancho */
 function huella(t){
   const out=[];
@@ -189,7 +189,7 @@ function aplicar(p){
   p.trees.sort((a,b)=>a.y-b.y);
   p.mapG=[]; for(let y=0;y<L;y++) p.mapG.push(' '.repeat(L));
   for(const t of p.trees){
-    const c=t.k==='arbol'?(t.sp==='mistico'?'Y':'T'):t.k==='hoguera'?'f':null;
+    const c=t.k==='arbolnv'?'T':t.k==='arbol'?(t.sp==='mistico'?'Y':'T'):t.k==='hoguera'?'f':null;
     if(c&&t.x>=0&&t.y>=0&&t.x<L&&t.y<L) p.mapG[t.y]=p.mapG[t.y].slice(0,t.x)+c+p.mapG[t.y].slice(t.x+1);
   }
   NVe.calcularSombras(p,L);
