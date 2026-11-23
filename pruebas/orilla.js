@@ -109,7 +109,7 @@ console.log('\n=== los reflejos ===');
 NV.nieblaEn=()=>0;
 function reflejos(conAgua){
   NV.sueloEn=(x,y)=> conAgua && y>=58 ? 'L' : 'g';
-  NV.objetosEn=(a,b,c,d)=>objetosReal(a,b,c,d).filter(o=>o.x===56&&o.y===56);   // el encino de 4,5 m
+  NV.objetosEn=()=>[{x:56,y:56,h:4.5,k:'arbol',sp:'encino',s:424242}];   // un encino de 4,5 m, armado por la prueba: no depende del bosque sorteado
   m.ponerYo(56,58); m.draw_();
   const E=m.estado();
   const br=(56-E.camY)*E.RPM+E.RPM-1;

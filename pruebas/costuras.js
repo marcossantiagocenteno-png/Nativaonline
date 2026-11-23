@@ -50,17 +50,46 @@ if(tiene){
   probar('nunca sale del rango de los nueve paneles (0,38 a 0,56)', mn>=0.38-1e-9&&mx<=0.56+1e-9);
 }
 
-console.log('\n=== no mueve ni un árbol ni una piedra ===');
-/* huella de los objetos de cada panel, tomada con el generador de antes del cambio */
-const HUELLA={"-1,-1":"1212:953ed15","0,-1":"1066:bdd08459","1,-1":"297:35b00164","-1,0":"1136:c98679a7","0,0":"737:242918f3","1,0":"260:139b89ac","-1,1":"557:bb93f4cd","0,1":"364:be7424ca","1,1":"167:471192de"};
+console.log('\n=== los árboles de cada costura ===');
+/* Se cuentan los árboles en franjas de 10 m pegadas a cada costura. Entre el claro
+   (0,009) y el filo del desierto (0,030) el bosque pasaba de ralo a tupido en una
+   línea. Lo que se mide es la razón entre un lado y el otro, en logaritmo natural:
+   0 es igual, 0,69 es el doble. */
+const arboles=(x0,x1,y0,y1)=>NV.objetosEn(x0,y0,x1,y1).filter(o=>o.k==='arbol'&&o.x>=x0&&o.x<x1&&o.y>=y0&&o.y<y1).length;
+const B=10, lr=(a,b)=>Math.abs(Math.log((a+1)/(b+1)));
+const pares=[
+  ['El filo del desierto', arboles(5,95,-B,0),     arboles(5,95,0,B)],
+  ['Los pinos fríos',      arboles(5,95,100-B,100),arboles(5,95,100,100+B)],
+  ['El bosque viejo',      arboles(-B,0,5,95),     arboles(0,B,5,95)],
+  ['El acantilado',        arboles(100-B,100,5,95),arboles(100,100+B,5,95)]];
+let suma=0;
+for(const [n,a,b] of pares){ suma+=lr(a,b); console.log('  '+n.padEnd(22)+String(a).padStart(3)+' árboles contra '+String(b).padStart(3)+'   razón '+(Math.exp(lr(a,b))).toFixed(1)+'×'); }
+const mediaArb=suma/pares.length;
+console.log('  razón media: '+Math.exp(mediaArb).toFixed(2)+'×   (con el generador anterior: 2,0×; el desierto 2,6×, los pinos 2,7×)');
+probar('en promedio, un lado de la costura no tiene más de 1,7 veces los árboles del otro', mediaArb<Math.log(1.7));
+probar('hay árboles en las franjas de las cuatro costuras', pares.every(([,a,b])=>a+b>8));
+if(typeof NV.densidadArboles==='function'){
+  let salto=0; for(let t=3;t<97;t+=3) salto=Math.max(salto,
+    Math.abs(NV.densidadArboles(t,-0.01,100)-NV.densidadArboles(t,0.01,100)),
+    Math.abs(NV.densidadArboles(-0.01,t,100)-NV.densidadArboles(0.01,t,100)));
+  probar('la densidad de diseño no salta al cruzar una costura (< 0,0005)', salto<0.0005);
+} else probar('existe la densidad mezclada', false);
+
+console.log('\n=== el bosque es el mismo en cada partida ===');
+/* Huella de los árboles y piedras de cada panel. Es una foto del bosque ACTUAL: la
+   promesa es que no cambie sin querer (el generador es determinista). Si el
+   generador de árboles se cambia a propósito, se vuelve a tomar: es la única
+   razón válida para tocar estas cifras. Última vez: densidad de árboles mezclada
+   entre paneles, que volvió a sortear el bosque. */
+const HUELLA={"-1,-1":"1225:1cf3c966","0,-1":"1084:5f65499a","1,-1":"303:84c89f0b","-1,0":"1176:a3ffae79","0,0":"785:fe5b28af","1,0":"279:1bc0036f","-1,1":"534:59e47926","0,1":"335:763d46fe","1,1":"171:8cd839af"};
 const hs=s=>{ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return (h>>>0).toString(16); };
 let distintos=[];
 for(let pj=-1;pj<=1;pj++) for(let pi=-1;pi<=1;pi++){
   const l=NV.objetosEn(pi*100,pj*100,pi*100+100,pj*100+100).map(o=>[o.k,o.x,o.y,o.sp||'',(o.h||0).toFixed(3),o.s||0].join(',')).sort();
   const h=l.length+':'+hs(l.join('|')); if(h!==HUELLA[pi+','+pj]) distintos.push(pi+':'+(-pj));
 }
-console.log('  paneles con objetos distintos a los de antes: '+(distintos.length?distintos.join(', '):'ninguno')+' (de 9)');
-probar('los nueve paneles tienen exactamente los mismos árboles y piedras', distintos.length===0);
+console.log('  paneles con objetos distintos a la huella: '+(distintos.length?distintos.join(', '):'ninguno')+' (de 9)');
+probar('los nueve paneles tienen los mismos árboles y piedras que la huella', distintos.length===0);
 
 console.log('\n'+ok.length+' comprobaciones pasaron'+(mal.length?', '+mal.length+' FALLARON:':''));
 mal.forEach(t=>console.log('  ✗ '+t)); process.exit(mal.length?1:0);

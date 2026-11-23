@@ -90,9 +90,15 @@ console.log('\n=== el suelo: dentro de un metro, la luz baja al alejarse del fue
 console.log('\n=== lo que se levanta del suelo recibe el calor ===');
 {
   hora(0);
-  const con=dibujar(true,HX,HY), sin=dibujar(false,HX,HY), E=con.E;
-  /* el encino de 4,5 m que está cinco metros al sur de la hoguera */
+  /* un encino de 4,5 m cinco metros al sur de la hoguera, puesto por la prueba, y
+     nada más que la hoguera a su alrededor: el bosque real se sortea, y un árbol
+     de al lado lo tapaba (se pinta de norte a sur) o ya no estaba donde estaba */
   const T={x:56,y:56,h:4.5};
+  const obj1=NV.objetosEn;
+  NV.objetosEn=(a,b,c,d)=>[...obj1(a,b,c,d).filter(o=>o.k==='hoguera'),
+                           {x:T.x,y:T.y,h:T.h,k:'arbol',sp:'encino',s:424242}];
+  let con,sin,E; try{
+  con=dibujar(true,HX,HY); sin=dibujar(false,HX,HY); E=con.E; } finally { NV.objetosEn=obj1; }
   const bc=(T.x-E.camX)*E.CPM+Math.floor(E.CPM/2), br=(T.y-E.camY)*E.RPM+E.RPM-1;
   const alto=Math.round(T.h*E.HPM), ancho=Math.round(E.CPM*0.9);
   const medir=(r0,r1)=>{

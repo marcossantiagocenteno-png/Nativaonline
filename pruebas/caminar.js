@@ -8,9 +8,16 @@ const latir=n=>{ for(let k=0;k<n;k++) for(const f of [...T.values()]) f(); };
 const m=cargar('module.exports={NV:window.NV, empezarACaminar, dejarDeCaminar, draw_, tictac, me:()=>me, fbG:()=>fbG, fbC:()=>fbC, move, rumbo:()=>facing};');
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
 m.tictac();
+const NV_=m.NV;
 
 console.log('=== mantener apretado camina ===');
+/* Lo que se prueba es el mecanismo de mantener apretado, no el bosque: sin
+   obstáculos, y volviendo al punto de partida entre una dirección y la otra.
+   (Con el bosque real, un árbol a siete metros al sur la hacía fallar.) */
+const solido0=NV_.solidoEn; NV_.solidoEn=()=>false;
+const salida={...m.me()};
 for(const [nom,dx,dy] of [['norte',0,-1],['oeste',-1,0],['sur',0,1],['este',1,0]]){
+  m.me().x=salida.x; m.me().y=salida.y;
   const ini={...m.me()};
   m.empezarACaminar(dx,dy);
   latir(8);
@@ -22,8 +29,14 @@ for(const [nom,dx,dy] of [['norte',0,-1],['oeste',-1,0],['sur',0,1],['este',1,0]
   probar('caminar al '+nom+' avanza mientras se sostiene', rec>=4);
   probar('caminar al '+nom+' se detiene al soltar', quieto);
 }
+NV_.solidoEn=solido0;
 
 console.log('\n=== los objetos llegan a la pantalla ===');
+/* con árboles puestos por la prueba alrededor del personaje: que se vean no
+   puede depender de dónde cayó el bosque sorteado */
+const obj0=NV_.objetosEn, yo=m.me();
+NV_.objetosEn=(a,b,c,d)=>[...obj0(a,b,c,d),
+  ...[-7,-4,-1,2,5,8].map((dx,i)=>({x:yo.x+dx,y:yo.y+(i%2?-3:-6),h:4+(i%3),k:'arbol',sp:'encino',s:1000+i*977}))];
 m.draw_();
 const g=m.fbG(), C=m.fbC();
 let tronco=0, copa=0;
@@ -36,6 +49,7 @@ for(let i=0;i<g.length;i++){
 console.log('  troncos:', tronco, '· follaje:', copa);
 probar('se dibujan troncos', tronco>30);
 probar('se dibuja follaje', copa>300);
+NV_.objetosEn=obj0;
 
 console.log('\n=== la dirección no salta de un juego de poses a otro ===');
 /* Un camino en diagonal sale en escalera —este, norte, este, norte— y sacando

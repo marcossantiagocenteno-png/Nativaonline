@@ -333,11 +333,20 @@ lo que ocurre en cualquier otro lugar del prado.
   aunque el umbral coincidiera, el dibujo no continuaba al cruzar. Ahora es la misma.
 - El corte del desierto **sigue siendo abrupto**, porque el diseño lo pide así.
 
-**Abierto: la densidad de árboles también salta en las costuras**, de 2 a 4 veces
-(contados a 15 m de cada lado: el desierto tiene unas 2,8 veces los árboles del claro
-vecino, el acantilado un cuarto de los del claro). No se tocó porque los árboles salen
-de un generador secuencial: cambiar cuántos nacen vuelve a sortear **todo el bosque**
-de cada panel. Hacerlo es decisión de mundo, de Marcos.
+**La densidad de árboles también se mezcla en las costuras** (decisión de Marcos:
+"suavizar bosques"). `densidadArboles(gx,gy,L)` usa el mismo `mezclaPanel` que el
+pasto largo, sobre `DENSIDAD_ARBOL`; ya no se pasa `densidad:` a cada llamada de
+`arboles()`. Razón media entre un lado y el otro de la costura, contando franjas de
+10 m: 2,0× antes, 1,5× ahora (el desierto contra el claro pasó de 2,6× a 1,2×).
+Queda una costura más marcada, la del acantilado (2,3×), que tiene otras causas
+(río, sendero, `hasta`) y está por investigar.
+
+- **El bosque se sorteó de nuevo una sola vez**: el generador es secuencial, así que
+  cambiar cuántos árboles nacen cambia todos. Es la única razón válida para volver
+  a tomar la `HUELLA` de `pruebas/costuras.js`.
+- Las pruebas que dependían de un árbol concreto (caminar, orilla, fuego-luz,
+  costuras) ahora **construyen su propia escena** con árboles sintéticos. Un test no
+  debe depender del bosque generado.
 
 Cada panel se genera de su propia semilla derivada de la del mundo, y queda en
 memoria. Todavía no guarda lo que cambia: eso llega cuando haya algo que cambiar.

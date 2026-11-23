@@ -79,18 +79,29 @@ const libre=(p,L,x,y)=>{
    que no mueve ni un árbol ni una piedra. */
 const UMBRAL_G={ '0,0':0.50, '-1,0':0.44, '1,0':0.52, '0,-1':0.38, '0,1':0.56,
                  '-1,-1':0.46, '1,-1':0.46, '-1,1':0.46, '1,1':0.46 };
+/* Cuántos árboles quiere cada panel (probabilidad base de que nazca uno en una
+   celda apta). Es la MISMA mezcla que el pasto largo: sin ella, entre el claro
+   (0,009) y el filo del desierto (0,030) el bosque pasaba de ralo a tupido en
+   una línea recta. Las esquinas continúan lo que tienen al lado. */
+const DENSIDAD_ARBOL={ '0,0':0.009, '-1,0':0.016, '1,0':0.007, '0,-1':0.030, '0,1':0.020,
+                       '-1,-1':0.016, '1,-1':0.016, '-1,1':0.014, '1,1':0.014 };
 const BANDA_G=24;                                   // metros desde la costura
-function umbralG(gx,gy,L){
+/* El valor de una tabla por panel en un punto del mundo: el propio del panel en
+   el centro, acercándose al del vecino hacia la costura (a medias en la costura). */
+function mezclaPanel(tabla,gx,gy,L,def){
   const pi=Math.floor(gx/L), pj=Math.floor(gy/L);
-  const propio=UMBRAL_G[pi+','+pj];
-  if(propio===undefined) return 0.5;
+  const propio=tabla[pi+','+pj];
+  if(propio===undefined) return def;
   const u=gx-pi*L, v=gy-pj*L;
   const dx=Math.min(u,L-u), dy=Math.min(v,L-v);      // a la costura más cercana, en cada eje
   const nx=u<L/2?pi-1:pi+1, ny=v<L/2?pj-1:pj+1;
-  const T=(a,b)=>{ const t=UMBRAL_G[a+','+b]; return t===undefined?propio:t; };   // fuera del mundo: el propio
+  const T=(a,b)=>{ const t=tabla[a+','+b]; return t===undefined?propio:t; };   // fuera del mundo: el propio
   const wx=dx<BANDA_G?0.5*(1-dx/BANDA_G):0, wy=dy<BANDA_G?0.5*(1-dy/BANDA_G):0;
   return (1-wx)*(1-wy)*propio + wx*(1-wy)*T(nx,pj) + (1-wx)*wy*T(pi,ny) + wx*wy*T(nx,ny);
 }
+const umbralG=(gx,gy,L)=>mezclaPanel(UMBRAL_G,gx,gy,L,0.5);
+const densidadArboles=(gx,gy,L)=>mezclaPanel(DENSIDAD_ARBOL,gx,gy,L,0.01);
+NVg.densidadArboles=densidadArboles;
 NVg.umbralG=umbralG;
 
 /* ---------- el claro, 0:0 ---------- */
@@ -101,7 +112,7 @@ function bioClaro(p,L,ox,oy,rnd){
     p.ground.push(fila);
   }
   arroyo(p,L,ox,oy,true);
-  arboles(p,L,ox,oy,rnd,{densidad:0.009, claro:true});
+  arboles(p,L,ox,oy,rnd,{claro:true});
   piedrasYtroncos(p,L,ox,oy,rnd,34,12);
 }
 
@@ -124,7 +135,7 @@ function bioOeste(p,L,ox,oy,rnd){
     }
     p.ground.push(fila);
   }
-  arboles(p,L,ox,oy,rnd,{densidad:0.016, viejos:true});
+  arboles(p,L,ox,oy,rnd,{viejos:true});
   /* el árbol místico, solo, al borde del lago */
   for(const [dx,dy] of [[22,-4],[24,6],[20,10],[26,-10]]){
     const x=lago.x+dx, y=lago.y+dy;
@@ -189,8 +200,8 @@ function bioEsquina(p,L,ox,oy,rnd,op){
     }
     p.ground.push(fila);
   }
-  arboles(p,L,ox,oy,rnd,op.ns==='sur'?{densidad:0.014,soloPino:true}
-                                     :{densidad:0.016,hasta:op.costa?borde-9:L});
+  arboles(p,L,ox,oy,rnd,op.ns==='sur'?{soloPino:true}
+                                     :{hasta:op.costa?borde-9:L});
   piedrasYtroncos(p,L,ox,oy,rnd,24,9);
   gigantes(p,L,ox,oy,rnd,3);
 }
@@ -228,7 +239,7 @@ function bioEste(p,L,ox,oy,rnd){
     }
     p.ground.push(fila);
   }
-  arboles(p,L,ox,oy,rnd,{densidad:0.007, hasta:borde-9});
+  arboles(p,L,ox,oy,rnd,{hasta:borde-9});
   piedrasYtroncos(p,L,ox,oy,rnd,30,8);
 }
 
@@ -251,7 +262,7 @@ function bioNorte(p,L,ox,oy,rnd){
     }
     p.ground.push(fila);
   }
-  arboles(p,L,ox,oy,rnd,{densidad:0.030, desde:'corte'});
+  arboles(p,L,ox,oy,rnd,{desde:'corte'});
   piedrasYtroncos(p,L,ox,oy,rnd,26,10);
   gigantes(p,L,ox,oy,rnd,4);
 }
@@ -273,7 +284,7 @@ function bioSur(p,L,ox,oy,rnd){
     }
     p.ground.push(fila);
   }
-  arboles(p,L,ox,oy,rnd,{densidad:0.020, soloPino:true, raleando:true});
+  arboles(p,L,ox,oy,rnd,{soloPino:true, raleando:true});
   piedrasYtroncos(p,L,ox,oy,rnd,24,14);
   gigantes(p,L,ox,oy,rnd,5);
 }
@@ -317,7 +328,7 @@ function arboles(p,L,ox,oy,rnd,op){
     if(g!=='g'&&g!=='G'&&!(op.soloPino&&g==='N')) continue;
     if(cercaDelAgua(p,L,x,y,2)) continue;          // ni dentro del agua ni en la orilla
     if(sendero(gx,gy)) continue;                   // ni en medio del camino
-    if(rnd()>op.densidad*(0.5+f)*6) continue;
+    if(rnd()>densidadArboles(gx,gy,L)*(0.5+f)*6) continue;
     let cerca=false;
     for(let j=-1;j<=1&&!cerca;j++) for(let i=-1;i<=1;i++) if(p.occ[(y+j)*L+(x+i)]){ cerca=true; break; }
     if(cerca) continue;
