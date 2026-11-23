@@ -10,7 +10,7 @@
    pantalla. Las dos coordenadas conviven y se traducen en un solo lugar: acá. */
 
 const NVp = window.NV;
-const LADO = (NVp.CONFIG&&NVp.CONFIG.mundoViejo)?100:1000;   // metros por panel: 1 km (el mundo viejo de pruebas, 100 m)
+const LADO = 100;                       // metros por panel (= una parcela): el tamaño para el que están hechos los motores
 
 /* clave interna: pi,pj  — pi crece al este, pj crece al SUR */
 const clave=(pi,pj)=>pi+','+pj;

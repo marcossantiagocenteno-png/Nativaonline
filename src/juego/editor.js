@@ -196,7 +196,7 @@
      marca la parcela y pregunta; Sí la agrega (operación 'parcela', con deshacer), No la descarta. */
   E.expansion=null;
   const hayTierraPanel=(pi,pj)=>NV.sueloEn(pi*NV.LADO+NV.LADO/2,pj*NV.LADO+NV.LADO/2)!==null;
-  const kmTxt=()=>(NV.LADO/1000).toLocaleString('es')+' × '+(NV.LADO/1000).toLocaleString('es')+' km';
+  const kmTxt=()=>NV.LADO+' × '+NV.LADO+' m';
   function cerrarExpansion(){ E.expansion=null; const b=$e('expandir'); if(b) b.classList.remove('show'); programarCuadro(); }
   function abrirExpansion(pi,pj){
     E.expansion={pi,pj};
@@ -267,7 +267,7 @@
     if(typeof detenerRuta==='function') detenerRuta();
     const p=$e('dios'); if(p) p.classList.add('show');
     $e('cv').style.cursor='crosshair';
-    decir('<b>Modo Dios</b>\nElegí algo de la paleta y hacé clic en el terreno.\nRueda o + / − : zoom libre (hasta 200 m).\nEspacio + arrastrar: mover el mapa · Inicio: volver al personaje.\nClic en el vacío junto al mapa: agregar terreno de 1 × 1 km.');
+    decir('<b>Modo Dios</b>\nElegí algo de la paleta y hacé clic en el terreno.\nRueda o + / − : zoom libre (hasta 200 m).\nEspacio + arrastrar: mover el mapa · Inicio: volver al personaje.\nClic en el vacío junto al mapa: agregar una parcela de 100 × 100 m.');
     refrescar(); programarCuadro();
   };
   E.salir=function(){

@@ -132,7 +132,7 @@ sabiendo algo— construye mitología.
 
 ## 7. El mapa por paneles
 
-El mundo es una cuadrícula de paneles de **1000 × 1000 metros** (100 × 100 en el mundo viejo de las pruebas). El claro es el
+El mundo es una cuadrícula de paneles de **100 × 100 metros**. El claro es el
 **0:0**. Se nombran con ejes cartesianos: **x crece al este, y crece al norte**.
 
 ```
@@ -1590,22 +1590,22 @@ Pruebas: `pruebas/terreno.js` (motor) y `pruebas/terreno-juego.js` (mundo, dibuj
 
 **Mover el mapa en Modo Dios (Espacio + arrastrar).** `editor.js` (`iniciarPaneo`/`moverPaneo`/`finPaneo`) desplaza la cámara en metros mediante `NV.camLibre`, que `dibujar.js` suma a lo que seguiría al personaje y recorta a los límites del mundo (devolviendo el recorte al desplazamiento, para que no se acumule más allá del borde). Mientras se arrastra, `NV.camDirecta` apaga el suavizado de la cámara y el terreno queda pegado al cursor. El personaje no se mueve y no se edita nada. Inicio vuelve al personaje; salir de Modo Dios lo limpia. El Espacio no activa botones con foco ni se come las teclas dentro de campos de texto o controles. Prueba: `pruebas/editor-mapa.js`.
 
-## Ampliar el mundo en Modo Dios (terrenos de 1 × 1 km)
+## Ampliar el mundo en Modo Dios (parcelas de 100 × 100 m)
 
-**El panel mide 1 km.** `LADO = 1000` m (100 m sólo en el mundo viejo de las pruebas, `CONFIG.mundoViejo`). El 0:0 es un cuadrado
-de 1000 × 1000 m de pasto; el punto de inicio es su centro (500,500). Cada terreno nuevo es otro panel de 1 km, y esa es la
-unidad de crecimiento: no hay parcelas menores.
+**La parcela es el panel, y mide 100 × 100 m.** Se probó con 1 km (`LADO=1000`): los motores corrían, pero cada panel pasaba a
+1 millón de casillas (~12 MB) y los biomas ricos, escritos para 100 m, quedaban chicos y caros de generar. Como los motores no se
+tocan, la parcela se queda en el tamaño para el que están hechos. Cambiar `LADO` en `paneles.js` sigue siendo todo lo que haría
+falta para probar otro.
 
-**Nombres cartesianos.** Cada terreno se llama `x:y`, con x al este e y al **norte** (`NV.nombreDe`, `NV.desdeNombre`): 0:0, 1:0,
-0:1, -1:0… Adentro del motor la y sigue creciendo al sur; la traducción vive sólo en `paneles.js`.
+**Mundo nuevo.** El 0:0 es una parcela de pasto liso; el inicio es su centro (50,50). La semilla es `claro-03`: los borradores y
+partidas de mundos anteriores (100 m con otra semilla, o el intento de 1 km) se descartan solos. `mundo-datos.js` está vacío.
 
-**Mundo nuevo.** La semilla pasó de `claro-01` a `claro-02`: el borrador del navegador y las partidas guardadas del mundo de 100 m
-se descartan solos, porque sus coordenadas ya no significan lo mismo. `mundo-datos.js` está vacío.
+**Nombres cartesianos.** Cada parcela se llama `x:y`, con x al este e y al **norte** (`NV.nombreDe`, `NV.desdeNombre`): 0:0, 1:0, 0:1,
+-1:0… Adentro del motor la y sigue creciendo al sur; la traducción vive sólo en `paneles.js`.
 
-**En el editor.** Clic en el vacío **junto a un terreno** (por un lado) marca su borde con cruces doradas y pregunta
-"¿Expandir? Terreno x:y · 1 × 1 km" con Sí / No (teclas S/Enter y N/Esc). Sí agrega un panel de pasto con la operación `panel`
+**En el editor.** Clic en el vacío **junto a una parcela** (por un lado) marca su borde con cruces doradas y pregunta
+"¿Expandir? Terreno x:y · 100 × 100 m" con Sí / No (teclas S/Enter y N/Esc). Sí agrega un panel de pasto con la operación `panel`
 (con deshacer y rehacer, y va en el archivo del mundo). Lejos de tierra avisa que no se puede. La cámara libre deja 60 m de margen
 más allá del borde para poder llegar al vacío.
 
-Pruebas: `pruebas/ampliar.js`, `pruebas/limpio.js`. Medido en Chrome real (`chrome-movimiento.js`, sin GPU): ~54 FPS en
-movimiento y ~43 con zoom en el mundo de 1 km.
+Pruebas: `pruebas/ampliar.js`, `pruebas/limpio.js`.
