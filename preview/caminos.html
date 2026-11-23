@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, max-age=0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laboratorio de caminos</title>
+</head>
+<body>
+<noscript>El laboratorio necesita JavaScript.</noscript>
+<script>
+/* Igual que index.html y pasto.html: nada adentro salvo un cargador que pide cada archivo con la
+   hora actual, para que la caché del alojamiento no sirva algo viejo. Carga la base del motor, el
+   pasto REAL del juego (sin tocarlo), el motor de caminos y el propio laboratorio. No arranca el juego. */
+(function(){
+  var v='?v='+Date.now();
+  ['../src/motor/base.js','../src/juego/pasto.js','../src/juego/caminos.js','caminos.js'].forEach(function(f){
+    document.write('<script src="'+f+v+'"><\/script>');
+  });
+})();
+</script>
+</body>
+</html>

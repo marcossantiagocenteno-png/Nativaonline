@@ -1355,3 +1355,55 @@ Cada operación sobre objetos invalida un solo panel (16 ms) en vez de los 9 vec
 Árboles manuales permitidos aunque `CONFIG.arboles=false`.
 
 Prueba: `node pruebas/editor.js`.
+
+## Motor de caminos, tierra y empedrados (23/11, LABORATORIO: aún no está en el juego)
+
+Archivo: `src/juego/caminos.js` (`NV.caminos`). Laboratorio: `preview/caminos.html`. Prueba: `node pruebas/caminos.js`.
+Registrado como motor `caminos`, estado `pendiente` (= todavía no lo llama el juego). **Ni `dibujar.js`, ni
+`jugar.js`, ni los paneles lo usan**: `pruebas/caminos.js` lo vigila, y el test dorado sigue en "Todo igual". Integrarlo y
+darle herramientas en el Modo Dios espera la aprobación de Marcos sobre las variantes.
+
+**Independiente del lienzo.** El motor no pinta: para una casilla (metros del mundo) devuelve si la cubre y, si la cubre, el glifo
+y el color (`NV.caminos.sal.g/.c`). Quien pinte hace el `put()`. El laboratorio lo usa con **el pasto real** (`pasto.js`, sin
+tocarlo) alrededor, en el mismo orden que `drawGroundRow`: por metro de norte a sur, primero el pasto y encima el camino, así los
+trazos del pasto del metro de más al sur se montan sobre el borde del camino. Integrar es repetir ese orden en los metros que
+tocan un camino (la rama `mezclar` de `drawGroundRow`).
+
+**Tres capas.** Trazado (puntos de control → línea suave con meandro y ancho variable, con índice de rejilla de 4 m) → campo
+(distancia al eje, ancho y posición ahí, borde con ruido) → superficie (glifo y color por familia).
+
+**Cuatro familias**, cada una con valores propios (`FAMILIAS[f].def`) y sólo los parámetros que le sirven (`parametrosDe(f)`;
+`separacion` es sólo del empedrado). Los doce de la lista del brief más `detalle`:
+anchura, variación de anchura, irregularidad de bordes, densidad de textura, tamaño de piedras, variación del tamaño,
+separación entre piedras, distribución de partículas, variación de tonalidades, desgaste, intensidad de las transiciones,
+nivel de irregularidad, nivel de detalle, y las dos semillas. `pruebas/caminos.js` comprueba que **cada uno cambia lo que se dibuja**.
+Las tres variantes del laboratorio (natural, intermedia, detallada) son `detalle` 0/1/2 más un poco de densidad y partículas:
+el nivel de detalle prende capas (roderas y canalitos, labio del borde, grietas, relieve y musgo en las juntas…).
+
+**Tierra:** manchas de tono, centro compactado, piedritas sueltas o incrustadas, bordes que se deshilachan en pasto. **Empedrado:**
+adoquines por diagrama de potencia (rejilla jitterizada con radio propio por piedra, sin mosaico), junta por la diferencia entre la
+piedra más cercana y la segunda, relieve por altura relativa entre vecinas, tono por piedra y por manchones, y el borde del camino
+sigue el contorno de las piedras (se decide por piedra, no por casilla).
+
+**Dos semillas:** `semTrazado` manda sobre el recorrido, el ancho y la silueta gruesa del borde; `semTextura`, sobre la piel.
+Regenerar la textura no mueve el eje ni el ancho. Todo sale de la semilla y de coordenadas del mundo, nunca del reloj: no parpadea
+al caminar. El grano fino usa el índice de celda (`cx,cy`, como el pasto), así que se reacomoda al cambiar el zoom pero queda fijo
+al moverse.
+
+**Coordenada estable.** Cada punto de control guarda `vs` (metros de recorrido al crearlo, que no cambian). El meandro, el ancho, la
+textura a lo largo y los sectores cuelgan de ella, no de la distancia desde el inicio: mover, insertar o quitar un punto sólo cambia
+los tramos vecinos y **la caja que devuelve la edición es la única zona que hay que redibujar**.
+
+**Edición (lo que el Modo Dios usará sin reconstruir el motor):** `moverPunto`, `insertarPunto`, `quitarPunto`, `fijarAncho` (ancho
+por punto: dibujar con ancho variable), `cambiarFamilia`, `fijarParametro`, `regenerarTextura`, `sectorear` / `quitarSector` (un tramo
+de otra familia, con mezcla), `fijarFin` (`redondo`, `afila`, `plaza`), `bifurcar(padre,f,hacia)` (nace sobre el eje del padre con su
+ancho), `agregar` / `quitar` en la red (`NV.caminos.red`, índice de 16 m; una intersección es dos caminos y el borde se funde con un
+mínimo suave). `aDatos` / `deDatos` guardan y leen un camino. Las herramientas se declaran en la cara `editor` del registro.
+
+**Al integrar (pendiente):** el formato 1 del mundo guarda `rasgos` con `material` de una letra; un camino necesita `camino:{...}`
+(familia, parámetros, `vs`, anchos, semillas, fin, sectores) y su validación en `ediciones.js`; hay que subir `FORMATO` y escribir su
+migración. Los glifos nuevos del suelo: `0` y `8` (extremo denso de la piedra, exclusivo del empedrado por la regla 3) y la tierra
+reutiliza `. , : ; - _ =`.
+
+**Costo medido:** ~0,4 µs por casilla consultada (30×20 m en ~12 ms). El juego redibuja el suelo en cada cuadro (el pendiente de
+guardar el suelo ya pintado sigue abierto), así que una vez integrado conviene pintar el camino sólo en los metros que lo tocan.
