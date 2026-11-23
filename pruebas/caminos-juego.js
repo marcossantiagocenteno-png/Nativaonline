@@ -71,6 +71,10 @@ const clic=(c,f,o)=>{ if(!rap) T+=1000; const [x,y]=px(c,f); E.alBajar(ev(x,y,o)
 const mover=(c,f)=>{ const [x,y]=px(c,f); E.alMover(ev(x,y)); };
 let T=1e6, rap=false; Date.now=()=>T; const lento=()=>{ rap=false; }, rapido=()=>{ rap=true; };   // los clics del Modo Dios distinguen el doble clic por el tiempo: cada clic pasa un segundo, salvo en el doble
 const M=E.modos.caminos, est=()=>M._estado();
+/* el lápiz: apretar en a, arrastrar pasando por los puntos, soltar en el último (sin soltar si `sinSoltar`) */
+const lapiz=(pts,o,sinSoltar)=>{ const [x0,y0]=px(pts[0][0],pts[0][1]); T+=1000; E.alBajar(ev(x0,y0,o));
+  for(let k=1;k<pts.length;k++){ const [a,b]=pts[k-1], [c,d]=pts[k]; for(let t=1;t<=6;t++){ const [x,y]=px(a+(c-a)*t/6,b+(d-b)*t/6); E.alMover(ev(x,y)); } }
+  m.draw_(); if(!sinSoltar){ M.soltar(); m.draw_(); } };
 const tecla=(k,o)=>M.tecla(Object.assign({},o||{}),k);
 const cx=Math.floor(m.cols()/2), cy=Math.floor(m.rowsN()/2);
 
@@ -82,18 +86,15 @@ probar('apuntar un metro da el punto exacto del mundo (con fracción)', (()=>{ c
 
 mover(cx+30,cy);
 const antes=cuadro();
-clic(cx-40,cy);
-probar('un clic en vacío empieza a trazar y no escribe nada todavía', est().trazando&&est().puntos===1&&W.vacio());
-mover(cx-5,cy+1); clic(cx-5,cy+1);
-probar('cada clic suma un punto', est().puntos===2);
-mover(cx+30,cy);
-probar('mientras se traza, el suelo muestra el camino provisional', C.red.caminos.has('__trazo')&&cuadro()!==antes);
+lapiz([[cx-40,cy],[cx-10,cy+8],[cx+10,cy-6],[cx+30,cy]],null,true);
+probar('apretar y arrastrar en vacío dibuja: hay un trazo en curso con varios puntos', est().trazando&&est().puntos>=4&&W.vacio());
+probar('mientras se dibuja, el suelo muestra el camino provisional', C.red.caminos.has('__trazo')&&cuadro()!==antes);
 probar('...pero el mundo todavía no tiene nada', W.vacio());
-clic(cx+30,cy);
-tecla('enter');
-probar('Enter termina: queda un camino en el mundo', !est().trazando&&W.exportar().caminos.length===1&&!C.red.caminos.has('__trazo'));
+M.soltar(); m.draw_();
+probar('soltar el clic termina: queda un camino en el mundo', !est().trazando&&W.exportar().caminos.length===1&&!C.red.caminos.has('__trazo'));
 const id1=W.exportar().caminos[0].id;
-probar('...elegido, con tres puntos y la familia por defecto', est().sel===id1&&W.exportar().caminos[0].puntos.length===3&&W.exportar().caminos[0].camino.familia==='tierra');
+probar('...elegido, con los puntos de la mano y la familia por defecto', est().sel===id1&&W.exportar().caminos[0].puntos.length>=4&&W.exportar().caminos[0].camino.familia==='tierra');
+probar('...y es una curva: los puntos no están alineados', (()=>{ const P=W.exportar().caminos[0].puntos, a=P[0], b=P[P.length-1]; return P.some(q=>Math.abs((b[0]-a[0])*(a[1]-q[1])-(a[0]-q[0])*(b[1]-a[1]))/Math.hypot(b[0]-a[0],b[1]-a[1])>0.4); })());
 tecla('escape');                                  // sin elegir: las cruces de lo elegido no cuentan
 const cuadroT=cuadro();
 probar('el cuadro lo pinta y es distinto del mundo vacío', cuadroT!==antes);
@@ -132,10 +133,10 @@ probar('el motor da las 12 variantes (4 familias × 3)', Object.keys(C.FAMILIAS)
 /* ---- ramal con Shift + clic y borrar con clic derecho ---- */
 if(sobre){
   const n0=W.exportar().caminos.length;
-  clic(sobre[0],sobre[1],{shiftKey:true});
-  probar('Shift + clic sobre un camino empieza un ramal que nace de su eje', est().trazando&&est().puntos===2);
-  clic(sobre[0]+1,sobre[1]+4); clic(sobre[0]+2,sobre[1]+8); tecla('enter');
-  probar('terminar el ramal agrega un camino más, de otra id', W.exportar().caminos.length===n0+1);
+  lapiz([[sobre[0],sobre[1]],[sobre[0]+1,sobre[1]+8],[sobre[0]+4,sobre[1]+18]],{shiftKey:true},true);
+  probar('Shift + arrastrar desde un camino dibuja un ramal que nace de su eje', est().trazando&&est().puntos>=3);
+  M.soltar(); m.draw_();
+  probar('soltar el ramal agrega un camino más, de otra id', W.exportar().caminos.length===n0+1);
   const r=W.exportar().caminos.find(d=>d.id!==id1);
   probar('...que nace con el mismo trazo de textura que el padre y se afila', r.camino.semTextura===dat().camino.semTextura&&r.camino.fin==='afila');
   E.deshacer(); probar('deshacer saca el ramal y deja el camino principal', W.exportar().caminos.length===n0&&!!dat());
@@ -145,14 +146,20 @@ if(sobre){
 }
 
 /* ---- cancelar ---- */
-clic(cx-30,cy-8); probar('empezar otro camino', est().trazando);
+lapiz([[cx-30,cy-8],[cx-10,cy-8]],null,true); probar('empezar otro camino', est().trazando);
 tecla('escape');
 probar('Esc cancela el trazo sin escribir nada y sin dejar la vista provisional', !est().trazando&&!C.red.caminos.has('__trazo'));
-clic(cx-30,cy-8); clic(cx-3,cy-6); tecla('backspace'); probar('Retroceso quita el último punto', est().puntos===1);
-tecla('backspace'); probar('...y con el último, cancela', !est().trazando);
-/* doble clic termina */
-clic(cx-40,cy-12); clic(cx+3,cy-12); rapido(); clic(cx+3,cy-12); lento();
-probar('doble clic termina el camino', !est().trazando&&W.exportar().caminos.length>=2);
+const nPrev=W.exportar().caminos.length; M.soltar();
+probar('soltar después de cancelar no escribe nada', W.exportar().caminos.length===nPrev);
+clic(cx-30,cy-8); M.soltar();
+probar('un clic sin arrastrar en vacío no deja ningún camino', !est().trazando&&W.exportar().caminos.length===nPrev);
+lapiz([[cx-40,cy-12],[cx-20,cy-14],[cx+3,cy-12]]);
+probar('otro trazo suma otro camino', W.exportar().caminos.length===nPrev+1);
+tecla(']'); // sin elegir y sin trazar: sólo cambia el ancho del próximo
+probar('la herramienta sigue entera después de varios trazos', !est().trazando);
+const nCam=W.exportar().caminos.length;
+lapiz([[cx-30,cy-20],[cx-10,cy-22]],null,true); tecla(']'); tecla(']'); M.soltar(); m.draw_();
+probar('el ancho que se pone con el clic apretado queda en los puntos que siguen', W.exportar().caminos.length===nCam+1);
 
 /* ---- salir ---- */
 const textoFinal=W.texto();

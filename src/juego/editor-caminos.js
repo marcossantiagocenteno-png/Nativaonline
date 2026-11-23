@@ -3,15 +3,14 @@
    motor (NV.caminos); acá sólo se decide qué hacer con el ratón y se escribe cada cambio en el mundo con
    NV.mundo.editar({t:'camino',id,datos}), que es de donde sale también el deshacer (la pila es la del editor).
 
-     · clic en el terreno vacío: empieza un camino; cada clic agrega un punto
-     · doble clic, Enter, clic derecho o el botón "terminar": lo termina · Retroceso quita el último punto · Esc lo cancela
-     · [ y ] (o - y +, o los botones) cambian el ancho: al trazar valen para los puntos que vienen; con un camino
-       elegido, para todo el camino
-     · clic sobre un camino: lo elige; los botones de familia y variante lo cambian
-     · Shift + clic sobre un camino: nace un ramal desde ahí
-     · Alt + clic: empieza un camino nuevo aunque haya otro debajo (para cruzarlos)
+     · LÁPIZ: se mantiene el clic izquierdo en el terreno y se arrastra; el camino sigue la mano y se cierra al soltar
+     · [ y ] (o - y +, o los botones) cambian el ancho: al dibujar valen para lo que viene (con el clic apretado también);
+       con un camino elegido, escalan todo el camino
+     · clic (sin arrastrar) sobre un camino: lo elige; los botones de familia y variante lo cambian
+     · Shift + arrastrar desde un camino: nace un ramal desde ahí
+     · Alt + arrastrar: dibuja un camino nuevo aunque haya otro debajo (para cruzarlos)
      · Control + clic sobre un camino: otra textura, el mismo trazado
-     · clic derecho sobre un camino (sin trazar), o Supr: lo borra
+     · clic derecho sobre un camino, o Supr: lo borra · Esc mientras se dibuja: lo cancela
 
    Todo se mide en metros. El motor no guarda nada que no sea el camino; las 12 variantes son familia × (natural, media, detallada). */
 (function(NV){
@@ -24,8 +23,9 @@
 
   let fam='tierra', vari='intermedia', ancho=null;     // lo que se usa para el camino siguiente
   let traza=null;                                       // el camino en curso: {pts,w,rama,padre}
+  let pulsado=false;                                    // el clic izquierdo está apretado dibujando
   let sel=null;                                         // id del camino elegido
-  let cur=null, ult=null, ultVista=null;                // cursor en metros del mundo · último clic · último punto de la vista previa
+  let cur=null, ultVista=null;                // cursor en metros del mundo · último clic · último punto de la vista previa
 
   const anchoDe=f=>C().FAMILIAS[f].def.ancho;
   const unAncho=()=>ancho==null?anchoDe(fam):ancho;
@@ -112,23 +112,30 @@
     }
     sel=null; vista(); marcarUI(); E.refrescar();
   }
+  const SEP=0.6;                                        // cada cuántos metros de mano se guarda un punto
   function punto(p){
     const u=traza.pts[traza.pts.length-1];
-    if(Math.hypot(p.wx-u[0],p.wy-u[1])<0.25) return;
-    if(traza.pts.length>=400){ E.decir('Ya es muy largo: terminalo y seguí con otro.'); return; }
+    if(Math.hypot(p.wx-u[0],p.wy-u[1])<SEP) return;
+    if(traza.pts.length>=1500){ E.decir('Ya es muy largo: terminalo y seguí con otro.'); return; }
     traza.pts.push([p.wx,p.wy]); traza.w.push(unAncho());
     vista(); E.refrescar();
   }
   function terminar(){
     if(!traza) return;
-    if(traza.pts.length<2){ cancelar(); E.decir('Un camino necesita al menos dos puntos.'); return; }
+    if(traza.pts.length<2){ cancelar(); E.decir('Mantené el clic y arrastrá para dibujar.'); return; }
+    suavizar(traza.pts,traza.rama?2:1);
     const id=libre();
     let datos; try{ datos=C().aDatos(construir(id,traza.pts,traza.w)); }catch(e){ E.decir('No se pudo trazar: '+e.message); return; }
     limpiarVista(); traza=null;
     if(escribir(id,datos,'Camino trazado.')) sel=id;
     marcarUI(); E.refrescar();
   }
-  function cancelar(){ traza=null; limpiarVista(); marcarUI(); E.refrescar(); if(typeof programarCuadro==='function') programarCuadro(); }
+  /* la mano tiembla: una pasada que mezcla cada punto con sus vecinos (los primeros `desde` no se tocan, ni el último) */
+  function suavizar(P,desde){
+    const o=P.map(q=>[q[0],q[1]]);
+    for(let i=desde;i<P.length-1;i++){ P[i][0]=(o[i-1][0]+2*o[i][0]+o[i+1][0])/4; P[i][1]=(o[i-1][1]+2*o[i][1]+o[i+1][1])/4; }
+  }
+  function cancelar(){ pulsado=false; traza=null; limpiarVista(); marcarUI(); E.refrescar(); if(typeof programarCuadro==='function') programarCuadro(); }
   function quitarUltimo(){
     if(!traza) return;
     if(traza.pts.length<=(traza.rama?2:1)){ cancelar(); return; }
@@ -166,25 +173,29 @@
     cur=p;
     if(e.button===2){
       if(e.ctrlKey) return;                              // en Mac, Control+clic es clic derecho: no debe borrar
-      if(traza){ terminar(); return; }
+      if(traza){ cancelar(); return; }
       const c=bajo(p.wx,p.wy);
       if(c) borrar(c.id); else E.decir('Ahí no hay ningún camino.');
       return;
     }
     if(e.button!==0) return;
-    if(traza){
-      const t=Date.now(), u=ult;
-      if(u&&t-u.t<350&&Math.hypot(p.wx-u.x,p.wy-u.y)<1.2){ terminar(); ult=null; return; }
-      ult={t,x:p.wx,y:p.wy}; punto(p); return;
-    }
+    if(traza) return;
     const c=e.altKey?null:bajo(p.wx,p.wy);
     if(e.ctrlKey){ if(c) textura(c.id); else E.decir('Ahí no hay ningún camino.'); return; }
-    if(e.shiftKey&&c){ empezar(p,c); ult={t:Date.now(),x:p.wx,y:p.wy}; return; }
+    if(e.shiftKey&&c){ empezar(p,c); pulsado=true; return; }
     if(c){ sel=c.id; marcarUI(); E.refrescar(); if(typeof programarCuadro==='function') programarCuadro(); return; }
-    empezar(p,null); ult={t:Date.now(),x:p.wx,y:p.wy};
+    empezar(p,null); pulsado=true;
+  }
+  /* soltar el clic cierra el camino */
+  function soltar(){
+    if(!pulsado) return;
+    pulsado=false;
+    if(traza&&cur){ const u=traza.pts[traza.pts.length-1]; if(Math.hypot(cur.wx-u[0],cur.wy-u[1])>0.2) punto(Object.assign({},cur),true); }
+    terminar();
   }
   function mover(e){
     const p=puntero(e); cur=p;
+    if(traza&&pulsado&&p) punto(p);
     if(traza){
       if(p&&(!ultVista||Math.hypot(p.wx-ultVista[0],p.wy-ultVista[1])>0.12)){ ultVista=[p.wx,p.wy]; vista(); }
     }
@@ -192,7 +203,7 @@
   }
   function tecla(e,k){
     if(e.ctrlKey||e.metaKey) return false;               // deshacer y rehacer los maneja el editor
-    if(k==='enter'&&traza){ terminar(); return true; }
+    if(k==='enter'&&traza){ pulsado=false; terminar(); return true; }
     if(k==='escape'){ if(traza){ cancelar(); return true; } if(sel){ sel=null; marcarUI(); E.refrescar(); programarCuadro(); return true; } return false; }
     if(k==='backspace'&&traza){ quitarUltimo(); return true; }
     if((k==='delete')&&!traza&&sel){ borrar(sel); return true; }
@@ -220,11 +231,11 @@
   function estado(){
     if(sel&&!datosDe(sel)) sel=null;
     if(traza){
-      return '<b>Trazando '+(traza.rama?'un ramal':nombreFam(fam))+'</b>\nClic: otro punto · doble clic o Enter: terminar\n[ ] ancho · Retroceso: quita uno · Esc: cancela';
+      return '<b>Dibujando '+(traza.rama?'un ramal':nombreFam(fam))+'</b>\nSoltá el clic para terminar\n[ ] ancho · Esc: cancela';
     }
     const d=sel&&datosDe(sel);
     if(d) return '<b>Camino elegido</b> · '+nombreFam(d.camino.familia)+', '+varianteDe(d)+'\nBotones: familia, variante, ancho\nCtrl+clic: otra textura · Supr: borrar\nShift+clic sobre él: ramal';
-    return '<b>Caminos</b>\nClic en vacío: empezar uno\nClic en un camino: elegirlo\nClic derecho sobre uno: borrarlo';
+    return '<b>Caminos</b>\nMantené el clic y arrastrá: lápiz\nClic en un camino: elegirlo\nClic derecho sobre uno: borrarlo';
   }
   const cruz=(x,y,color)=>{
     const c0=Math.round((x-camX)*CPM), r0=Math.floor((y-camY)*RPM);
@@ -249,12 +260,13 @@
 
   /* ---------- el registro en el editor ---------- */
   E.modos.caminos={
-    bajar,mover,tecla,estado,pintar,
+    bajar,mover,soltar,tecla,estado,pintar,
     abrir(){ marcarUI(); },
-    cerrar(){ traza=null; limpiarVista(); sel=null; cur=null; },
+    cerrar(){ pulsado=false; traza=null; limpiarVista(); sel=null; cur=null; },
     iniciar(){
       for(const b of document.querySelectorAll('#diosCaminos .camFam')) b.addEventListener('click',()=>mudar(b.dataset.fam,null));
       for(const b of document.querySelectorAll('#diosCaminos .camVar')) b.addEventListener('click',()=>mudar(null,b.dataset.var));
+      addEventListener('pointerup',soltar); addEventListener('pointercancel',soltar);
       $e('camAncMas').addEventListener('click',()=>masAncho(1));
       $e('camAncMenos').addEventListener('click',()=>masAncho(-1));
       $e('camTerminar').addEventListener('click',terminar);

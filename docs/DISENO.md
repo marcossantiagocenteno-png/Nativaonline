@@ -1374,14 +1374,14 @@ los metros que algún camino toca (y que no son agua), pinta con `celdaRed` enci
 el cuadro es idéntico (el dorado lo vigila). (3) *Editor:* `src/juego/editor-caminos.js`, la pestaña "caminos" del Modo Dios.
 `NV.casillaEn` ahora devuelve también `wx,wy` (el punto exacto del mundo, con fracción).
 
-**Controles (pestaña caminos).** Clic en vacío empieza un camino y cada clic suma un punto; doble clic, Enter, clic derecho o
-"terminar" lo cierra; Retroceso quita el último punto; Esc cancela. `[` y `]` (o `-` / `+`, o los botones) cambian el ancho: al
-trazar valen para los puntos que vienen (el ancho cambia a lo largo del camino), con un camino elegido escalan todo. Clic sobre un
-camino lo elige y los botones de familia (4) y variante (natural, media, detallada) lo cambian: son las 12 variantes. Shift+clic
-sobre un camino hace nacer un ramal (mismo material y textura que el padre, se afila). Alt+clic empieza un camino nuevo aunque haya
-otro debajo (para cruzarlos). Ctrl+clic sobre un camino: otra textura, mismo trazado. Clic derecho sobre un camino (sin trazar) o
-Supr: borrar. Ctrl+Z / Ctrl+Shift+Z deshacen y rehacen todo. Mientras se traza, el camino se ve provisional en el suelo (id `__trazo`,
-que no es del mundo y `sincronizar` no toca).
+**Controles (pestaña caminos): lápiz.** Se mantiene el clic izquierdo en el terreno y se arrastra: el camino sigue la mano (un punto
+cada ~0,6 m, con una pasada de suavizado contra el temblor) y se cierra al soltar; un clic sin arrastrar en vacío no deja nada. `[` y
+`]` (o `-` / `+`, o los botones) cambian el ancho, también con el clic apretado: vale para los puntos que vienen. Clic sobre un camino
+lo elige y los botones de familia (4) y variante (natural, media, detallada) lo cambian: son las 12 variantes; con uno elegido,
+`[` `]` escalan todo. Shift + arrastrar desde un camino hace nacer un ramal (mismo material y textura que el padre, se afila).
+Alt + arrastrar dibuja uno nuevo aunque haya otro debajo (para cruzarlos). Ctrl+clic sobre un camino: otra textura, mismo trazado.
+Clic derecho sobre un camino o Supr: borrar. Esc mientras se dibuja: cancelar. Ctrl+Z / Ctrl+Shift+Z deshacen y rehacen todo.
+Mientras se dibuja, el camino se ve provisional en el suelo (id `__trazo`, que no es del mundo y `sincronizar` no toca).
 
 **Independiente del lienzo.** El motor no pinta: para una casilla (metros del mundo) devuelve si la cubre y, si la cubre, el glifo
 y el color (`NV.caminos.sal.g/.c`). Quien pinte hace el `put()`. El laboratorio lo usa con **el pasto real** (`pasto.js`, sin
