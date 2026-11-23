@@ -1380,8 +1380,10 @@ lo demás no se mueva. Siguen los arbustos, los troncos caídos y las piedras. C
   se ignora. Poner `luzFija:false` devuelve el sistema entero. Las pruebas cargan con
   la luz viva (`global.__luzFija` en `pruebas/cargar.js`, apagado por defecto).
 - **Un solo pasto.** Los materiales `g`, `G`, `h` y `n` se dibujan con la misma
-  definición: brizna fina y erguida de 0,2 a 0,5 m, base en sombra y punta clara, mucho
-  más tupida que antes. Conservan su letra porque el generador y las pruebas las
+  definición: brizna fina y larga de 0,45 a 1,1 m, base en sombra y punta clara, y
+  POCAS: menos de una por franja y metro (el número se reparte con un dado), sin la
+  alfombra de relleno, para que el fondo oscuro se vea entre las briznas, como en la
+  muestra, que no gasta glifos en cubrir el suelo. Conservan su letra porque el generador y las pruebas las
   distinguen, pero ya no se ven distintas; solo cambia la luz.
 - Las manchas de tierra del pasto quedan apagadas (`MANCHAS_DE_TIERRA` en `dibujar.js`).
-- Flores, guijarros y hojarasca subieron de densidad porque el pasto tupido tapa parte.
+- Flores, guijarros y hojarasca subieron de densidad respecto de lo original.

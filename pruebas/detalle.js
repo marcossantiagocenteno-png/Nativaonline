@@ -130,7 +130,9 @@ if(sinDet!==null) console.log('  un cuadro de pasto: '+con.toFixed(1)+' ms con d
    mejor cuadro cuesta alrededor de un 45 %; el tope vigila que no se dispare. */
 /* tope 2,0 y no 1,7: al zoom estándar (28 m, 13 celdas por metro) hay menos briznas por metro
    y el detalle, que va por metro cuadrado, pesa más en proporción */
-probar('el detalle no encarece un cuadro todo de pasto más del doble', sinDet===null || con<sinDet*2.0);
+/* tope 3,5 y no 2,0: el pasto es ahora ralo (pocas briznas largas), así que el cuadro sin detalle
+   cuesta mucho menos y el mismo detalle pesa más en proporción aunque cueste menos en total */
+probar('el detalle no encarece un cuadro todo de pasto más de tres veces y media', sinDet===null || con<sinDet*3.5);
 
 console.log('\n'+ok.length+' comprobaciones pasaron'+(mal.length?', '+mal.length+' FALLARON:':''));
 mal.forEach(t=>console.log('  ✗ '+t)); process.exit(mal.length?1:0);

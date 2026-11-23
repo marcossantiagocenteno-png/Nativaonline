@@ -761,7 +761,7 @@ function drawGroundRow(my,rBase,haze,t){
         }
       }
       /* alfombra dispersa en TODAS las franjas: no hay línea de base */
-      if(!mt.manto) for(let k=0;k<CPM;k+=2){
+      if(!mt.manto && !(mt.largo||type==='G')) for(let k=0;k<CPM;k+=2){
         if(tex2(mx+(k+0.5)/CPM,my+(sy+0.5)/RPM,0.34)*densMata<0.34) continue;
         if(cerca){ afinar(k,sy); light=_lz; calor=_cal; colG=_col; }
         put(base+k,rb,mt.largo||type==='G'?124:176,colG);
@@ -769,8 +769,11 @@ function drawGroundRow(my,rBase,haze,t){
       /* briznas: base repartida en la profundidad, altura mayor que el paso
          de la grilla para que la mata se enlace de un metro al siguiente */
       const largo=mt.largo||type==='G';
-      const nPer=Math.max(2,Math.round(CPM*(largo?0.36:0.09)*calidad));      // tupido, como la muestra
-      const n=Math.round(nPer*clamp(0.20+densMata*1.10,0.12,1.7));
+      /* pocas briznas, largas y finas sobre el fondo oscuro, como la muestra: menos de una
+         por franja y metro, así que el número se reparte con un dado en vez de redondear */
+      const nPer=CPM*(largo?0.026:0.09)*calidad;
+      const nf=nPer*clamp(0.20+densMata*1.10,0.12,1.7);
+      const n=Math.floor(nf)+((hash3(mx*53+sy,my*71,19)%1000)<(nf%1)*1000?1:0);
       let colT=packs(mt.fam2||mt.fam,light*1.3);
       let colM=packs(mt.fam,light*0.95);
       let colB=packs(mt.fam,light*0.55);             // la base de la brizna, en sombra
@@ -778,7 +781,7 @@ function drawGroundRow(my,rBase,haze,t){
         const hb=hash3(mx*997+b,my*131+sy*37,7);
         const c0=base+((hb%(CPM*8))/8|0);
         if(cerca){ afinar(c0-base,sy); colT=packs(mt.fam2||mt.fam,_lz*1.3); colM=packs(mt.fam,_lz*0.95); colB=packs(mt.fam,_lz*0.55); }
-        const mAlto=(largo?0.20:0.13)+(((hb>>5)%100)/100)*(largo?0.30:0.27);      // brizna corta: 0,2 a 0,5 m
+        const mAlto=(largo?0.45:0.13)+(((hb>>5)%100)/100)*(largo?0.65:0.27);      // brizna larga y fina: 0,45 a 1,1 m
         const alto=Math.max(2,Math.round(mAlto*HPM));
         const own=((((hb>>9)%9)-4)/4)*0.95;
         /* el pasto seco o pisado se acuesta: la brizna sale tendida y no parada */

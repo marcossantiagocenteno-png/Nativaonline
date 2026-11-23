@@ -29,7 +29,7 @@ function relampago(ms, tormenta){
   return Math.max(0, 1-sub*1.35);                 // golpe seco y vuelta enseguida
 }
 
-const LUZ_FIJA={amb:0.46, r:0.88, g:1.00, b:0.98, sombra:[1,0.30,1.7]};   // la luz de la muestra
+const LUZ_FIJA={amb:0.72, r:0.78, g:1.00, b:0.80, sombra:[1,0.30,1.7]};   // la luz de la muestra
 const cielo = {
   t:0, dia:1, ano:0, estacion:'primavera', fase:0.4, deNoche:false,
   elev:40, azimut:140,

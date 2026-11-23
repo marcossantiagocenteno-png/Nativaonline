@@ -109,7 +109,9 @@ console.log('\n=== los reflejos ===');
    tapa lo que se quiere medir. Se apaga solo para esta sección. */
 NV.nieblaEn=()=>0;
 function reflejos(conAgua){
-  NV.sueloEn=(x,y)=> conAgua && y>=58 ? 'L' : 'g';
+  /* arena y no pasto: las briznas también son de la capa 2 y cambian de un cuadro al otro
+     según haya agua o tierra al sur, y no son lo que se mide aquí */
+  NV.sueloEn=(x,y)=> conAgua && y>=58 ? 'L' : 's';
   NV.objetosEn=()=>[{x:56,y:56,h:4.5,k:'arbol',sp:'encino',s:424242}];   // un encino de 4,5 m, armado por la prueba: no depende del bosque sorteado
   m.ponerYo(56,58); m.draw_();
   const E=m.estado();
