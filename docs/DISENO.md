@@ -1370,3 +1370,18 @@ lo demás no se mueva. Siguen los arbustos, los troncos caídos y las piedras. C
 `arboles:true` vuelven tal cual estaban. Las pruebas que miden árboles ponen
 `global.__arboles=true` antes de cargar (`pruebas/cargar.js` lo aplica justo después de
 `base.js`); `pruebas/sinarboles.js` comprueba que no quede ninguno y que nada más se mueva.
+
+## Luz fija y pasto único (pausa del sistema de luz)
+
+- **Luz fija.** `NV.CONFIG.luzFija` (verdadero en el juego) congela la luz: al final de
+  `actualizarCielo` la luz, la dirección y el largo de las sombras salen de `LUZ_FIJA`
+  (penumbra fría y verdosa, sombras largas hacia el este), sin importar la hora del
+  mundo, el clima, los eclipses ni los relámpagos. Todo eso se sigue calculando; solo
+  se ignora. Poner `luzFija:false` devuelve el sistema entero. Las pruebas cargan con
+  la luz viva (`global.__luzFija` en `pruebas/cargar.js`, apagado por defecto).
+- **Un solo pasto.** Los materiales `g`, `G`, `h` y `n` se dibujan con la misma
+  definición: brizna fina y erguida de 0,2 a 0,5 m, base en sombra y punta clara, mucho
+  más tupida que antes. Conservan su letra porque el generador y las pruebas las
+  distinguen, pero ya no se ven distintas; solo cambia la luz.
+- Las manchas de tierra del pasto quedan apagadas (`MANCHAS_DE_TIERRA` en `dibujar.js`).
+- Flores, guijarros y hojarasca subieron de densidad porque el pasto tupido tapa parte.

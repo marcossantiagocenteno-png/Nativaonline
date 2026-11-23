@@ -589,6 +589,7 @@ function rellenarFrente(base,rBase,mx,haze){
     }
   }
 }
+const MANCHAS_DE_TIERRA=false;     // las manchas de tierra del pasto, apagadas mientras haya un solo pasto
 function drawGroundRow(my,rBase,haze,t){
   const colsM=Math.ceil(cols/CPM);
   traerFilas(my,camX-1,camX+colsM+1);
@@ -634,7 +635,7 @@ function drawGroundRow(my,rBase,haze,t){
        parches y no parejo como una cancha */
     /* manchas de tierra oscura: claros pelados dentro del pasto, de unos cinco
        metros, donde la mata ralea y asoma el suelo (como en la referencia) */
-    const mancha=grass?clamp((tex2(mx+40.5,my-24.5,5.5)-0.60)/0.10,0,1):0;
+    const mancha=(MANCHAS_DE_TIERRA&&grass)?clamp((tex2(mx+40.5,my-24.5,5.5)-0.60)/0.10,0,1):0;   // apagadas: un solo pasto
     const densMata=grass?clamp(mt.mata*(0.30+1.45*tex2(mx+0.5,my+0.5,1.6))*(1-0.78*mancha),0,1.4):0;
     /* el detalle no va en los metros que tocan otro material: ahí las celdas
        pueden ser de la arena o del agua de al lado, y una flor en el agua no */
@@ -768,7 +769,7 @@ function drawGroundRow(my,rBase,haze,t){
       /* briznas: base repartida en la profundidad, altura mayor que el paso
          de la grilla para que la mata se enlace de un metro al siguiente */
       const largo=mt.largo||type==='G';
-      const nPer=Math.max(2,Math.round(CPM*(largo?0.15:0.09)*calidad));
+      const nPer=Math.max(2,Math.round(CPM*(largo?0.36:0.09)*calidad));      // tupido, como la muestra
       const n=Math.round(nPer*clamp(0.20+densMata*1.10,0.12,1.7));
       let colT=packs(mt.fam2||mt.fam,light*1.3);
       let colM=packs(mt.fam,light*0.95);
@@ -777,7 +778,7 @@ function drawGroundRow(my,rBase,haze,t){
         const hb=hash3(mx*997+b,my*131+sy*37,7);
         const c0=base+((hb%(CPM*8))/8|0);
         if(cerca){ afinar(c0-base,sy); colT=packs(mt.fam2||mt.fam,_lz*1.3); colM=packs(mt.fam,_lz*0.95); colB=packs(mt.fam,_lz*0.55); }
-        const mAlto=(largo?0.45:0.13)+(((hb>>5)%100)/100)*(largo?0.80:0.27);
+        const mAlto=(largo?0.20:0.13)+(((hb>>5)%100)/100)*(largo?0.30:0.27);      // brizna corta: 0,2 a 0,5 m
         const alto=Math.max(2,Math.round(mAlto*HPM));
         const own=((((hb>>9)%9)-4)/4)*0.95;
         /* el pasto seco o pisado se acuesta: la brizna sale tendida y no parada */

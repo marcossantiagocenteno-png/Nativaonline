@@ -13,11 +13,11 @@ const MONO='ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", m
    ver a lo ancho. Ver aplicarEscala en motor/lienzo.js. */
 let CPM=13, RPM=4, HPM=6.8;
 
-const CONFIG={ name:'Claro del norte', seed:'bosque-02', arboles:false, w:100, h:100,
+const CONFIG={ name:'Claro del norte', seed:'bosque-02', arboles:false, luzFija:true, w:100, h:100,
                treeDensity:0.009, clearing:true, sunElev:30 };
 const FAM={
-  verde:  ['#0a1f1b','#113b31','#1c6350','#46b48f'],   // verde frío casi negro, con la punta menta
-  verdeO: ['#071612','#0c2a23','#154a3d','#2a8470'],   // follaje en sombra propia
+  verde:  ['#0c2412','#14391c','#245f2e','#54b56c'],   // el pasto de la muestra: verde sobrio, punta clara
+  verdeO: ['#081a0e','#0f2c17','#1b4a26','#34803f'],   // follaje en sombra propia
   corteza:['#1c1917','#2a2420','#3d342c','#584b3f'],
   piedra: ['#262c33','#3b4550','#5a6975','#8797a5'],
   tierra: ['#26231f','#38342b','#524b3c','#70664f'],

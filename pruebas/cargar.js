@@ -39,7 +39,7 @@ global.setInterval=()=>0;global.clearInterval=()=>{};global.setTimeout=()=>0;glo
    árboles ponen global.__arboles=true ANTES de cargar: se aplica justo después de base.js,
    antes de que se genere el primer panel. */
 const partes=ORDEN.map(f=>fs.readFileSync(R+f,'utf8'));
-const src=[partes[0],'window.NV.CONFIG.arboles=!!global.__arboles;',...partes.slice(1)].join('\n;\n');
+const src=[partes[0],'window.NV.CONFIG.arboles=!!global.__arboles; window.NV.CONFIG.luzFija=!!global.__luzFija;',...partes.slice(1)].join('\n;\n');
 /* Las partículas dependen del reloj, y casi todas las pruebas comparan cuadros: arrancan apagadas.
    La que las mide (particulas.js) las enciende con NV.particulas=true. */
 module.exports=function(extra){

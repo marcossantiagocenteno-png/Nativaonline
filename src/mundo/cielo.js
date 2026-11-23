@@ -29,6 +29,7 @@ function relampago(ms, tormenta){
   return Math.max(0, 1-sub*1.35);                 // golpe seco y vuelta enseguida
 }
 
+const LUZ_FIJA={amb:0.46, r:0.88, g:1.00, b:0.98, sombra:[1,0.30,1.7]};   // la luz de la muestra
 const cielo = {
   t:0, dia:1, ano:0, estacion:'primavera', fase:0.4, deNoche:false,
   elev:40, azimut:140,
@@ -120,6 +121,19 @@ function actualizarCielo(ms){
   }
 
   cielo.luz.amb=amb; cielo.luz.r=r*amb; cielo.luz.g=g*amb; cielo.luz.b=b*amb;
+  /* LUZ FIJA (NV.CONFIG.luzFija): el sistema de luz está en pausa. El día y la noche, las
+     nubes, los eclipses y los relámpagos se siguen calculando pero no se usan: la luz es
+     siempre la de la muestra de referencia —penumbra fría y verdosa, con sombras largas
+     hacia el este—. Poner luzFija en false lo devuelve entero. */
+  if(NV_.CONFIG && NV_.CONFIG.luzFija){
+    const F=NV_.CONFIG.luzFijaValores||LUZ_FIJA;
+    cielo.deNoche=false; cielo.relampago=0; cielo.rojo=0; cielo.blanco=0; cielo.eclipse=null;
+    cielo.visibilidad=1; cielo.brilloLunar=0;
+    cielo.sombra.dx=F.sombra[0]; cielo.sombra.dy=F.sombra[1]; cielo.sombra.porMetro=F.sombra[2];
+    cielo.luz.amb=F.amb; cielo.luz.r=F.r*F.amb; cielo.luz.g=F.g*F.amb; cielo.luz.b=F.b*F.amb;
+    cielo.nombre='una penumbra fría';
+    return cielo;
+  }
   cielo.nombre = ecl ? (ecl.luna==='Calavera'?'la luz se vuelve roja':'una claridad blanca')
                      : (t<0.5 ? p.n : q.n);
   return cielo;

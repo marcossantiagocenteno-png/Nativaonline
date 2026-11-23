@@ -50,20 +50,23 @@
      alza   : si sube sobre una brizna (la flor) o va a ras del suelo
      sem    : desfase del ruido y de la semilla, para que dos detalles no coincidan */
 const DET={
-  flores:   {glifo:'+', fam:['flor','hoja'],   escala:2.6, corte:0.58, borde:0.10, porM2:5.0, alza:1, sem:311},
-  guijarros:{glifo:'o', fam:['piedra'],        escala:4.5, corte:0.60, borde:0.10, porM2:2.5, alza:0, sem:523},
-  hojarasca:{glifo:',', fam:['hoja','hongo'],  escala:3.2, corte:0.55, borde:0.12, porM2:8.0, alza:0, sem:707}
+  flores:   {glifo:'+', fam:['flor','hoja'],   escala:2.6, corte:0.58, borde:0.10, porM2:6.5, alza:1, sem:311},
+  guijarros:{glifo:'o', fam:['piedra'],        escala:4.5, corte:0.60, borde:0.10, porM2:3.8, alza:0, sem:523},
+  hojarasca:{glifo:',', fam:['hoja','hongo'],  escala:3.2, corte:0.55, borde:0.12, porM2:11.0, alza:0, sem:707}
 };
 const MAT={                                   // capa SUELO, en uso
-  g:{n:'pasto corto', fam:'verde',  ramp:[' ','\u00b0','\u00b0','*','*'], mata:0.72,
+  /* UN SOLO PASTO. En la muestra de referencia todo el prado es la misma brizna y sólo
+     cambia la luz. Los cuatro materiales de pasto siguen existiendo —el generador y las
+     pruebas los distinguen por su letra— pero se dibujan igual: brizna fina y erguida,
+     base en sombra y punta clara, con flores, hojarasca y guijarros sueltos entre medio. */
+  g:{n:'pasto', fam:'verdeO', ramp:['|','|','|','|','|'], tip:['|','/','\\'], fam2:'verde', largo:1, mata:0.70,
      detalle:[DET.flores,DET.guijarros,DET.hojarasca]},
-  G:{n:'pasto largo', fam:'verdeO', ramp:['|','|','|','|','|'], tip:['|','/','\\'], fam2:'verde', mata:0.70,
-     detalle:[DET.hojarasca,DET.guijarros]},
-  h:{n:'pasto seco',  fam:'hoja',   ramp:['|','|','|','|','|'], fam2:'hoja',
-     mata:0.52, tendido:0.6, largo:1,
-     detalle:[DET.hojarasca,DET.guijarros]},
-  n:{n:'pasto nevado',fam:'nieve',  ramp:[' ','.','\u00b0','*','*'], fam2:'verdeO',
-     mata:0.60, manto:0.62, largo:1},
+  G:{n:'pasto', fam:'verdeO', ramp:['|','|','|','|','|'], tip:['|','/','\\'], fam2:'verde', largo:1, mata:0.70,
+     detalle:[DET.flores,DET.guijarros,DET.hojarasca]},
+  h:{n:'pasto', fam:'verdeO', ramp:['|','|','|','|','|'], tip:['|','/','\\'], fam2:'verde', largo:1, mata:0.70,
+     detalle:[DET.flores,DET.guijarros,DET.hojarasca]},
+  n:{n:'pasto', fam:'verdeO', ramp:['|','|','|','|','|'], tip:['|','/','\\'], fam2:'verde', largo:1, mata:0.70,
+     detalle:[DET.flores,DET.guijarros,DET.hojarasca]},
   s:{n:'arena de río',fam:'arena',  ramp:['.','.',':','\u00b0',';'],
      onda:{largo:0.8, angulo:0.0, fuerza:0.62}},
   y:{n:'arena de mar',fam:'roca2',  ramp:['.',':','\u00b0','=','='], mojada:1,
