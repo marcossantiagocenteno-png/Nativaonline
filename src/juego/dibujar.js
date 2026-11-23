@@ -820,6 +820,10 @@ function drawRoca(tr,haze,t){
     const spA=span(y+1/filas<=1?y+1/filas:1);
     const cI=aC(sp[0]), cD=aC(sp[1]);
     const cAI=spA?aC(spA[0]):0, cAD=spA?aC(spA[1]):-1;
+    /* contorno: una celda casi negra pegada a la silueta, como la orla oscura que
+       separa la piedra del pasto en la referencia. Va primero: la masa la pisa. */
+    put(cI-1,r,35,ORLA); put(cD+1,r,35,ORLA);
+    if(!spA) for(let c=cI;c<=cD;c++) put(c,r-1,35,ORLA);
     /* el filo entre caras se quiebra, pero con la altura de la piedra y no con
        la fila de pantalla: si no, tiembla distinto según dónde esté la cámara */
     const tv=(y*eV)|0, tvF=(y*eV*2.6)|0;
@@ -910,6 +914,7 @@ function drawRoca(tr,haze,t){
     put(c,br+1,(hh>>5)%3?95:46,packs(tex.fam,0.11*haze));
   }
 }
+const ORLA=packc(5,8,11);                            // la orla de la piedra: casi negro
 const GUIJA=[46,58,176,111,99];                      // . : ° o c
 const LIQ=[176,176,42,42];                           // ° ° * *
 

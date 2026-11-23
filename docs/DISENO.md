@@ -1163,6 +1163,11 @@ generador, `circuloMenhires` planta, en cerca de la mitad de los paneles, cuatro
 cinco menhires en rueda floja; usa su propio generador por panel y va después de
 los árboles, así que no mueve nada de lo que ya estaba (`pruebas/costuras.js`
 cambió su huella solo en las rocas).
+**La orla de la piedra.** En la referencia cada columna tiene una línea oscura
+finísima que la separa del pasto (celdas casi negras, glifos tenues encima). En
+`drawRoca` cada fila pone una celda `ORLA` (casi negra) a cada lado de la silueta
+y otra sobre el filo de arriba; la masa la pisa por dentro. Solo piedras: árboles,
+muros de acantilado y personajes no la llevan (el personaje ya trae su contorno).
 Si algo se ve «primavera», casi siempre es un verde
 saturado de brillo medio: bajarlo, no subir otro color.
 
