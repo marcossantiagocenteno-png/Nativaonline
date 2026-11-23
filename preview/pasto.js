@@ -206,7 +206,7 @@ function generarCompacto(o,v){
       let lum=(0.80+0.55*(((h>>4)%100)/100))*(0.72+0.28*d)*(1+(lumZ-0.45)*V.zona*1.6);
       if(tono>=4) lum=Math.max(lum,0.85);
       const colr=col(tono,u,clamp(lum,0.35,1.5));
-      const lean0=rn(x+90.1,y+33.7,2,0.22)+0.10*Math.sin(t*0.22+c*0.5+r*0.3);   // corriente suave (+ balanceo lento)
+      const lean0=rn(x+90.1,y+33.7,2,0.22)+(o.separar?0:0.10*Math.sin(t*0.22+c*0.5+r*0.3));   // corriente suave (+ balanceo lento; con viento global no hay balanceo propio)
       const rr=((h>>14)%100)/100;
       if(rr<V.trazo){
         /* trazo corto de 1 a 3 caracteres, de orientación entrelazada */
@@ -214,6 +214,11 @@ function generarCompacto(o,v){
         const lean=(q<0.22?-1:q>0.78?1:(lean0<0.40?-1:lean0>0.60?1:0));
         const lr=((h>>8)%100)/100;
         const L=V.largo[1]>=3?(lr<0.70?1:lr<0.94?2:3):(lr<0.75?1:2);
+        if(o.separar){
+          /* modo viento: el trazo no se dibuja acá; se guarda su estado de reposo para que el
+             motor de viento lo incline después. Textura idéntica en reposo. */
+          o.trazos.push(c,r,lean,L,colr,L>1?col(Math.max(tono,1),u,Math.min(1.5,lum*1.1)):colr,((h>>12)%1000)/1000);
+        } else
         for(let j=0;j<L;j++){
           const ch=lean>0?'/':lean<0?'\\':'|';
           poner(g,c+Math.round(lean*j*0.6),r-j,ch.charCodeAt(0),j===L-1&&L>1?col(Math.max(tono,1),u,Math.min(1.5,lum*1.1)):colr);
@@ -223,6 +228,7 @@ function generarCompacto(o,v){
       }
     }
   }
+  if(o.sinFlores) return g;
   /* florecitas: escasas y en grupitos. Un grupo cada cierto tramo del suelo, no en todos. */
   const TW=6*CPM/3, TH=6*RPM/1.7;                                // baldosas de ~4-5 m
   for(let ty=-1;ty<=Math.ceil(rows/TH);ty++) for(let tx=-1;tx<=Math.ceil(cols/TW);tx++){
@@ -334,6 +340,6 @@ function iniciar(){
   dimensionar(); requestAnimationFrame(lazo);
 }
 
-window.PastoPreview={generarActual,generarNuevo,generarCompacto,CPM,RPM,ASP,FONT_K};
+window.PastoPreview={nueva,poner,pintar,pack,clamp,hash3,PAL,generarActual,generarNuevo,generarCompacto,CPM,RPM,ASP,FONT_K};
 if(!window.__PASTO_SIN_UI) iniciar();
 })();
