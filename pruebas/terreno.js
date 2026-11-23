@@ -73,6 +73,11 @@ probar('en arena las flores no aparecen (incompatibles)', fa===0);
 // la flor es de una celda y de un metro: nunca hay más de 8 en un metro (como el pasto real)
 { T.nuevoMundo(); T.agregar({x:0,y:0,w:300,h:300,flores:{cantidad:4,roja:true,amarilla:true,blanca:true,distribucion:'concentradas'}}); let mx=0; for(let x=0;x<60;x++) for(let y=0;y<60;y++) mx=Math.max(mx,T.floresDelMetro(100+x,100+y).length);
   probar('ningún metro lleva más de 8 flores (igual que el pasto real)', mx>0&&mx<=8); }
+// glifos: blanca = e y @; roja y amarilla = + y .
+{ const g=(F)=>{ T.nuevoMundo(); T.agregar({x:0,y:0,w:400,h:400,flores:Object.assign({cantidad:4,blanca:false,distribucion:'grupos'},F)}); const s=new Set(); for(let x=0;x<40;x++) for(let y=0;y<40;y++) for(const f of T.floresDelMetro(100+x,100+y)) s.add(String.fromCharCode(f.g)); return [...s].sort().join(''); };
+  probar('flores blancas: sólo e y @', g({blanca:true})==='@e');
+  probar('flores rojas: sólo + y .', g({roja:true})==='+.');
+  probar('flores amarillas: sólo + y .', g({amarilla:true})==='+.'); }
 // 11. guardado
 T.nuevoMundo(); T.agregar({x:3,y:4,w:12,h:7,terreno:'pantano',pasto:{densidad:0.3,tono:'oscuro'},trans:{tipo:'organica',ancho:6}}); T.agregar({x:20,y:4,w:5,h:5,flores:{roja:true,cantidad:1.8}});
 const j=T.exportar(); const muestra=[m.capa(5,5).join('|'),m.capa(22,6).join('|'),m.capa(16,5).join('|')];

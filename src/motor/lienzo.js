@@ -24,7 +24,10 @@ const ZOOM_INI=ZOOM_BASE;
 /* Cuánto se puede alejar depende del ancho real de la pantalla: en un teléfono
    vertical, pedir 72 metros dejaría cada metro en cinco píxeles y las letras en
    dos. El tope se calcula para que el carácter nunca baje de ~2,7 px de ancho. */
-function metrosMaximos(anchoPx){ return Math.max(ZOOM_CERCA, Math.min(ZOOM_LEJOS, clamp(anchoPx/(4*2.7), 18, METROS_MAX))); }
+/* En el Modo Dios el zoom es libre: de 9 m (lo más cerca de la escala) a 200 m, para abarcar mucho y editar rápido.
+   Fuera del Modo Dios vuelve al margen de siempre. */
+const ZOOM_LIBRE_MAX=200; let zoomLibre=false;
+function metrosMaximos(anchoPx){ if(zoomLibre) return ZOOM_LIBRE_MAX; return Math.max(ZOOM_CERCA, Math.min(ZOOM_LEJOS, clamp(anchoPx/(4*2.7), 18, METROS_MAX))); }
 /* Cuánto mundo entra a lo ancho al empezar. El detalle de cualquier cosa son
    las celdas que ocupa, y las celdas son su tamaño en pantalla: a 28 metros el
    personaje medía doce filas de las cuarenta y cinco que tiene dibujadas. A 21
@@ -66,8 +69,9 @@ function aplicarEscala(anchoPx){
 }
 function zoomAbsoluto(m){
   const tope=metrosMaximos(($('stage')||{clientWidth:1200}).clientWidth||1200);
-  metrosDestino=clamp(m,ZOOM_CERCA,tope);
+  metrosDestino=clamp(m,zoomLibre?METROS_MIN:ZOOM_CERCA,tope);
 }
+NV.zoomLibre=function(b){ zoomLibre=!!b; zoomAbsoluto(metrosDestino); };
 function zoomRelativo(f){ zoomAbsoluto(metrosDestino*f); }
 function layout(){
   const st=$('stage');

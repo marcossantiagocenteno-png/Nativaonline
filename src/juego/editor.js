@@ -205,12 +205,12 @@
   /* ---------- entrar y salir ---------- */
   E.entrar=function(){
     if(E.activo) return;
-    E.activo=true; NV.pick(true);
+    E.activo=true; NV.pick(true); NV.zoomLibre(true);
     if(typeof dejarDeCaminar==='function') dejarDeCaminar();
     if(typeof detenerRuta==='function') detenerRuta();
     const p=$e('dios'); if(p) p.classList.add('show');
     $e('cv').style.cursor='crosshair';
-    decir('<b>Modo Dios</b>\nElegí algo de la paleta y hacé clic en el terreno.');
+    decir('<b>Modo Dios</b>\nElegí algo de la paleta y hacé clic en el terreno.\nRueda o + / − : zoom libre (hasta 200 m).');
     refrescar(); programarCuadro();
   };
   E.salir=function(){
@@ -218,7 +218,7 @@
     const Mx=E.modos[E.modo]; if(Mx&&Mx.cerrar) Mx.cerrar();
     if(NV.creador) NV.creador.cerrar();
     clearTimeout(tGuardar); NV.mundo.guardarBorrador();   // lo editado ya está en el mundo; además queda guardado
-    E.activo=false; E.sel=null; E.fantasma=null; E.hover=null; NV.pick(false);
+    NV.zoomLibre(false); E.activo=false; E.sel=null; E.fantasma=null; E.hover=null; NV.pick(false);
     const p=$e('dios'); if(p) p.classList.remove('show');
     $e('cv').style.cursor='';
     marcarPaleta(); decir('Mundo guardado. Seguís en el juego normal.'); programarCuadro();

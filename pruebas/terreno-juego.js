@@ -93,5 +93,17 @@ const solapan=l=>{ for(let i=0;i<l.length;i++) for(let j=i+1;j<l.length;j++){ co
   const z=W.exportar().terreno.find(q=>q.id==='terreno-9').flores.zona; probar('la zona de flores se guarda dentro del sector', z&&z.x===1&&z.w===3);
   M._modificar('terreno-9',{'flores.zona':{x:50,y:50,w:99,h:99}},'x'); const z2=W.exportar().terreno.find(q=>q.id==='terreno-9').flores.zona;
   probar('una zona fuera del sector se ajusta a él', !z2||(z2.x+z2.w<=6&&z2.y+z2.h<=6)); }
+
+// ---- zoom libre en el Modo Dios ----
+{ const normal=NV.ZOOM.lejos; E.salir(); NV.zoomAbsoluto(500); while(NV.acercarZoom()){}
+  probar('fuera del Modo Dios el zoom sigue limitado', NV.metrosVista()<=normal+1e-6);
+  E.entrar(); NV.zoomAbsoluto(500); let n=0; while(NV.acercarZoom()&&n++<2000){}
+  probar('en el Modo Dios se puede alejar mucho más (hasta 200 m)', NV.metrosVista()>150&&NV.metrosVista()<=200.001);
+  let ok2=true; try{ m.draw_(); m.draw_(); }catch(e){ ok2=false; console.log(e.message); }
+  probar('...y el cuadro se dibuja a esa escala', ok2);
+  NV.zoomAbsoluto(1); n=0; while(NV.acercarZoom()&&n++<2000){}
+  probar('...y acercar tiene su tope (9 m)', NV.metrosVista()>=8.99&&NV.metrosVista()<=9.5);
+  E.salir(); n=0; while(NV.acercarZoom()&&n++<2000){}
+  probar('al salir vuelve al margen de siempre', NV.metrosVista()<=normal+1e-6&&NV.metrosVista()>=NV.ZOOM.cerca-1e-6); }
 console.log(ok.length+' bien, '+mal.length+' mal'); mal.forEach(x=>console.log('  MAL: '+x));
 process.exit(mal.length?1:0);

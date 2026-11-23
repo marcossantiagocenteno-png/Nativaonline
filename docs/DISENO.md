@@ -1568,3 +1568,6 @@ Pruebas: `pruebas/terreno.js` (motor) y `pruebas/terreno-juego.js` (mundo, dibuj
   con su misma configuración y lo cubierto desaparece). Todo va en un solo paso de deshacer (`lote`).
 - **Interfaz del Modo Dios:** ventana a la derecha, con pestañas (Objetos · Caminos · Terreno), filas "etiqueta · control" en dos columnas
   (la de terreno), y botones abajo (deshacer, rehacer, exportar, salir). Misma paleta negro/blanco/oro viejo, letra de 11 px.
+- **Glifos de las flores en sectores:** blanca = `e` y `@`; roja y amarilla = cruz chiquita `+` y punto `.`. (Un sector sin tocar sigue usando el pasto real, que
+  dibuja sus flores blancas con `@ e o`; en cuanto se cambia algo del sector, pasan a `e @`.)
+- **Zoom libre en el Modo Dios:** `NV.zoomLibre(true)` al entrar (rueda o + / −) permite de 9 m a 200 m de ancho de vista; al salir vuelve al margen de siempre.

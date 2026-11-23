@@ -78,6 +78,8 @@ const DISTRIBUCIONES={
 };
 const CANTIDADES=[['Sin flores',0],['Muy pocas',0.25],['Pocas',0.5],['Normal',1],['Muchas',1.8],['Abundantes',3.2]];
 /* la blanca es la del pasto real; las otras, del mismo brillo para que no salten a la vista */
+/* la blanca se dibuja con e y @; la roja y la amarilla con una cruz chiquita (+) y un punto (.) */
+const GLIFOS_FLOR={blanca:[101,64],roja:[43,46],amarilla:[43,46]};
 const COLORES_FLOR={roja:[196,84,80],amarilla:[214,190,100],blanca:[205,218,208]};
 
 const RELIEVES={plano:{n:'Terreno prácticamente plano',amp:0},suave:{n:'Relieve suave',amp:0.30,esc:14,oct:1},
@@ -432,7 +434,7 @@ function floresDelMetro(mx,my,cand,out){
       if(f.z&&(fx<f.z.x0||fx>=f.z.x1||fy<f.z.y0||fy>=f.z.y1)) continue;
       const cn=(cols.length>1&&((hi>>4)%100)>=70)?cols[(hi>>12)%cols.length]:principal;
       out.push({c:Math.min(CPM-1,Math.floor((fx-mx)*CPM)), s:Math.min(RPM-1,Math.floor((fy-my)*RPM)),
-                g:'@eo'.charCodeAt((hi>>16)%3), col:COLORES_FLOR[cn], P, h:(hi>>9)%100});
+                g:GLIFOS_FLOR[cn][(hi>>16)%2], col:COLORES_FLOR[cn], P, h:(hi>>9)%100});
     }
   }
 }
@@ -489,7 +491,7 @@ T.dibujarMetro=function(mx,my,o){
 
 /* ==================================================================== PRUEBAS Y UTILES ==== */
 T.TERRENOS=TERRENOS; T.GRUPOS_TERRENO=GRUPOS_TERRENO; T.ESTADOS=ESTADOS; T.TONOS=TONOS; T.DISTRIBUCIONES=DISTRIBUCIONES;
-T.CANTIDADES=CANTIDADES; T.RELIEVES=RELIEVES; T.TRANSICIONES=TRANSICIONES; T.DEF=DEF; T.normalizar=normalizar;
+T.CANTIDADES=CANTIDADES; T.GLIFOS_FLOR=GLIFOS_FLOR; T.RELIEVES=RELIEVES; T.TRANSICIONES=TRANSICIONES; T.DEF=DEF; T.normalizar=normalizar;
 T.perfilEn=(wx,wy)=>perfilEn(wx,wy,candidatos(Math.floor(wx),Math.floor(wy)));
 T.peso=peso; T.altura=altura; T.cobDe=cobDe; T.trzDe=trzDe; T.lenMul=lenMul; T.celdaSuelo=(P,wx,wy,cx,cy,lz,t)=>celdaSuelo(P,wx,wy,cx,cy,lz,t)?[_g,_c]:null;
 T.floresDelMetro=(mx,my)=>{ const o=[]; floresDelMetro(mx,my,candidatos(mx,my),o); return o; };
