@@ -121,7 +121,7 @@ const escalon=px=>TAM0*Math.pow(PASO_TAM,Math.round(Math.log(Math.max(px,TAM0)/T
 function cpuAtlas(tam,mono){
   const clave=tam+'|'+mono; let A=cachesCPU.get(clave); if(A) return A;
   const pad=Math.ceil(tam*0.14)+2, gw=Math.ceil(tam*0.62)+2*pad+1, gh=Math.ceil(tam*1.3)+2;
-  A={tam,pad,gw,gh,mono,mapa:new Map(),cv:null,ctx:null};
+  A={tam,pad,gw,gh,mono,mapa:new Map(),dir:new Array(256*FASES).fill(null),cv:null,ctx:null};
   /* se hornea de una vez todo el ASCII visible (94 glifos × 4 fases) en UN lienzo y se lee UNA sola vez */
   const NC=32, n=94*FASES, filas=Math.ceil(n/NC), cv=document.createElement('canvas'); cv.width=NC*gw; cv.height=filas*gh;
   const c=cv.getContext('2d',{willReadFrequently:true}); c.font=tam+'px '+mono; c.textBaseline='middle'; c.textAlign='left'; c.fillStyle='#fff';
@@ -130,7 +130,7 @@ function cpuAtlas(tam,mono){
   for(let ci=0;ci<94;ci++) for(let f=0;f<FASES;f++){
     const k=ci*FASES+f, x0=(k%NC)*gw, y0=((k/NC)|0)*gh, pos=[], alfa=[];
     for(let y=0;y<gh;y++){ let o=((y0+y)*W+x0)*4+3; for(let x=0;x<gw;x++,o+=4){ const a=d[o]; if(a>=6){ pos.push(y*gw+x); alfa.push(a); } } }
-    A.mapa.set((33+ci)*FASES+f,{n:pos.length,pos:Int32Array.from(pos),a:Uint8Array.from(alfa)});
+    { const g={n:pos.length,pos:Int32Array.from(pos),a:Uint8Array.from(alfa)}; A.mapa.set((33+ci)*FASES+f,g); A.dir[(33+ci)*FASES+f]=g; }
   }
   /* los demás (acentos, bloques…) se piden de a uno cuando aparecen */
   A.cv=document.createElement('canvas'); A.cv.width=gw; A.cv.height=gh; A.ctx=A.cv.getContext('2d',{willReadFrequently:true});
@@ -144,7 +144,7 @@ function cpuGlifo(A,code,fase){
   const c=A.ctx; c.clearRect(0,0,A.gw,A.gh); c.fillText(String.fromCharCode(code),A.pad+fase/FASES,A.gh/2);
   const d=c.getImageData(0,0,A.gw,A.gh).data; const pos=[],alfa=[];
   for(let y=0;y<A.gh;y++) for(let x=0;x<A.gw;x++){ const a=d[(y*A.gw+x)*4+3]; if(a>=6){ pos.push(y*A.gw+x); alfa.push(a); } }
-  g={n:pos.length,pos:Int32Array.from(pos),a:Uint8Array.from(alfa)}; A.mapa.set(k,g); return g;
+  g={n:pos.length,pos:Int32Array.from(pos),a:Uint8Array.from(alfa)}; A.mapa.set(k,g); if(code<256) A.dir[k]=g; return g;
 }
 function pintarCPU(T){
   const t0=performance.now(), dpr=T.dpr, Wd=Math.max(1,Math.round(T.W*dpr)), Hd=Math.max(1,Math.round(T.H*dpr)), ctx=T.ctx;
@@ -167,11 +167,15 @@ function pintarCPU(T){
       const xf=(c*T.cw+x0g+T.dx)*dpr-pad, yf=(r*T.chh+T.chh/2+T.dy)*dpr-ghalf;
       let xi=Math.floor(xf); const fase=Math.min(FASES-1,Math.floor((xf-xi)*FASES)), yi=Math.round(yf);
       if(xi+gw<=0||xi>=Wd||yi+A.gh<=0||yi>=Hd) continue;
-      const g=cpuGlifo(A,code,fase), col=fbC[i], cr=(col>>16)&255, cg=(col>>8)&255, cb=col&255, base=yi*Wd+xi, pos=g.pos, al=g.a;
+      const g=(code<256&&A.dir[code*FASES+fase])||cpuGlifo(A,code,fase), col=fbC[i], cr=(col>>16)&255, cg=(col>>8)&255, cb=col&255, base=yi*Wd+xi, pos=g.pos, al=g.a;
       const dentro=xi>=0&&xi+gw<=Wd&&yi>=0&&yi+A.gh<=Hd;
+      /* los desplazamientos de cada píxel ya traducidos al ancho del lienzo: sin división por píxel */
+      if(g.relW!==Wd){ const rl=new Int32Array(g.n); for(let q=0;q<g.n;q++){ const o=pos[q], yy=(o/gw)|0; rl[q]=yy*Wd+(o-yy*gw); } g.rel=rl; g.relW=Wd; }
+      const rel=g.rel;
       for(let q=0;q<g.n;q++){
-        const o=pos[q], yy=(o/gw)|0, xx=o-yy*gw; let idx=base+yy*Wd+xx;
-        if(!dentro){ const X=xi+xx, Y=yi+yy; if(X<0||X>=Wd||Y<0||Y>=Hd) continue; idx=Y*Wd+X; }
+        let idx;
+        if(dentro) idx=base+rel[q];
+        else{ const o=pos[q], yy=(o/gw)|0, X=xi+(o-yy*gw), Y=yi+yy; if(X<0||X>=Wd||Y<0||Y>=Hd) continue; idx=Y*Wd+X; }
         const a=al[q];
         if(a>=250){ d32[idx]=(255<<24)|(cb<<16)|(cg<<8)|cr; continue; }
         const dpx=d32[idx], ia=255-a, rr=(((dpx&255)*ia+cr*a)*257)>>16, gg=((((dpx>>8)&255)*ia+cg*a)*257)>>16, bb=((((dpx>>16)&255)*ia+cb*a)*257)>>16;

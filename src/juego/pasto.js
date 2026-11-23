@@ -50,19 +50,21 @@ function pastoFranja(mx,my,sy,rb,base,cerca,light,calor,dPasto,calidad){
   const y0=my+(sy+0.5)/RPM, cyb=my*RPM+sy;
   const lumZ=tex2(mx+0.5,y0,3.0), tonZ=tex2(mx+9.5,y0+5.3,2.2), corr=tex2(mx+17.5,y0-3.1,4.5);
   const cob=Math.min(0.985,cfg.cobertura*(0.78+0.22*calidad));
+  /* lo que no cambia de una celda a otra de la franja, calculado una vez (mismas operaciones, mismo orden: mismo resultado) */
+  const umbral=cob*1000, zonaT=(tonZ-0.5)*cfg.zona*1.4, zonaL=(1+(lumZ-0.45)*cfg.zona*1.6), trazo=cfg.trazo;
+  const lf0=clamp(0.25+0.75*light,0.2,1.4), cx0=mx*CPM;
   for(let k=0;k<CPM;k++){
-    const cx=mx*CPM+k, h=hash3(cx,cyb,23);
-    if((h%1000)>=cob*1000) continue;
+    const cx=cx0+k, h=hash3(cx,cyb,23);
+    if((h%1000)>=umbral) continue;
     let lf, cal=calor;
-    if(cerca){ afinar(k,sy); lf=_lz; cal=_cal; } else lf=light;
-    lf=clamp(0.25+0.75*lf,0.2,1.4);
-    let ro=clamp(((h>>10)%1000)/1000+(tonZ-0.5)*cfg.zona*1.4,0,0.999), tono=0;
+    if(cerca){ afinar(k,sy); lf=_lz; cal=_cal; lf=clamp(0.25+0.75*lf,0.2,1.4); } else lf=lf0;
+    let ro=clamp(((h>>10)%1000)/1000+zonaT,0,0.999), tono=0;
     while(tono<5&&ro>=PC_CUM[tono]) tono++;
     const u=((h>>20)%100)/100;
-    let lum=(0.80+0.55*(((h>>4)%100)/100))*0.86*(1+(lumZ-0.45)*cfg.zona*1.6);
+    let lum=(0.80+0.55*(((h>>4)%100)/100))*0.86*zonaL;
     lum=clamp(tono>=4?Math.max(lum,0.85):lum,0.35,1.5);
     const col=pcColor(tono,u,lum,lf,cal);
-    if(((h>>14)%100)/100<cfg.trazo){
+    if(((h>>14)%100)/100<trazo){
       const q=((h>>24)%100)/100, lr=((h>>8)%100)/100;
       /* el reposo es la textura aprobada; el viento sólo la inclina hacia el oeste, nunca al este,
          y cada trazo cambia en su propio momento (su dado) */

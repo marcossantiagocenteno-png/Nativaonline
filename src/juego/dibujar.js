@@ -411,16 +411,41 @@ function decidirOrilla(u,v,wx,wy){
 
 /* El pasto vive en src/juego/pasto.js (motor "pasto"). */
 const _zn=[], _zf=[];
+/* Los valores de mancha de un metro NO dependen del tiempo ni de la cámara: sólo del metro, del detalle y de la semilla.
+   Calcularlos cada cuadro eran 32 llamadas a ruido por metro y por detalle (~2/3 de toda la basura de memoria por cuadro,
+   medido). Ahora se guardan por metro: moverse sólo calcula los metros que entran en pantalla. Mismo resultado, bit a bit. */
+const _detCache=new WeakMap(); let _detSemilla=null, _detN=0;
 function prepararDetalle(mx,my,lista){
+  const sem=NV.CONFIG&&NV.CONFIG.seed;
+  if(sem!==_detSemilla){ _detSemilla=sem; _detN=0; }
+  let C=_detCache.get(lista); if(!C){ C=new Map(); _detCache.set(lista,C); }
+  if(_detN>40000){ for(const l of _detCacheListas) _detCache.set(l,new Map()); _detN=0; C=_detCache.get(lista); }
+  const clave=mx*131072+my, E=C.get(clave);
+  if(E){ for(let d=0;d<lista.length;d++){ _zn[d]=E.z[d]; _zf[d]=E.f[d]; } return; }
+  const Z=[], F=[];
   for(let d=0;d<lista.length;d++){
-    const D=lista[d], z=_zn[d]||(_zn[d]=new Float32Array(16)), f=_zf[d]||(_zf[d]=new Uint8Array(16));
+    const D=lista[d], z=new Float32Array(16), f=new Uint8Array(16);
     for(let j=0;j<4;j++) for(let i=0;i<4;i++){
       const wx=mx+(i+0.5)/4, wy=my+(j+0.5)/4;
       const n=tex2(wx+D.sem,wy,D.escala);
       z[j*4+i]= clamp((n-D.corte)/D.borde,0,1);
       f[j*4+i]= D.fam.length>1 ? Math.min(D.fam.length-1,Math.floor(tex2(wx+D.sem+91,wy+37,D.escala*2.2)*D.fam.length)) : 0;
     }
+    Z.push(z); F.push(f); _zn[d]=z; _zf[d]=f;
   }
+  C.set(clave,{z:Z,f:F}); _detN++; _detCacheListas.add(lista);
+}
+const _detCacheListas=new Set();
+/* la misma prueba que hace detallar() para descartar la celda, pero con argumentos enteros: llamar a detallar con la luz
+   y el calor (decimales) en cada celda creaba dos números nuevos en memoria por llamada, ~45 000 veces por cuadro */
+function detalleToca(lista,k,sy,cx,cyb){
+  const sub=((sy*4/RPM)|0)*4+((k*4/CPM)|0);
+  for(let d=0;d<lista.length;d++){
+    const z=_zn[d][sub]; if(z<=0) continue;
+    const D=lista[d];
+    if((hash3(cx,cyb,D.sem)%100000)<D.porM2*z/(CPM*RPM)*100000) return true;
+  }
+  return false;
 }
 function detallar(lista,k,sy,cx,cyb,base,rb,light,calor){
   const sub=((sy*4/RPM)|0)*4+((k*4/CPM)|0);
@@ -702,6 +727,7 @@ function drawGroundRow(my,rBase,haze,t){
         const cyb=my*RPM+sy;
         for(let k=0;k<CPM;k++){
           if(cerca){ afinar(k,sy); light=_lz; calor=_cal; }
+          else if(!detalleToca(det,k,sy,mx*CPM+k,cyb)) continue;   // casi nunca hay flor en la celda: ni se llama
           detallar(det,k,sy,mx*CPM+k,cyb,base,rb,light,calor);
         }
       }
