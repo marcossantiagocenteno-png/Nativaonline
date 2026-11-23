@@ -1186,7 +1186,13 @@ una copa en pisos de borde dentado, el álamo una columna en llama, y el pie se 
 Los glifos están en `SPECIES[...].glifos`. También el encino (copa de lóbulos, con
 huecos de cielo, motas verde menta) y el árbol místico (masa pálida, modelo propio
 en `SPECIES.mistico.modelo`) se dibujan así: `drawArbol` quedó sin uso para estas
-cuatro especies y los arbustos siguen por el camino viejo. Todo el azar sale de la
+cuatro especies y los arbustos siguen por el camino viejo. Para que la masa no
+iguale a todas, cada especie lleva su familia y su `tono` en `glifos`: el pino es
+el más hondo (0,85, verde-azul casi negro), el encino verde con motas menta (1,05),
+el álamo gris pálido (1,15) y el místico el más claro (1,20, motas de nieve). La orla
+negra también rodea los troncos caídos y los arbustos; el muro del acantilado no la
+lleva: se dibuja en tajadas de un metro que se pisan, y una orla por tajada
+cortaría la pared con rayas horizontales. Todo el azar sale de la
 semilla del árbol y de la celda.
 Si algo se ve «primavera», casi siempre es un verde
 saturado de brillo medio: bajarlo, no subir otro color.

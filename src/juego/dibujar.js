@@ -1069,7 +1069,7 @@ let _UI=new Float32Array(256), _RU=new Float32Array(256);
    árbol y de la celda, nunca de la pantalla, y el viento sólo corre la copa. */
 function drawArbolGlifo(tr,haze,t){
   const sp=SPECIES[tr.sp], M=NV.MODELOS[tr.sp];
-  const m=M?M[tr.s%M.length]:sp.modelo, G=sp.glifos, luzC=sp.luzC||1;
+  const m=M?M[tr.s%M.length]:sp.modelo, G=sp.glifos, luzC=(sp.luzC||1)*(G.tono||1);
   const bc=(tr.x-camX)*CPM+Math.floor(CPM/2), br=(tr.y-camY)*RPM+RPM-1;
   const h=tr.h, H=Math.max(6,Math.round(h*HPM));
   const viento=windAt(tr.x,tr.y,t*0.8)*sp.sway;
@@ -1446,6 +1446,9 @@ function drawObjeto(tr,haze,t){
       const lit=(r===0?0.95:0.60)*haze*(0.85+((hash3(tr.s+c,r,3)%100)/100)*0.3);
       put(bc-2+c,br-r,g.charCodeAt(0),packs('corteza',lit));
     }
+    /* orla: arriba, abajo y en las dos puntas, como las piedras */
+    for(let c=-1;c<=L;c++){ put(bc-2+c,br-rows,35,ORLA); put(bc-2+c,br+1,35,ORLA); }
+    for(let r=0;r<rows;r++){ put(bc-3,br-r,35,ORLA); put(bc-2+L,br-r,35,ORLA); }
     return;
   }
   /* las tres especies del bosque tienen modelo; el místico del lago y los
@@ -1488,6 +1491,7 @@ function drawObjeto(tr,haze,t){
       if(g===' ') continue;
       put(bc+c-topSway,sr,g.charCodeAt(0),packs(east<-0.15?(famC==='verde'?'verdeO':famC):famC,lit));
     }
+    put(bc-ci-1-topSway,sr,35,ORLA); put(bc+ci+1-topSway,sr,35,ORLA);
   }
   if(trunkR>0){
     const tw=tr.h>4.5?3:2, fam=sp.corteza;
