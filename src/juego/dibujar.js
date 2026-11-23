@@ -582,7 +582,10 @@ function drawGroundRow(my,rBase,haze,t){
     const bw=mezclar&&!grass&&prepararOrilla(mx,my,type);
     /* cuánta mata hay en este metro: un ruido suave, para que el pasto crezca a
        parches y no parejo como una cancha */
-    const densMata=grass?clamp(mt.mata*(0.30+1.45*tex2(mx+0.5,my+0.5,1.6)),0,1.4):0;
+    /* manchas de tierra oscura: claros pelados dentro del pasto, de unos cinco
+       metros, donde la mata ralea y asoma el suelo (como en la referencia) */
+    const mancha=grass?clamp((tex2(mx+40.5,my-24.5,5.5)-0.60)/0.10,0,1):0;
+    const densMata=grass?clamp(mt.mata*(0.30+1.45*tex2(mx+0.5,my+0.5,1.6))*(1-0.78*mancha),0,1.4):0;
     /* el detalle no va en los metros que tocan otro material: ahí las celdas
        pueden ser de la arena o del agua de al lado, y una flor en el agua no */
     const det=(grass&&!mezclar&&mt.detalle)?mt.detalle:null;
@@ -697,6 +700,15 @@ function drawGroundRow(my,rBase,haze,t){
             put(base+k,rb,176,packs('verdeO',light*0.72));
         }
       }
+      /* la tierra de la mancha: terrones y guijas bajo las briznas que quedan */
+      if(mancha>0.04){
+        const colE=packs('tierra',light*0.70);
+        for(let k=0;k<CPM;k++){
+          const hq=hash3(mx*CPM+k,my*RPM+sy,41);
+          if((hq%100)>=mancha*88) continue;
+          put(base+k,rb,[46,58,176,46,58][(hq>>8)%5],colE);   // sin la coma: es la hojarasca del detalle
+        }
+      }
       /* alfombra dispersa en TODAS las franjas: no hay línea de base */
       if(!mt.manto) for(let k=0;k<CPM;k+=2){
         if(tex2(mx+(k+0.5)/CPM,my+(sy+0.5)/RPM,0.34)*densMata<0.34) continue;
@@ -790,6 +802,7 @@ function drawRoca(tr,haze,t){
   const aR=y=>br-Math.round(y*h*HPM);
   const filas=Math.max(2,Math.round(h*HPM));
   const CH=cadenas(m.perfil);
+  const musgoAlto=0.16+((hash3(sem,5,7)%100)/100)*0.20;     // cuánto sube el musgo
   const span=y=>{
     const a=enCadena(CH.izq,y), b=enCadena(CH.der,y);
     return (a===null||b===null)?null:(a<b?[a,b]:[b,a]);
@@ -849,7 +862,13 @@ function drawRoca(tr,haze,t){
       /* la silueta se lee por el color, no por un paréntesis en cada fila */
       else if(c<=cI+1) lz=luz*0.46;
       else if(c>=cD-1) lz=luz*1.22;
-      put(c,r,g.charCodeAt(0),packs(tex.fam,lz*haze));
+      /* musgo al pie: sube más o menos según la piedra, y se ralea hacia arriba.
+         Sale de coordenadas DE LA PIEDRA, no de la pantalla (como el grano). */
+      let famP=tex.fam;
+      if(spA&&y<musgoAlto&&(hash3(sem+tu,tv,15)%100)<82*(1-y/musgoAlto)+6){
+        g=MUSGO[hash3(sem+tuF,tvF,16)%MUSGO.length]; famP='musgo'; lz*=0.9;
+      }
+      put(c,r,g.charCodeAt(0),packs(famP,lz*haze));
     }
   }
   /* --- estratos: una repisa con su filo encendido y su socavón --- */
@@ -916,7 +935,8 @@ function drawRoca(tr,haze,t){
 }
 const ORLA=packc(5,8,11);                            // la orla de la piedra: casi negro
 const GUIJA=[46,58,176,111,99];                      // . : ° o c
-const LIQ=[176,176,42,42];                           // ° ° * *
+const LIQ=[176,176,42,42];
+const MUSGO=['\u00b0','*','\u00b0',';'];               // musgo al pie de la piedra                           // ° ° * *
 
 /* ---------- EL ACANTILADO ----------
    El filo de la costa corre norte-sur, así que el muro se dibuja en TAJADAS:

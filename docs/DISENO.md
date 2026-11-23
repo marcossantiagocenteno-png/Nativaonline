@@ -1168,6 +1168,12 @@ finísima que la separa del pasto (celdas casi negras, glifos tenues encima). En
 `drawRoca` cada fila pone una celda `ORLA` (casi negra) a cada lado de la silueta
 y otra sobre el filo de arriba; la masa la pisa por dentro. Solo piedras: árboles,
 muros de acantilado y personajes no la llevan (el personaje ya trae su contorno).
+**Manchas de tierra.** En el pasto, un ruido de unos cinco metros (`mancha` en
+`drawGroundRow`) ralea la mata hasta un 78 % y deja asomar tierra (`. : °`, familia
+`tierra`). La coma queda fuera a propósito: es la hojarasca del detalle y
+`pruebas/detalle.js` la cuenta. **Musgo en la piedra:** las rocas llevan musgo al
+pie (`° * ;`, familia `musgo`) que sube entre el 16 y el 36 % de su alto y se ralea
+hacia arriba; se mide en coordenadas de la piedra, no de la pantalla.
 Si algo se ve «primavera», casi siempre es un verde
 saturado de brillo medio: bajarlo, no subir otro color.
 
