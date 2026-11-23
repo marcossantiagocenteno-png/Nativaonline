@@ -1,37 +1,16 @@
-// Ampliar el mundo de a parcelas de 10 × 10 m (operación 'parcela'): límites, suelo, deshacer y archivo.
+// Ampliar el mundo: cada terreno nuevo es un panel de 1 × 1 km, nombrado en ejes cartesianos.
 const cargar=require('./cargar.js');
-const m=cargar('module.exports={NV:window.NV};');
-const NV=m.NV, W=NV.mundo; const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
-
-let b=NV.limites();
-probar('el mundo limpio es un cuadrado de 100 × 100 m', b.x0===0&&b.x1===100&&b.y0===0&&b.y1===100);
-probar('fuera de él no hay nada', NV.sueloEn(105,5)===null&&NV.solidoEn(105,5)===true);
-
-/* una parcela pegada al este: x 100..110, y 0..10 → índices (10,0) */
-const inv=W.editar({t:'parcela',bx:10,by:0,on:true});
-probar('la parcela nueva es tierra', NV.sueloEn(105,5)!==null&&NV.solidoEn(105,5)===false);
-probar('sólo esos 10 × 10 m: más allá sigue vacío', NV.sueloEn(111,5)===null&&NV.sueloEn(105,11)===null);
-b=NV.limites();
-probar('los límites crecen sólo lo ampliado', b.x0===0&&b.x1===110&&b.y0===0&&b.y1===100);
-probar('el mundo original no cambió', NV.sueloEn(50,50)!==null);
-
-/* archivo y vuelta */
-const txt=W.texto();
-probar('la parcela viaja en el archivo', txt.includes('"parcelas"')&&!W.vacio());
-
-/* otra parcela arriba de la primera (hacia el norte, y negativa) */
-W.editar({t:'parcela',bx:10,by:-1,on:true});
-probar('crece hacia el norte con índices negativos', NV.sueloEn(105,-5)!==null&&NV.limites().y0===-10);
-
-W.editar({t:'parcela',bx:10,by:-1,on:false});
-probar('quitar la parcela la devuelve al vacío', NV.sueloEn(105,-5)===null&&NV.limites().y0===0);
-W.editar(inv);
-probar('deshacer deja el mundo como estaba', NV.sueloEn(105,5)===null&&NV.limites().x1===100);
-/* ida y vuelta por el archivo */
-W.editar({t:'parcela',bx:10,by:-1,on:true}); const t2=W.texto(); W.editar({t:'parcela',bx:10,by:-1,on:false}); W.importarTexto(t2);
-probar('el archivo se vuelve a leer igual', NV.sueloEn(105,-5)!==null&&W.texto()===t2);
-W.editar({t:'parcela',bx:10,by:-1,on:false});
-let falla=false; try{ W.editar({t:'parcela',bx:1.5,by:0,on:true}); }catch(e){ falla=true; }
-probar('coordenadas inválidas se rechazan', falla);
-
-console.log(ok.length+' bien, '+mal.length+' mal'); if(mal.length){ console.log(mal.join('\n')); process.exit(1); }
+const NV=cargar('module.exports=window.NV;'), W=NV.mundo, L=NV.LADO; const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
+const def=(pi,pj)=>({bioma:'pasto',nombre:'Terreno '+NV.nombreDe(pi,pj)});
+probar('un panel mide 1 km', L===1000);
+probar('el 0:0 es 1000 × 1000 m', (()=>{ const b=NV.limites(); return b.x0===0&&b.x1===1000&&b.y0===0&&b.y1===1000; })());
+probar('fuera no hay nada', NV.sueloEn(1500,500)===null&&NV.solidoEn(1500,500));
+const inv=W.editar({t:'panel',pi:1,pj:0,def:def(1,0)});
+probar('el terreno 1:0 queda al este y mide 1 km', NV.sueloEn(1500,500)!==null&&NV.limites().x1===2000&&NV.panel(1,0).coord==='1:0');
+W.editar({t:'panel',pi:0,pj:-1,def:def(0,-1)});
+probar('el terreno 0:1 queda al norte (y cartesiana)', NV.panel(0,-1).coord==='0:1'&&NV.sueloEn(500,-500)!==null&&NV.limites().y0===-1000);
+probar('el nombre se lee de vuelta', NV.desdeNombre('0:1').pj===-1);
+const t=W.texto(); W.importarTexto(t); probar('viaja en el archivo', NV.sueloEn(1500,500)!==null&&W.texto()===t);
+W.editar(inv); W.editar({t:'panel',pi:0,pj:-1,def:null});
+probar('deshacer devuelve el mundo de un solo km', NV.sueloEn(1500,500)===null&&NV.limites().x1===1000&&NV.limites().y0===0);
+console.log(ok.length+' bien, '+mal.length+' mal'); for(const x of mal) console.log('  ✗ '+x); process.exit(mal.length?1:0);

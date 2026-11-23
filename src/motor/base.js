@@ -13,7 +13,7 @@ const MONO='ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", m
    ver a lo ancho. Ver aplicarEscala en motor/lienzo.js. */
 let CPM=13, RPM=4, HPM=6.8;
 
-const CONFIG={ name:'Claro del norte', seed:'claro-01', arboles:false, w:100, h:100,
+const CONFIG={ name:'Claro del norte', seed:'claro-02', arboles:false, w:100, h:100,
                treeDensity:0.009, clearing:true, sunElev:30 };
 const FAM={
   verde:  ['#0b2418','#14412b','#226447','#4cb585'],   // el pasto de la muestra: verde sobrio, punta clara

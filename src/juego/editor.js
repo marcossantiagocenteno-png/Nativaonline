@@ -194,30 +194,30 @@
   /* ---------- ampliar el mundo: clic en el vacío, junto a tierra → ¿Expandir? ----------
      El mundo crece de a una parcela de 10 × 10 m, siempre pegada a tierra que ya existe (por un lado). Un clic en el vacío
      marca la parcela y pregunta; Sí la agrega (operación 'parcela', con deshacer), No la descarta. */
-  const PAR=10;
   E.expansion=null;
-  const hayTierraParcela=(bx,by)=>NV.sueloEn(bx*PAR+PAR/2,by*PAR+PAR/2)!==null;
+  const hayTierraPanel=(pi,pj)=>NV.sueloEn(pi*NV.LADO+NV.LADO/2,pj*NV.LADO+NV.LADO/2)!==null;
+  const kmTxt=()=>(NV.LADO/1000).toLocaleString('es')+' × '+(NV.LADO/1000).toLocaleString('es')+' km';
   function cerrarExpansion(){ E.expansion=null; const b=$e('expandir'); if(b) b.classList.remove('show'); programarCuadro(); }
-  function abrirExpansion(bx,by){
-    E.expansion={bx,by};
+  function abrirExpansion(pi,pj){
+    E.expansion={pi,pj};
     const t=$e('expTxt'), b=$e('expandir');
-    if(t) t.textContent='¿Expandir?\n'+PAR+' × '+PAR+' m en ('+(bx*PAR)+', '+(by*PAR)+')';
+    if(t) t.textContent='¿Expandir?\nTerreno '+NV.nombreDe(pi,pj)+' · '+kmTxt();
     if(b) b.classList.add('show'); programarCuadro();
   }
   function confirmarExpansion(si){
     const X=E.expansion; if(!X){ return; }
     cerrarExpansion();
-    if(si) hacer({t:'parcela',bx:X.bx,by:X.by,on:true},'Terreno ampliado: '+PAR+' × '+PAR+' m.'); else decir('No se amplió.');
+    if(si) hacer({t:'panel',pi:X.pi,pj:X.pj,def:{bioma:'pasto',nombre:'Terreno '+NV.nombreDe(X.pi,X.pj)}},'Terreno '+NV.nombreDe(X.pi,X.pj)+' agregado ('+kmTxt()+').'); else decir('No se amplió.');
   }
   E.confirmarExpansion=confirmarExpansion;
   /* devuelve true si el clic era sobre el vacío (y ya se atendió) */
   function intentarAmpliar(e){
     apuntar(e); const h=E.hover; if(!h) return false;
     if(NV.sueloEn(h.x,h.y)!==null){ if(E.expansion) cerrarExpansion(); return false; }
-    const bx=Math.floor(h.x/PAR), by=Math.floor(h.y/PAR);
-    const junto=[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>hayTierraParcela(bx+a,by+b));
+    const L=NV.LADO, pi=Math.floor(h.x/L), pj=Math.floor(h.y/L);
+    const junto=[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>hayTierraPanel(pi+a,pj+b));
     if(!junto){ if(E.expansion) cerrarExpansion(); decir('Sólo se puede ampliar junto a terreno que ya existe.'); return true; }
-    abrirExpansion(bx,by); return true;
+    abrirExpansion(pi,pj); return true;
   }
 
   /* ---------- el ratón ---------- */
@@ -267,7 +267,7 @@
     if(typeof detenerRuta==='function') detenerRuta();
     const p=$e('dios'); if(p) p.classList.add('show');
     $e('cv').style.cursor='crosshair';
-    decir('<b>Modo Dios</b>\nElegí algo de la paleta y hacé clic en el terreno.\nRueda o + / − : zoom libre (hasta 200 m).\nEspacio + arrastrar: mover el mapa · Inicio: volver al personaje.\nClic en el vacío junto al mapa: ampliar 10 × 10 m.');
+    decir('<b>Modo Dios</b>\nElegí algo de la paleta y hacé clic en el terreno.\nRueda o + / − : zoom libre (hasta 200 m).\nEspacio + arrastrar: mover el mapa · Inicio: volver al personaje.\nClic en el vacío junto al mapa: agregar terreno de 1 × 1 km.');
     refrescar(); programarCuadro();
   };
   E.salir=function(){
@@ -316,10 +316,13 @@
      Se llama dentro de draw_, antes de volcar al lienzo. */
   E.pintar=function(){
     if(E.expansion){
-      /* el marco de la parcela candidata: cruces de oro cada metro y medio */
-      const X=E.expansion, x0=X.bx*PAR, y0=X.by*PAR, color=packc(ORO_VIVO[0],ORO_VIVO[1],ORO_VIVO[2]);
+      /* el borde del terreno candidato que cae en pantalla: cruces de oro cada 2 m */
+      const L=NV.LADO, X=E.expansion, x0=X.pi*L, y0=X.pj*L, x1=x0+L, y1=y0+L, color=packc(ORO_VIVO[0],ORO_VIVO[1],ORO_VIVO[2]);
+      const vx0=camX-1, vx1=camX+cols/CPM+1, vy0=camY-1, vy1=camY+rowsN/RPM+1;
       const cruz=(x,y)=>{ const c0=Math.round((x-camX)*CPM), r0=Math.floor((y-camY)*RPM); ordR=65535; layer=3; alzaR=0; pickId=0; for(const [dx,dy] of [[0,0],[-1,0],[1,0],[0,-1],[0,1]]) put(c0+dx,r0+dy,43,color); layer=0; };
-      for(let i=0;i<=PAR;i++){ const t=i*PAR/PAR; cruz(x0+t,y0); cruz(x0+t,y0+PAR); cruz(x0,y0+t); cruz(x0+PAR,y0+t); }
+      const ini=(v,m)=>Math.max(m,Math.ceil(v/2)*2);
+      for(let x=ini(vx0,x0); x<=Math.min(x1,vx1); x+=2){ if(y0>=vy0&&y0<=vy1) cruz(x,y0); if(y1>=vy0&&y1<=vy1) cruz(x,y1); }
+      for(let y=ini(vy0,y0); y<=Math.min(y1,vy1); y+=2){ if(x0>=vx0&&x0<=vx1) cruz(x0,y); if(x1>=vx0&&x1<=vx1) cruz(x1,y); }
     }
     if(E.modo!=='objetos'){ const M=E.modos[E.modo]; if(M&&M.pintar) M.pintar(); return; }
     const h=E.hover, n=cols*rowsN;

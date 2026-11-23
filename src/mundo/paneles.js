@@ -10,7 +10,7 @@
    pantalla. Las dos coordenadas conviven y se traducen en un solo lugar: acá. */
 
 const NVp = window.NV;
-const LADO = 100;                       // metros por panel
+const LADO = (NVp.CONFIG&&NVp.CONFIG.mundoViejo)?100:1000;   // metros por panel: 1 km (el mundo viejo de pruebas, 100 m)
 
 /* clave interna: pi,pj  — pi crece al este, pj crece al SUR */
 const clave=(pi,pj)=>pi+','+pj;
@@ -45,7 +45,7 @@ function panel(pi,pj){
   const def=BIOMAS[k]||(NVp.mundo&&NVp.mundo.defDe(k));   // los paneles del editor vienen del archivo del mundo
   if(!def) return null;
   p=NVp.generarPanel(pi,pj,def,LADO);
-  p.pi=pi; p.pj=pj; p.clave=k; p.nombre=def.nombre; p.coord=nombreDe(pi,pj); p.parcial=!!def.parcial;
+  p.pi=pi; p.pj=pj; p.clave=k; p.nombre=def.nombre; p.coord=nombreDe(pi,pj);
   if(NVp.mundo) NVp.mundo.aplicar(p);   // las ediciones del mundo, encima de lo generado (vacías = nada)
   cache.set(k,p);
   return p;
@@ -55,17 +55,14 @@ const localX=gx=>((gx%LADO)+LADO)%LADO;
 const localY=gy=>((gy%LADO)+LADO)%LADO;
 
 /* ---------- consultas en coordenadas del mundo ---------- */
-/* un panel 'parcial' (una ampliación) sólo existe en las parcelas que se agregaron: el resto de sus 100 × 100 es vacío */
-const PAR=10;
-function hayTierra(p,gx,gy){ return !p.parcial||NVp.mundo.parcelaActiva(Math.floor(gx/PAR),Math.floor(gy/PAR)); }
 function sueloEn(gx,gy){
   const p=panelDe(gx,gy);
-  if(!p||!hayTierra(p,gx,gy)) return null;   // fuera del mundo conocido
+  if(!p) return null;                   // fuera del mundo conocido
   return p.ground[localY(gy)][localX(gx)];
 }
 function solidoEn(gx,gy){
   const p=panelDe(gx,gy);
-  if(!p||!hayTierra(p,gx,gy)) return true;   // el mundo termina
+  if(!p) return true;                   // el mundo termina
   const lx=localX(gx), ly=localY(gy);
   if(p.occ[ly*LADO+lx]) return true;
   const g=p.ground[ly][lx];
@@ -133,15 +130,11 @@ function recalcularSombras(){
 }
 
 function limites(){
-  let x0=0,x1=LADO,y0=0,y1=LADO, primero=true;
-  const caja=(a,b,c,d)=>{ if(primero){ x0=a; x1=b; y0=c; y1=d; primero=false; } else { x0=Math.min(x0,a); x1=Math.max(x1,b); y0=Math.min(y0,c); y1=Math.max(y1,d); } };
+  let i0=0,i1=0,j0=0,j1=0;
   const claves=Object.keys(BIOMAS).concat(NVp.mundo?NVp.mundo.clavesDefinidas():[]);
-  for(const k of claves){
-    const [i,j]=k.split(',').map(Number), def=BIOMAS[k]||(NVp.mundo&&NVp.mundo.defDe(k));
-    if(def&&def.parcial){ for(const [bx,by] of NVp.mundo.parcelasDe(k)) caja(bx*PAR,(bx+1)*PAR,by*PAR,(by+1)*PAR); }
-    else caja(i*LADO,(i+1)*LADO,j*LADO,(j+1)*LADO);
-  }
-  return {x0,x1,y0,y1};
+  for(const k of claves){ const [i,j]=k.split(',').map(Number);
+    i0=Math.min(i0,i); i1=Math.max(i1,i); j0=Math.min(j0,j); j1=Math.max(j1,j); }
+  return {x0:i0*LADO, x1:(i1+1)*LADO, y0:j0*LADO, y1:(j1+1)*LADO};
 }
 NVp.limites=limites;
 NVp.LADO=LADO; NVp.BIOMAS=BIOMAS; NVp.panel=panel; NVp.panelDe=panelDe;

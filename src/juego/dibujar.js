@@ -52,7 +52,7 @@ function draw_(){
   /* CÁMARA LIBRE (Modo Dios, Espacio + arrastrar): un desplazamiento en metros sobre lo que seguiría al personaje. Se
      recorta a los límites del mundo y el recorte se devuelve al desplazamiento, para que no se acumule más allá del borde. */
   if(NV.camLibre){
-    const L=NV.camLibre, MG=40, ox=Math.max(LIM.x0-MG,Math.min(Math.max(LIM.x0-MG,LIM.x1+MG-colsM),destX+L.x)), oy=Math.max(LIM.y0-MG,Math.min(Math.max(LIM.y0-MG,LIM.y1+MG-rowsM),destY+L.y));   // 40 m de margen: se ve el vacío para poder ampliar
+    const L=NV.camLibre, MG=60, ox=Math.max(LIM.x0-MG,Math.min(Math.max(LIM.x0-MG,LIM.x1+MG-colsM),destX+L.x)), oy=Math.max(LIM.y0-MG,Math.min(Math.max(LIM.y0-MG,LIM.y1+MG-rowsM),destY+L.y));   // 60 m de margen: se ve el vacío para poder ampliar
     L.x=ox-destX; L.y=oy-destY; destX=ox; destY=oy;
   }
   if(NV.camXf===undefined||NV.camDirecta){ NV.camXf=destX; NV.camYf=destY; }

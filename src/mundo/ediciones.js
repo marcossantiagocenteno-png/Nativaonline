@@ -30,7 +30,6 @@ const NVe = window.NV;
 
 const FORMATO = 2;
 const L = NVe.LADO;
-const PARCELA = 10;               // metros de lado de una ampliación del mundo
 const clavePanel = (pi,pj)=>pi+','+pj;
 const claveXY = (x,y)=>x+','+y;
 const kAlt = (x,y)=>(x+2000)*8192+(y+2000);      // la misma clave que usa paneles.js
@@ -41,7 +40,7 @@ let idxAlt = new Map();          // kAlt -> metros de diferencia
 const oyentes = [];
 let version = 0;                 // sube con cada cambio: el editor y el guardado saben si hay algo nuevo
 
-const nuevoP = ()=>({def:null, suelo:new Map(), agregar:[], quitar:new Set(), alturas:new Map(), parcelas:new Set()});
+const nuevoP = ()=>({def:null, suelo:new Map(), agregar:[], quitar:new Set(), alturas:new Map()});
 function datosVacios(){ return {semilla:NVe.CONFIG.seed, pan:new Map(), rasgos:[], caminos:[], terreno:[]}; }
 const pDe = (k,crear)=>{ let P=D.pan.get(k); if(!P&&crear){ P=nuevoP(); D.pan.set(k,P); } return P||null; };
 const panelDeXY = (x,y)=>clavePanel(Math.floor(x/L),Math.floor(y/L));
@@ -67,7 +66,6 @@ function validar(o){
     for(const q of ((P.objetos||{}).quitar||[])) xy(q,'objetos.quitar');
     for(const a of ((P.objetos||{}).agregar||[])){ xy([a.x,a.y],'objetos.agregar'); if(typeof a.k!=='string') throw new Error('objeto sin tipo'); }
     if(P.def&&typeof P.def.bioma!=='string') throw new Error('panel '+k+': def sin bioma');
-    for(const b of (P.parcelas||[])) xy(b,'parcelas');
   }
   for(const r of (o.rasgos||[])){
     if(typeof r.id!=='string'||!Array.isArray(r.puntos)||r.puntos.length<1) throw new Error('rasgo inválido');
@@ -106,7 +104,6 @@ function desdeArchivo(o){
     for(const [x,y,v] of (s.alturas||[])) P.alturas.set(claveXY(x,y),v);
     for(const [x,y] of ((s.objetos||{}).quitar||[])) P.quitar.add(claveXY(x,y));
     for(const a of ((s.objetos||{}).agregar||[])) P.agregar.push(Object.assign({},a));
-    for(const [bx,by] of (s.parcelas||[])) P.parcelas.add(claveXY(bx,by));
     d.pan.set(k,P);
   }
   for(const r of (o.rasgos||[])) d.rasgos.push({id:r.id,tipo:r.tipo||'camino',puntos:r.puntos.map(p=>[p[0],p[1]]),ancho:r.ancho,material:r.material});
@@ -123,7 +120,6 @@ function aArchivo(d){
     if(P.def) s.def=JSON.parse(JSON.stringify(P.def));
     if(P.suelo.size) s.suelo=Array.from(P.suelo,([c,m])=>{ const [x,y]=partir(c); return [x,y,m]; }).sort(porXY);
     if(P.alturas.size) s.alturas=Array.from(P.alturas,([c,v])=>{ const [x,y]=partir(c); return [x,y,v]; }).sort(porXY);
-    if(P.parcelas.size) s.parcelas=Array.from(P.parcelas,c=>partir(c)).sort(porXY);
     const ob={};
     if(P.agregar.length) ob.agregar=P.agregar.map(a=>Object.assign({},a)).sort((a,b)=>a.y-b.y||a.x-b.x);
     if(P.quitar.size) ob.quitar=Array.from(P.quitar,c=>partir(c)).sort(porXY);
@@ -298,16 +294,6 @@ function aplicarUna(op,toca){
       if(!previo&&!op.datos) break;
       inv={t:'terreno',id:op.id,datos:previo?JSON.parse(JSON.stringify(previo)):null};
       toca.terreno=true; break; }
-    case 'parcela': {
-      /* AMPLIAR el mundo de a una parcela de PARCELA×PARCELA metros (bx,by = índices de parcela; x al este, y al sur).
-         La parcela vive en el panel que la contiene; ese panel, si no existía, se crea 'parcial': sólo existe donde hay
-         parcelas. Quitarla (on:false) es la inversa; si era la última del panel, el panel desaparece. */
-      if(!Number.isInteger(op.bx)||!Number.isInteger(op.by)) throw new Error('parcela: coordenadas inválidas');
-      const k=panelDeXY(op.bx*PARCELA,op.by*PARCELA), P=pDe(k,true), c=claveXY(op.bx,op.by), estaba=P.parcelas.has(c);
-      inv={t:'parcela',bx:op.bx,by:op.by,on:estaba};
-      if(op.on){ if(!P.def) P.def={bioma:'pasto',nombre:'Ampliación',parcial:true}; P.parcelas.add(c); }
-      else{ P.parcelas.delete(c); if(!P.parcelas.size&&P.def&&P.def.parcial) P.def=null; }
-      for(const q of vecinos(k)) toca.add(q); toca.soloObjetos=false; break; }
     case 'panel': {
       const k=clavePanel(op.pi,op.pj);
       if(op.def!==null&&(!op.def||typeof op.def.bioma!=='string')) throw new Error('def sin bioma');
@@ -366,9 +352,6 @@ function descargar(nombre){
 /* ---------- consultas para el resto del juego ---------- */
 const deltaAltura=(mx,my)=>idxAlt.size?(idxAlt.get(kAlt(mx,my))||0):0;
 const defDe=k=>{ const P=D&&D.pan.get(k); return P&&P.def||null; };
-/* ¿esa parcela (índices) es tierra? y las de un panel parcial, para saber hasta dónde llega el mundo */
-const parcelaActiva=(bx,by)=>{ const P=D&&D.pan.get(panelDeXY(bx*PARCELA,by*PARCELA)); return !!(P&&P.parcelas.has(claveXY(bx,by))); };
-const parcelasDe=k=>{ const P=D&&D.pan.get(k); return P?Array.from(P.parcelas,c=>partir(c)):[]; };
 const clavesDefinidas=()=>D?Array.from(D.pan.entries()).filter(([,P])=>P.def).map(([k])=>k):[];
 const alCambiar=f=>{ oyentes.push(f); return ()=>{ const i=oyentes.indexOf(f); if(i>=0) oyentes.splice(i,1); }; };
 const estadisticas=()=>{ const d=D||datosVacios(); let suelo=0,agregar=0,quitar=0,alt=0; for(const P of d.pan.values()){ suelo+=P.suelo.size; agregar+=P.agregar.length; quitar+=P.quitar.size; alt+=P.alturas.size; }
@@ -394,7 +377,7 @@ const margenAncho=()=>{
   return _mm>4?_mm:0;
 };
 NVe.mundo={FORMATO,aplicar,margenAncho,margenAlto,editar,cargar,exportar,texto,comoScript,importarTexto,vacio,descargar,
-  guardarBorrador,cargarBorrador,borrarBorrador,deltaAltura,defDe,clavesDefinidas,parcelaActiva,parcelasDe,PARCELA,alCambiar,estadisticas,
+  guardarBorrador,cargarBorrador,borrarBorrador,deltaAltura,defDe,clavesDefinidas,alCambiar,estadisticas,
   validar:o=>{ validar(o); return true; },version:()=>version,
   caminosDatos:()=>D?D.caminos:[],
   terrenoDatos:()=>D?D.terreno:[]};

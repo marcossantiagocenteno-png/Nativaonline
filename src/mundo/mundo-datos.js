@@ -6,4 +6,4 @@
    Mientras este archivo esté vacío (paneles:{} y rasgos:[]), el mundo es exactamente el que
    genera la semilla. Formato y reglas: docs/DISENO.md, "El mundo editable". No editar a mano
    salvo para borrarlo; lo escribe el editor. */
-window.NV.MUNDO_DATOS={"formato":2,"semilla":"claro-01","paneles":{},"rasgos":[],"caminos":[],"terreno":[]};
+window.NV.MUNDO_DATOS={"formato":2,"semilla":"claro-02","paneles":{},"rasgos":[],"caminos":[],"terreno":[]};
