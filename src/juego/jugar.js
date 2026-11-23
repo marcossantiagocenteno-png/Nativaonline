@@ -126,8 +126,9 @@ function cuadro(){
   /* mientras el personaje está entre dos casillas, o la cámara no llegó, o hay pasos por dar,
      se sigue dibujando; cuando todo se aquieta, el lazo se apaga y queda el latido lento */
   const enPaso=Date.now()-(NV.ultimoPaso||0) < (NV.pasoMs||PASO_MS)+40;
-  if(NV.fluidez) NV.fluidez.fin();
-  if(zoomando || !NV.camQuieta || enPaso || marcapasos) programarCuadro();
+  const sigue=!!(zoomando || !NV.camQuieta || enPaso || marcapasos);
+  if(NV.fluidez) NV.fluidez.fin(sigue);
+  if(sigue) programarCuadro();
 }
 const animarSuave=programarCuadro;
 /* ---------- guardado ----------

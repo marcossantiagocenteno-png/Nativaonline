@@ -28,12 +28,16 @@ F.inicio=function(){
   if(F.apagado) return;
   t0=ahora(); fases={}; F.fases=fases; cuadroN++; F.muestreando=(cuadroN%MUESTREO)===0;
 };
-F.fin=function(){
+/* continua: el ciclo pidió otro cuadro enseguida. Si el anterior NO lo pidió (el juego estaba quieto y sólo late cada ~0,5 s),
+   el tiempo hasta este cuadro es una pausa, no un tirón, y no se cuenta como intervalo. */
+let seguia=false, latCarry=0;
+F.fin=function(continua){
   if(F.apagado||!t0) return;
-  const t=ahora(), trabajo=t-t0, intervalo=tPrev?t0-tPrev:0; tPrev=t0;
+  const t=ahora(), trabajo=t-t0, intervalo=(tPrev&&seguia)?t0-tPrev:0; tPrev=t0; seguia=continua===undefined?true:!!continua;
   if(intervalo>0&&intervalo<1000){
     iv[i]=intervalo; cpu[i]=trabajo; fl[i]=fases.pintar||0; fp[i]=fases.mundo||0; lat[i]=0;
     for(const p of pendientes){ const l=t-p; if(l>=0&&l<2000){ lat[i]=Math.max(lat[i],l); latUlt=l; } } pendientes.length=0;
+    if(latCarry>lat[i]) lat[i]=latCarry; latCarry=0;
     /* ¿tirón? más de 2× el intervalo típico y más de 28 ms */
     const med=mediana(iv,Math.min(n,120));
     if(n>30&&intervalo>Math.max(28,2*med)){
@@ -43,7 +47,7 @@ F.fin=function(){
       tirones.push({t:Math.round(t),ms:Math.round(intervalo),trabajo:Math.round(trabajo),culpable:mayor}); if(tirones.length>100) tirones.shift();
     }
     i=(i+1)%N; if(n<N) n++;
-  }
+  } else { for(const p of pendientes){ const l=t-p; if(l>=0&&l<2000){ latCarry=Math.max(latCarry,l); latUlt=l; } } pendientes.length=0; }
   t0=0; F.muestreando=false;
 };
 function mediana(a,m){ if(!m) return 16.7; const b=[]; for(let k=0;k<m;k++) b.push(a[(i-1-k+N*2)%N]); b.sort((x,y)=>x-y); return b[b.length>>1]; }
