@@ -145,9 +145,32 @@ const packs=(fam,s,calor)=>{
   return packc(r,g,b);
 };
 
+/* El pintor por GPU (motor/pincel.js) hace lo mismo que el de texto de abajo con un atlas de glifos. Si no está activo
+   o falla, se usa el de siempre. */
+function flushGPU(Wp,Hp,L){
+  ctx.font=fontSize+'px '+MONO;
+  const adv=ctx.measureText('W').width;
+  const g=NV.pincel.pintar({ctx,fbG,fbC,fbL,cols,rows:rowsN,cw,chh,fontSize,mono:MONO,dpr,W:Wp,H:Hp,dx:NV.desplaceX||0,dy:NV.desplaceY||0,adv,
+    fArte,nArte,bg:[Math.round(5*L.r+2),Math.round(7*L.g+2),Math.round(10*L.b+3)]});
+  nArte=0;
+  if(g) ctx.drawImage(g,0,0,Wp,Hp);
+}
 function flush(){
+  const t0=performance.now();
   const Wp=cv.width/dpr,Hp=cv.height/dpr;
   const L=NV.luz;
+  let hecho=false;
+  if(NV.pincel&&NV.pincel.activo){ try{ flushGPU(Wp,Hp,L); hecho=true; }catch(e){ NV.pincel.apagar(); NV.pincel.motivo='falló al pintar: '+e.message; } }
+  if(!hecho) flushTexto(Wp,Hp,L);
+  const amb=clamp(NV.luz.amb,0,1.1);
+  const vista=0.10+0.26*amb;
+  const cierre=Math.min(0.97, 0.95-0.37*amb);
+  const g=ctx.createRadialGradient(Wp/2,Hp/2,Math.min(Wp,Hp)*vista,Wp/2,Hp/2,Math.max(Wp,Hp)*0.80);
+  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,'+cierre.toFixed(2)+')');
+  ctx.fillStyle=g; ctx.fillRect(0,0,Wp,Hp);
+  if(NV.fluidez) NV.fluidez.fase('pintar',performance.now()-t0);
+}
+function flushTexto(Wp,Hp,L){
   ctx.fillStyle='rgb('+Math.round(5*L.r+2)+','+Math.round(7*L.g+2)+','+Math.round(10*L.b+3)+')';
   ctx.fillRect(0,0,Wp,Hp);
   ctx.font=fontSize+'px '+MONO;
@@ -188,12 +211,6 @@ function flush(){
   }
   if(canRun){ ctx.textAlign='center'; ctx.letterSpacing='0px'; }
   ctx.restore();
-  const amb=clamp(NV.luz.amb,0,1.1);
-  const vista=0.10+0.26*amb;
-  const cierre=Math.min(0.97, 0.95-0.37*amb);
-  const g=ctx.createRadialGradient(Wp/2,Hp/2,Math.min(Wp,Hp)*vista,Wp/2,Hp/2,Math.max(Wp,Hp)*0.80);
-  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,'+cierre.toFixed(2)+')');
-  ctx.fillStyle=g; ctx.fillRect(0,0,Wp,Hp);
 }
 
 NV.layout=layout; NV.aplicarEscala=aplicarEscala;
@@ -234,4 +251,6 @@ NV.acercarZoom=function(){
   layout();
   return true;
 }; NV.put=put; NV.flush=flush;
+/* el pintor por GPU sólo se enciende con ?pincel=gl mientras se prueba; sin esa señal, nada cambia */
+try{ { const m=/[?&]pincel=(gl|cpu)/.exec(location.search); if(m) NV.pincel.iniciar(m[1]); } }catch(e){}
 NV.packc=packc; NV.packs=packs;

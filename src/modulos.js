@@ -14,6 +14,8 @@ window.NV_MODULOS=[
   'luz-de-lunas/luz',
   'mundo/viento',
   'motor/entorno',           // lo que comparten árboles, rocas y los que vengan: viento, luz, sombras, contorno
+  'motor/fluidez',           // el motor global de fluidez: sólo mide, no cambia nada
+  'motor/pincel',            // el pintor por GPU del tablero (apagado salvo ?pincel=gl hasta que se apruebe)
   'motor/lienzo',
   'arte/myrella',
   'motor/sprites',

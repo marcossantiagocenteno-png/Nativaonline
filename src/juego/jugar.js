@@ -119,12 +119,14 @@ function programarCuadro(){
 }
 function cuadro(){
   pend=false;
+  if(NV.fluidez) NV.fluidez.inicio();
   avanzarPasos(Date.now());
   const zoomando=NV.acercarZoom();
   draw();
   /* mientras el personaje está entre dos casillas, o la cámara no llegó, o hay pasos por dar,
      se sigue dibujando; cuando todo se aquieta, el lazo se apaga y queda el latido lento */
   const enPaso=Date.now()-(NV.ultimoPaso||0) < (NV.pasoMs||PASO_MS)+40;
+  if(NV.fluidez) NV.fluidez.fin();
   if(zoomando || !NV.camQuieta || enPaso || marcapasos) programarCuadro();
 }
 const animarSuave=programarCuadro;
@@ -406,12 +408,14 @@ function init(){
       : 'Volvés donde lo dejaste.'), 400);
   }
   layout(); restartAnim(); connect();
+  if(NV.fluidez) NV.fluidez.instrumentar();
   if(NV.editor) NV.editor.iniciar();
   addEventListener('visibilitychange',()=>{ if(document.hidden) guardar(true); });
   addEventListener('pagehide',()=>guardar(true));
 
   addEventListener('resize',()=>{ clearTimeout(init._r); init._r=setTimeout(layout,140); });
   addEventListener('keydown',e=>{
+    if(NV.fluidez) NV.fluidez.entrada(e.timeStamp);
     if(e.key==='Escape'){ cerrarCuadro(); $('info').classList.remove('show'); return; }
     const k=e.key.toLowerCase();
     const dir={arrowup:[0,-1],w:[0,-1],arrowdown:[0,1],s:[0,1],
@@ -457,7 +461,7 @@ NV.casillaEn=function(col,fil){
 };
 /* un toque corto manda caminar; arrastrar o pellizcar, no */
   let tocó=null;
-  cv.addEventListener('pointerdown',e=>{ tocó={x:e.clientX,y:e.clientY,t:Date.now()}; });
+  cv.addEventListener('pointerdown',e=>{ if(NV.fluidez) NV.fluidez.entrada(e.timeStamp); tocó={x:e.clientX,y:e.clientY,t:Date.now()}; });
   cv.addEventListener('pointerup',e=>{
     if(!tocó) return;
     if(NV.editor&&NV.editor.activo){ tocó=null; return; }       // en Modo Dios los clics editan, no caminan
@@ -474,7 +478,7 @@ NV.casillaEn=function(col,fil){
     if(Math.abs(gx-me.x)<=1 && Math.abs(gy-me.y)<=1) look();
     else irHacia(gx,gy);
   });
-  cv.addEventListener('wheel',e=>{ e.preventDefault(); NV.zoomRelativo(e.deltaY<0?0.94:1.064); animarSuave(); },{passive:false});
+  cv.addEventListener('wheel',e=>{ if(NV.fluidez) NV.fluidez.entrada(e.timeStamp); e.preventDefault(); NV.zoomRelativo(e.deltaY<0?0.94:1.064); animarSuave(); },{passive:false});
   let pinch=0;
   cv.addEventListener('touchstart',e=>{
     if(e.touches.length===2) pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,

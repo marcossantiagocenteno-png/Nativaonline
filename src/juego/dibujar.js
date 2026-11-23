@@ -137,6 +137,7 @@ function draw_(){
   }
   if(NV.editor&&NV.editor.activo) NV.editor.pintar();      // resaltado, indicador de casilla
   liftR=0; alzaR=0; usaCol=false; ordR=65535;
+  if(NV.fluidez) NV.fluidez.fase('mundo',performance.now()-t0);     // todo lo anterior: preparar el mundo; flush suma el pintado
   flush();
   /* el viento y el rumbo, en una línea */
   $('st2').textContent='viento '+(wind<0.5?'calmo':wind<0.95?'suave':'racheado')
