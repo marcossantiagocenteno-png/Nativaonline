@@ -94,6 +94,7 @@ function draw_(){
       }
     }
   }
+  dibujarParticulas(Date.now()/1000,objetos,colsM,rowsM);
   if(NV.destino){                       // adónde se va, mientras se va
     const d=NV.destino;
     ordR=65535; alzaR=Math.round(NV.alturaEn(d.x+0.5,d.y+0.5)*HPM);

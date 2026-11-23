@@ -3,7 +3,7 @@ const fs=require('fs');
 const R='/home/claude/nativaonline/';
 const ORDEN=['src/motor/base.js','src/mundo/diccionario.js','src/mundo/generar.js',
   'src/mundo/paneles.js','src/mundo/astro.js','src/mundo/cielo.js','src/mundo/mareas.js','src/mundo/clima.js','src/motor/lienzo.js',
-  'src/arte/myrella.js','src/motor/sprites.js','src/juego/interfaz.js','src/juego/personajes.js','src/juego/dibujar.js','src/juego/astros.js','src/juego/jugar.js'];
+  'src/arte/myrella.js','src/motor/sprites.js','src/juego/interfaz.js','src/juego/personajes.js','src/juego/dibujar.js','src/juego/particulas.js','src/juego/astros.js','src/juego/jugar.js'];
 const ctx={font:'',textBaseline:'',textAlign:'',fillStyle:'',letterSpacing:'0px',
   measureText:t=>({width:6*(t?t.length:1)}),setTransform(){},fillRect(){},fillText(){},
   save(){},restore(){},translate(){},
@@ -36,8 +36,10 @@ global.requestAnimationFrame=cb=>{
 global.performance={now:()=>Number(process.hrtime.bigint()/1000000n)};
 global.setInterval=()=>0;global.clearInterval=()=>{};global.setTimeout=()=>0;global.clearTimeout=()=>{};
 const src=ORDEN.map(f=>fs.readFileSync(R+f,'utf8')).join('\n;\n');
+/* Las partículas dependen del reloj, y casi todas las pruebas comparan cuadros: arrancan apagadas.
+   La que las mide (particulas.js) las enciende con NV.particulas=true. */
 module.exports=function(extra){
   const mod={exports:{}};
-  new Function('module','exports',src+'\n'+(extra||'module.exports=window.NV;'))(mod,mod.exports);
+  new Function('module','exports',src+'\n;window.NV.particulas=false;\n'+(extra||'module.exports=window.NV;'))(mod,mod.exports);
   return mod.exports;
 };

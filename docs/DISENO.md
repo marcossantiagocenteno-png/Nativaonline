@@ -1154,6 +1154,32 @@ profundidad. Si nacen alineadas, el pasto se lee como un campo arado.
 
 ---
 
+### Partículas
+
+`src/juego/particulas.js`: cuatro cosas que flotan en el aire, y ninguna lleva número ni
+medidor; se leen por lo que hacen.
+
+| qué | cuándo sale | de dónde | cómo se mueve |
+|---|---|---|---|
+| **hojas** | encinos y álamos (los pinos no); sobre todo en otoño, poco el resto del año, menos con lluvia | de la copa de cada árbol en la vista | caen, el viento las lleva hacia el este y se mecen |
+| **polvo** | sólo con viento racheado, sobre arena y tierra | celdas de 4 m del mundo | rasante, rápido, en rachas |
+| **chispas** | de cada hoguera, siempre | del fuego | suben hasta unos 3,5 m, se van de lado y pasan de blanco-naranja a rojo apagado |
+| **luciérnagas** | de noche, sin lluvia, sobre pasto y orillas | celdas de 5 m | vagan despacio y se encienden y apagan |
+
+- **No guardan estado.** Cada partícula es una función del reloj: dado el instante y la semilla
+  de su ranura (un árbol, una celda, una hoguera) se sabe dónde está y cuánto le queda de
+  vida, igual que la lluvia. No hay nada que crezca, limpiar ni sincronizar, y una prueba puede
+  pedir el mismo instante dos veces y obtener lo mismo.
+- **Viven en metros** `(x, y, z)`, no en filas, así que el zoom no cambia dónde están.
+- **Siguen el terreno**: se dibujan con la altura del suelo de ahí (`alzaR`) y con el orden de
+  pintado de su fila, de modo que una loma o un árbol más al sur las tapa.
+- Las chispas y las luciérnagas **emiten luz propia** (no se atenúan con la hora del día); las
+  hojas y el polvo se pintan con la paleta del suelo y se apagan de noche con todo lo demás.
+- El número de partículas se acota (hojas: 160 como mucho) y escala con `calidad`, así que en una
+  máquina lenta baja solo.
+- Pendiente: las chispas no alumbran lo que tienen cerca, y no hay nieve ni cenizas de volcán.
+  `pruebas/particulas.js`; `pruebas/cargar.js` las arranca apagadas (`NV.particulas=false`), porque dependen del reloj y casi todas las pruebas comparan cuadros; `particulas.js` las enciende.
+
 ## 8 bis. Cómo se camina
 
 Tres formas, y las tres conviven:

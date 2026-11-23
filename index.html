@@ -21,7 +21,7 @@
   document.write('<link rel="stylesheet" href="src/style.css'+v+'">');
   ['motor/base','mundo/diccionario','mundo/generar','mundo/paneles','mundo/astro','mundo/cielo',
    'mundo/mareas','mundo/clima','motor/lienzo','arte/myrella','motor/sprites',
-    'juego/interfaz','juego/personajes','juego/dibujar',
+    'juego/interfaz','juego/personajes','juego/dibujar','juego/particulas',
    'juego/astros','juego/jugar'].forEach(function(f){
     document.write('<script src="src/'+f+'.js'+(f.indexOf('arte/')===0?va:v)+'"><\/script>');
   });
