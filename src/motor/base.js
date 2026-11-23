@@ -16,20 +16,20 @@ let CPM=13, RPM=4, HPM=6.8;
 const CONFIG={ name:'Claro del norte', seed:'bosque-02', w:100, h:100,
                treeDensity:0.009, clearing:true, sunElev:30 };
 const FAM={
-  verde:  ['#17401f','#245a2b','#357f3b','#58a84f'],
-  verdeO: ['#12351a','#1d4a24','#2a6b33','#3f8a42'],   // follaje en sombra propia
-  corteza:['#3a2a19','#4f3a23','#6a4e30','#8a6940'],
-  piedra: ['#3b4042','#565b5e','#767c80','#949b9f'],
-  tierra: ['#4a3f2d','#67583f','#857252','#a08a64'],
+  verde:  ['#0a1f1b','#113b31','#1c6350','#46b48f'],   // verde frío casi negro, con la punta menta
+  verdeO: ['#071612','#0c2a23','#154a3d','#2a8470'],   // follaje en sombra propia
+  corteza:['#1c1917','#2a2420','#3d342c','#584b3f'],
+  piedra: ['#262c33','#3b4550','#5a6975','#8797a5'],
+  tierra: ['#26231f','#38342b','#524b3c','#70664f'],
   flor:   ['#6b3a53','#8e4d6d','#b56389','#d07da3'],
-  musgo:  ['#1b3d18','#2a5a22','#3d7a2e','#55993c'],
-  hoja:   ['#4a3a1e','#6b5429','#8e7238','#b0914b'],
+  musgo:  ['#0d2a22','#16443a','#25695a','#3c9078'],
+  hoja:   ['#2c2313','#463619','#664e25','#896a33'],
   agua:   ['#1d3c4a','#2f6478','#4a93a8','#6fbdcf'],
   arena:  ['#5a5140','#7d7158','#a39a7a','#c6bda2'],
   hongo:  ['#5a4a3a','#7d6a52','#a08c6e','#c4b093'],
-  pino:        ['#10281c','#17402a','#215c3b','#2f7c50'],
-  alamo:       ['#3b5620','#577f31','#7aa743','#a0c660'],
-  cortezaClara:['#4e4e46','#737266','#9c9b8c','#c2c1b1'],
+  pino:        ['#08171a','#0e2a2a','#173f3c','#2a6458'],
+  alamo:       ['#16332a','#245044','#3a7a62','#68b392'],
+  cortezaClara:['#3a3f42','#596064','#838b8e','#adb5b7'],
   abismo: ['#05070b','#0b1016','#141c24','#1e2834'],
   roca2:  ['#473f36','#6a6054','#8f8475','#b3a897'],
   honda:  ['#10212b','#1b3a4a','#2a5a6e','#3d7e94'],

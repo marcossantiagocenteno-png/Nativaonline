@@ -549,7 +549,7 @@ function drawGroundRow(my,rBase,haze,t){
     if(!type) continue;                         // más allá del mundo conocido
     const mt=MAT[type]||MAT.g;
     const sh=NV.sombraEn(mx,my);
-    let lp=0.84+patch(mx,my,3,0.08)*0.40;
+    let lp=0.58+patch(mx,my,3,0.08)*0.80;      // charcos de sombra y claros: más contraste que antes (0,84 + 0,40)
     let fam=mt.fam, grieta=0;
     if(mt.textura==='roca'){
       /* estratos: bandas horizontales de distinta dureza, como la roca de
@@ -708,12 +708,12 @@ function drawGroundRow(my,rBase,haze,t){
       const largo=mt.largo||type==='G';
       const nPer=Math.max(2,Math.round(CPM*(largo?0.15:0.09)*calidad));
       const n=Math.round(nPer*clamp(0.20+densMata*1.10,0.12,1.7));
-      let colT=packs(mt.fam2||mt.fam,light*1.1);
+      let colT=packs(mt.fam2||mt.fam,light*1.3);
       let colM=packs(mt.fam,light*0.95);
       for(let b=0;b<n;b++){
         const hb=hash3(mx*997+b,my*131+sy*37,7);
         const c0=base+((hb%(CPM*8))/8|0);
-        if(cerca){ afinar(c0-base,sy); colT=packs(mt.fam2||mt.fam,_lz*1.1); colM=packs(mt.fam,_lz*0.95); }
+        if(cerca){ afinar(c0-base,sy); colT=packs(mt.fam2||mt.fam,_lz*1.3); colM=packs(mt.fam,_lz*0.95); }
         const mAlto=(largo?0.45:0.13)+(((hb>>5)%100)/100)*(largo?0.80:0.27);
         const alto=Math.max(2,Math.round(mAlto*HPM));
         const own=((((hb>>9)%9)-4)/4)*0.95;
@@ -1462,7 +1462,7 @@ function lienzoDe(ancho){
 }
 
 function drawPlayer(haze){
-  if(!_jugador) _jugador=NV.nuevoPersonaje({arte:'myrella',nombre:'Myrella',alto:1.85});
+  if(!_jugador) _jugador=NV.nuevoPersonaje({arte:'myrella',nombre:'Myrella',alto:2.15});
   const p=_jugador;
   p.x=me.x; p.y=me.y;
   p.desdeX=NV.desdeX; p.desdeY=NV.desdeY;

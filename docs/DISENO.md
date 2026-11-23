@@ -1142,6 +1142,15 @@ dos cámaras y exige que salga idéntica.
 Cuatro familias —verde, corteza, piedra, arena, agua— con **cuatro escalones de luz
 cada una**. Nada de degradado continuo: el degradado ensucia y confunde.
 
+**Referencia de atmósfera: bosque antiguo, frío y oscuro** (Ansenjeo). Los verdes
+son azul-verdosos casi negros y **solo el escalón más alto de cada familia llega a
+menta**; así el pasto claro resalta contra la sombra en vez de que todo sea verde
+medio. Cortezas, tierra y hojarasca se desaturan hacia gris pardo; la piedra se
+enfría hacia gris azulado. El suelo tiene más contraste (`lp` va de 0,58 a 1,38:
+charcos de sombra y claros) y las puntas de las briznas llevan más luz que la
+mata (×1,3 contra ×0,95). Si algo se ve «primavera», casi siempre es un verde
+saturado de brillo medio: bajarlo, no subir otro color.
+
 ### Viento
 
 Una **onda que viaja**: entra por el este y tarda en cruzar, con un ruido lento de
