@@ -755,7 +755,11 @@ function drawGroundRow(my,rBase,haze,t){
           detallar(det,k,sy,mx*CPM+k,cyb,base,rb,light,calor);
         }
       }
-      if((hash3(mx,my*RPM+sy,29)%140)<3) put(base+((hash3(mx,my+sy,31))%CPM),rb-((sy*5)%3),46,packc(205,230,215));
+      /* puntitos claros en el pasto (flores diminutas, luciérnagas quietas): en la
+         referencia hay muchos y se leen sobre el verde oscuro. Fijos, sin parpadeo. */
+      { const hp=hash3(mx,my*RPM+sy,29)%140;
+        if(hp<9) put(base+((hash3(mx,my+sy,31))%CPM),rb-((sy*5)%3),hp<2?42:46,
+                     hp<5?packc(205,230,215):packc(150,190,185)); }
     }
     usaCol=false;
     rellenarFrente(base,rBase,mx,haze);

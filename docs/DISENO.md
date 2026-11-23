@@ -1174,6 +1174,9 @@ muros de acantilado y personajes no la llevan (el personaje ya trae su contorno)
 `pruebas/detalle.js` la cuenta. **Musgo en la piedra:** las rocas llevan musgo al
 pie (`° * ;`, familia `musgo`) que sube entre el 16 y el 36 % de su alto y se ralea
 hacia arriba; se mide en coordenadas de la piedra, no de la pantalla.
+**Puntitos claros** en el pasto: tres veces más que antes (9 de cada 140 franjas,
+antes 3), en dos tonos y con algunos en `*`. Fijos, sin parpadeo: la prueba de que el
+suelo queda quieto lo exige.
 Si algo se ve «primavera», casi siempre es un verde
 saturado de brillo medio: bajarlo, no subir otro color.
 
