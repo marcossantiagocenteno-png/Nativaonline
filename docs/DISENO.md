@@ -1214,7 +1214,7 @@ lo demás no se mueva. Siguen los arbustos, los troncos caídos y las piedras. C
 - Las manchas de tierra del pasto quedan apagadas (`MANCHAS_DE_TIERRA` en `dibujar.js`).
 
 
-## Pasto compacto (22/11, variante C aprobada)
+## Pasto compacto (22/11, variante C: el pasto definitivo)
 
 El pasto largo (`mt.largo` o tipo `G`) ya no son briznas: es una superficie continua de marcas
 chicas. Casi cada celda (96 %) lleva un caracter de `: ; ' ` - ~ " ! i , .` y encima van trazos
@@ -1223,3 +1223,6 @@ verde grisáceo, oliva casi gris, reflejo claro, gris), con manchas de tono y lu
 metros. Las flores `@ e o` ya no salen de las puntas ni sueltas: van en grupitos de 3 a 6, en 1 de
 cada 9 baldosas de 6 m. El código está en `dibujar.js` (`PC_*`, `floresDelMetro`); el origen y las
 variantes A y B, en `preview/pasto.html`. El detalle `+` de `DET.flores` no se tocó.
+
+El pasto anterior (briznas largas, alfombra de `|`, manchas de tierra, puntitos sueltos y los tres
+tonos por brizna) se borró del código: no queda otro camino de dibujo para el pasto.

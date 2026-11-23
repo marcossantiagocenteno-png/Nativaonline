@@ -375,7 +375,6 @@ function decidirOrilla(u,v,wx,wy){
    cae cada cuarto, y de qué color es la mancha. Después cada celda sólo tira un
    dado contra esa cifra. La densidad se da por metro cuadrado y se reparte entre
    las celdas que haya, así que no cambia con el zoom. */
-const _gT=[0,0,0], _gM=[0,0,0], _gB=[0,0,0];     // colores de brizna por tono, se reusan
 
 /* ---------- PASTO COMPACTO (variante C de preview/pasto.js, aprobada por Marcos) ----------
    Superficie continua de marcas chicas: casi cada celda lleva un caracter (: ; ' ` - ~ " ! i , .)
@@ -536,7 +535,6 @@ function rellenarFrente(base,rBase,mx,haze){
     }
   }
 }
-const MANCHAS_DE_TIERRA=false;     // las manchas de tierra del pasto, apagadas mientras haya un solo pasto
 function drawGroundRow(my,rBase,haze,t){
   const colsM=Math.ceil(cols/CPM);
   traerFilas(my,camX-1,camX+colsM+1);
@@ -578,12 +576,6 @@ function drawGroundRow(my,rBase,haze,t){
     const grass=!!mt.mata;
     const mezclar=tocaOtro(mx-_f0,type);
     const bw=mezclar&&!grass&&prepararOrilla(mx,my,type);
-    /* cuánta mata hay en este metro: un ruido suave, para que el pasto crezca a
-       parches y no parejo como una cancha */
-    /* manchas de tierra oscura: claros pelados dentro del pasto, de unos cinco
-       metros, donde la mata ralea y asoma el suelo (como en la referencia) */
-    const mancha=(MANCHAS_DE_TIERRA&&grass)?clamp((tex2(mx+40.5,my-24.5,5.5)-0.60)/0.10,0,1):0;   // apagadas: un solo pasto
-    const densMata=grass?clamp(mt.mata*(0.30+1.45*tex2(mx+0.5,my+0.5,1.6))*(1-0.78*mancha),0,1.4):0;
     /* el detalle no va en los metros que tocan otro material: ahí las celdas
        pueden ser de la arena o del agua de al lado, y una flor en el agua no */
     const det=(grass&&!mezclar&&mt.detalle)?mt.detalle:null;
@@ -592,7 +584,7 @@ function drawGroundRow(my,rBase,haze,t){
     /* altura: cada columna de celdas sube lo que sube el terreno ahí */
     fijarAlza(mx,my,base);
     usaCol=true;
-    if(grass&&(mt.largo||type==='G')) floresDelMetro(mx,my); else _flN=0;
+    if(grass) floresDelMetro(mx,my); else _flN=0;
     /* las RPM franjas se recorren de norte a sur: lo de más al sur tapa */
     for(let sy=0;sy<RPM;sy++){
       const rb=top+sy;
@@ -699,25 +691,7 @@ function drawGroundRow(my,rBase,haze,t){
             put(base+k,rb,176,packs('verdeO',light*0.72));
         }
       }
-      /* la tierra de la mancha: terrones y guijas bajo las briznas que quedan */
-      if(mancha>0.04){
-        const colE=packs('tierra',light*0.70);
-        for(let k=0;k<CPM;k++){
-          const hq=hash3(mx*CPM+k,my*RPM+sy,41);
-          if((hq%100)>=mancha*88) continue;
-          put(base+k,rb,[46,58,176,46,58][(hq>>8)%5],colE);   // sin la coma: es la hojarasca del detalle
-        }
-      }
-      /* alfombra dispersa en TODAS las franjas: no hay línea de base */
-      if(!mt.manto && !(mt.largo||type==='G')) for(let k=0;k<CPM;k+=2){
-        if(tex2(mx+(k+0.5)/CPM,my+(sy+0.5)/RPM,0.34)*densMata<0.34) continue;
-        if(cerca){ afinar(k,sy); light=_lz; calor=_cal; colG=_col; }
-        put(base+k,rb,mt.largo||type==='G'?124:176,colG);
-      }
-      /* briznas: base repartida en la profundidad, altura mayor que el paso
-         de la grilla para que la mata se enlace de un metro al siguiente */
-      const largo=mt.largo||type==='G';
-      if(largo){
+      {
         /* superficie compacta: una marca por celda casi siempre, trazos cortos encima */
         const y0=my+(sy+0.5)/RPM, cyb=my*RPM+sy;
         const lumZ=tex2(mx+0.5,y0,3.0), tonZ=tex2(mx+9.5,y0+5.3,2.2), corr=tex2(mx+17.5,y0-3.1,4.5);
@@ -745,51 +719,6 @@ function drawGroundRow(my,rBase,haze,t){
           } else put(base+k,rb,PC_MICRO[(h>>6)%PC_MICRO.length],col);
         }
         for(let f=0;f<_flN;f++) if(_flS[f]===sy) put(base+_flC[f],rb,_flG[f],packc(205,218,208));
-      } else {
-      /* pocas briznas, largas y finas sobre el fondo oscuro, como la muestra: menos de una
-         por franja y metro, así que el número se reparte con un dado en vez de redondear */
-      const nPer=CPM*(largo?0.12:0.09)*calidad;      // el triple de la primera versión rala y un poco más
-      /* más pasto donde hay luz y menos en la sombra: la luz de la fila (sombras, manchas de claridad) manda */
-      const nf=nPer*clamp(0.20+densMata*1.10,0.12,1.7)*clamp(0.10+light0*1.15,0.14,1.5);
-      const n=Math.floor(nf)+((hash3(mx*53+sy,my*71,19)%1000)<(nf%1)*1000?1:0);
-      /* tres tonos de verde por brizna (oscuro, medio, claro): el prado no es de un solo color */
-      const TONOS=[0.70,1,1.30];
-      for(let i=0;i<3;i++){
-        _gT[i]=packs(mt.fam2||mt.fam,light*1.3*TONOS[i]);
-        _gM[i]=packs(mt.fam,light*0.95*TONOS[i]);
-        _gB[i]=packs(mt.fam,light*0.55*TONOS[i]);    // la base de la brizna, en sombra
-      }
-      for(let b=0;b<n;b++){
-        const hb=hash3(mx*997+b,my*131+sy*37,7);
-        const c0=base+((hb%(CPM*8))/8|0);
-        const ti=(hb>>17)%3;
-        let colT=_gT[ti], colM=_gM[ti], colB=_gB[ti];
-        if(cerca){ afinar(c0-base,sy); colT=packs(mt.fam2||mt.fam,_lz*1.3*TONOS[ti]); colM=packs(mt.fam,_lz*0.95*TONOS[ti]); colB=packs(mt.fam,_lz*0.55*TONOS[ti]); }
-        const mAlto=(largo?0.16:0.13)+(((hb>>5)%100)/100)*(largo?0.50:0.27);      // pasto corto: 0,16 a 0,66 m
-        const alto=Math.max(2,Math.round(mAlto*HPM));
-        const own=((((hb>>9)%9)-4)/4)*0.95;
-        /* el pasto seco o pisado se acuesta: la brizna sale tendida y no parada */
-        const tend=mt.tendido?mt.tendido*((hb>>13)%2?1:-1):0;
-        const lean=clamp(own-bend*0.70+tend,-2.4,2.4);
-        const span=Math.max(1,alto-1);
-        const flor=largo&&(hb>>21)%100<14;      // una de cada siete remata en flor blanca
-        for(let r=0;r<alto;r++){
-          const f=r/span, dx=Math.round(lean*(f*f*0.62+f*0.38)*alto*0.55);
-          const tip=(r===alto-1);
-          let g;
-          if(largo){
-            /* el pasto es sólo | / \ , de distintos largos y tonos: la inclinación de la brizna
-               decide cuál */
-            if(Math.abs(lean)<0.26) g='|';
-            else if(lean<0)         g=(r>0)?'\\':'|';
-            else                    g=(r>0)?'/':'|';
-          } else {
-            g = tip?'*':'\u00b0';
-          }
-          if(largo&&tip&&flor) put(c0+dx,rb-r,'@eo'.charCodeAt((hb>>25)%3),packc(235,245,238));
-          else put(c0+dx,rb-r,g.charCodeAt(0),tip?colT:(largo&&f<0.5)?colB:colM);   // base oscura, punta clara
-        }
-      }
       }
       if(det){
         const cyb=my*RPM+sy;
@@ -798,11 +727,6 @@ function drawGroundRow(my,rBase,haze,t){
           detallar(det,k,sy,mx*CPM+k,cyb,base,rb,light,calor);
         }
       }
-      /* puntitos claros en el pasto (flores diminutas, luciérnagas quietas): en la
-         referencia hay muchos y se leen sobre el verde oscuro. Fijos, sin parpadeo. */
-      if(!largo){ const hp=hash3(mx,my*RPM+sy,29)%140;
-        if(hp<9) put(base+((hash3(mx,my+sy,31))%CPM),rb-((sy*5)%3),'@eo'.charCodeAt(hp%3),
-                     hp<5?packc(225,240,230):packc(170,200,195)); }
     }
     usaCol=false;
     rellenarFrente(base,rBase,mx,haze);

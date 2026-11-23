@@ -100,7 +100,10 @@ const arena=cuadro(()=>'s',120,90);
 probar('la arena no lleva detalle de pasto', arena.det.flor.length===0);
 
 console.log('\n=== queda quieto ===');
+/* el reloj quieto: si el cuadro tarda, el motor baja la calidad y el segundo cuadro sale distinto sin que sea un parpadeo */
+const _perf=global.performance; global.performance={now:()=>0};
 const g1=cuadro(()=>'g',120,90), g2=cuadro(()=>'g',120,90);
+global.performance=_perf;
 const clave=l=>l.map(d=>d.c+':'+d.r).join('|');
 probar('mismo cuadro, mismos detalles (no parpadea)', clave(g1.det.flor)===clave(g2.det.flor));
 
