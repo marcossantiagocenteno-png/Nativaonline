@@ -316,6 +316,29 @@ nace encima. **Donde el sendero cruza el arroyo del claro, el fondo sube y hay u
 vado**; en el acantilado no, porque allá el río ya es ancho y hondo y cortar el
 paso es lo que corresponde.
 
+**La proporción de pasto largo se mezcla en las costuras.** Cada bioma quería la
+suya (`UMBRAL_G` en `generar.js`: 0,38 el desierto, 0,56 los pinos, 0,44 el bosque
+viejo...) y entre dos paneles saltaba en seco: la costura del desierto tenía un
+escalón de 48,8 puntos de pasto largo, peor que cualquier punto natural del prado
+(el máximo medido dentro de un panel es 37,5). Ahora el umbral de cada panel es el
+suyo en el centro y se acerca al del vecino en los 24 m (`BANDA_G`) pegados a la
+costura; en la costura los dos lados valen lo mismo. Escalones medidos en franjas
+de 3 m: 5,6 desierto, 11,5 pinos, 1,3 bosque viejo, 2,7 acantilado, todos dentro de
+lo que ocurre en cualquier otro lugar del prado.
+
+- Es sólo dibujo del suelo: **no consume el azar del generador**. Se comprobó con
+  una huella de los árboles y piedras de los nueve paneles tomada antes del
+  cambio: idéntica.
+- El claro usaba otra escala de ruido (0,055) que los demás paneles (0,05), así que
+  aunque el umbral coincidiera, el dibujo no continuaba al cruzar. Ahora es la misma.
+- El corte del desierto **sigue siendo abrupto**, porque el diseño lo pide así.
+
+**Abierto: la densidad de árboles también salta en las costuras**, de 2 a 4 veces
+(contados a 15 m de cada lado: el desierto tiene unas 2,8 veces los árboles del claro
+vecino, el acantilado un cuarto de los del claro). No se tocó porque los árboles salen
+de un generador secuencial: cambiar cuántos nacen vuelve a sortear **todo el bosque**
+de cada panel. Hacerlo es decisión de mundo, de Marcos.
+
 Cada panel se genera de su propia semilla derivada de la del mundo, y queda en
 memoria. Todavía no guarda lo que cambia: eso llega cuando haya algo que cambiar.
 

@@ -69,11 +69,35 @@ const libre=(p,L,x,y)=>{
   return g==='g'||g==='G'||g==='h'||g==='n'||g==='N'||g==='D'||g==='k';
 };
 
+/* ---------- la proporción de pasto largo, mezclada entre paneles ----------
+   Cada bioma quería su propia proporción de pasto largo (G) contra corto (g), y
+   la costura entre dos paneles la partía en seco: 83 % de un lado y 50 % del
+   otro, una raya de textura en medio del prado. Ahora el umbral de cada panel es
+   el suyo en el centro y se va acercando al del vecino hacia la costura; en la
+   costura misma los dos lados valen lo mismo, así que no hay escalón.
+   La mezcla es sólo del DIBUJO del suelo: no consume el azar del generador, así
+   que no mueve ni un árbol ni una piedra. */
+const UMBRAL_G={ '0,0':0.50, '-1,0':0.44, '1,0':0.52, '0,-1':0.38, '0,1':0.56,
+                 '-1,-1':0.46, '1,-1':0.46, '-1,1':0.46, '1,1':0.46 };
+const BANDA_G=24;                                   // metros desde la costura
+function umbralG(gx,gy,L){
+  const pi=Math.floor(gx/L), pj=Math.floor(gy/L);
+  const propio=UMBRAL_G[pi+','+pj];
+  if(propio===undefined) return 0.5;
+  const u=gx-pi*L, v=gy-pj*L;
+  const dx=Math.min(u,L-u), dy=Math.min(v,L-v);      // a la costura más cercana, en cada eje
+  const nx=u<L/2?pi-1:pi+1, ny=v<L/2?pj-1:pj+1;
+  const T=(a,b)=>{ const t=UMBRAL_G[a+','+b]; return t===undefined?propio:t; };   // fuera del mundo: el propio
+  const wx=dx<BANDA_G?0.5*(1-dx/BANDA_G):0, wy=dy<BANDA_G?0.5*(1-dy/BANDA_G):0;
+  return (1-wx)*(1-wy)*propio + wx*(1-wy)*T(nx,pj) + (1-wx)*wy*T(pi,ny) + wx*wy*T(nx,ny);
+}
+NVg.umbralG=umbralG;
+
 /* ---------- el claro, 0:0 ---------- */
 function bioClaro(p,L,ox,oy,rnd){
   for(let y=0;y<L;y++){
     let fila='';
-    for(let x=0;x<L;x++) fila += ruidoA(ox+x,oy+y,4,0.055)>0.50?'G':'g';
+    for(let x=0;x<L;x++) fila += ruidoA(ox+x,oy+y,4,0.05)>umbralG(ox+x,oy+y,L)?'G':'g';
     p.ground.push(fila);
   }
   arroyo(p,L,ox,oy,true);
@@ -96,7 +120,7 @@ function bioOeste(p,L,ox,oy,rnd){
       if(d<lago.r-3) { fila+='L'; continue; }        /* agua quieta */
       if(d<lago.r)   { fila+= d<lago.r-1?'l':'k'; continue; }
       if(d<lago.r+2) { fila+='s'; continue; }
-      fila += ruidoA(gx,oy+y,4,0.05)>0.44?'G':'g';
+      fila += ruidoA(gx,oy+y,4,0.05)>umbralG(gx,oy+y,L)?'G':'g';
     }
     p.ground.push(fila);
   }
@@ -161,7 +185,7 @@ function bioEsquina(p,L,ox,oy,rnd,op){
         if(nieve>0.34){ fila+= ruidoB(gx,gy,2,0.09)>0.5?'N':'n'; continue; }
         if(nieve>0.20){ fila+= 'n'; continue; }
       }
-      fila += ruidoA(gx,gy,4,0.05)>0.46?'G':'g';
+      fila += ruidoA(gx,gy,4,0.05)>umbralG(gx,gy,L)?'G':'g';
     }
     p.ground.push(fila);
   }
@@ -200,7 +224,7 @@ function bioEste(p,L,ox,oy,rnd){
       if(d<ancho+2.4) { fila+= mar>0.55?'y':(ruidoB(gx+700,gy,2,0.12)>0.42?'b':'s'); continue; }
       if(d<ancho+3.6) { fila+= mar>0.62?'y':'s'; continue; }
       if(d<ancho+5)   { fila+= mar>0.70?'K':'k'; continue; }
-      fila += ruidoA(gx,gy,4,0.05)>0.52?'G':'g';
+      fila += ruidoA(gx,gy,4,0.05)>umbralG(gx,gy,L)?'G':'g';
     }
     p.ground.push(fila);
   }
@@ -223,7 +247,7 @@ function bioNorte(p,L,ox,oy,rnd){
          queda una raya recta entre lo seco y lo verde. */
       const seco=(corte+16-y)/18 + ruidoB(gx+400,gy,3,0.06)*0.7-0.35;
       if(seco>0.30){ fila += seco>0.62?'h':(ruidoA(gx,gy,3,0.07)>0.5?'h':'g'); continue; }
-      fila += ruidoA(gx,gy,4,0.05)>0.38?'G':'g';
+      fila += ruidoA(gx,gy,4,0.05)>umbralG(gx,gy,L)?'G':'g';
     }
     p.ground.push(fila);
   }
@@ -245,7 +269,7 @@ function bioSur(p,L,ox,oy,rnd){
          nieve no empiece de golpe. */
       if(nieve>0.34){ fila+= ruidoB(gx,gy,2,0.09)>0.5?'N':'n'; continue; }
       if(nieve>0.20){ fila+= 'n'; continue; }
-      fila += ruidoA(gx,gy,4,0.05)>0.56?'G':'g';
+      fila += ruidoA(gx,gy,4,0.05)>umbralG(gx,gy,L)?'G':'g';
     }
     p.ground.push(fila);
   }
