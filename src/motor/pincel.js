@@ -113,13 +113,29 @@ function reservar(n){
 const FASES=4;
 const cpu={tam:0,gw:0,gh:0,pad:0,glifos:new Map(),cv:null,ctx:null,img:null,d32:null,W:0,H:0,mono:''};
 const cachesCPU=new Map();
+/* Los tamaños de letra se agrupan en escalones geométricos del 3 %: con el zoom continuo la letra cambia cada cuadro, y un
+   atlas nuevo por cada medio píxel se reconstruía todo el tiempo (medido: picos de 240 ms al hacer zoom). Con escalones, el
+   error de tamaño de la letra es de ±1,5 %, que no se ve, y el mismo atlas sirve a varios cuadros seguidos. */
+const PASO_TAM=1.03, TAM0=6;
+const escalon=px=>TAM0*Math.pow(PASO_TAM,Math.round(Math.log(Math.max(px,TAM0)/TAM0)/Math.log(PASO_TAM)));
 function cpuAtlas(tam,mono){
-  let A=cachesCPU.get(tam); if(A) return A;
+  const clave=tam+'|'+mono; let A=cachesCPU.get(clave); if(A) return A;
   const pad=Math.ceil(tam*0.14)+2, gw=Math.ceil(tam*0.62)+2*pad+1, gh=Math.ceil(tam*1.3)+2;
-  A={tam,pad,gw,gh,mono,g:new Array(65536*0),mapa:new Map(),cv:document.createElement('canvas')};
-  A.cv.width=gw; A.cv.height=gh; A.ctx=A.cv.getContext('2d',{willReadFrequently:true});
+  A={tam,pad,gw,gh,mono,mapa:new Map(),cv:null,ctx:null};
+  /* se hornea de una vez todo el ASCII visible (94 glifos × 4 fases) en UN lienzo y se lee UNA sola vez */
+  const NC=32, n=94*FASES, filas=Math.ceil(n/NC), cv=document.createElement('canvas'); cv.width=NC*gw; cv.height=filas*gh;
+  const c=cv.getContext('2d',{willReadFrequently:true}); c.font=tam+'px '+mono; c.textBaseline='middle'; c.textAlign='left'; c.fillStyle='#fff';
+  for(let ci=0;ci<94;ci++) for(let f=0;f<FASES;f++){ const k=ci*FASES+f, x=(k%NC)*gw, y=((k/NC)|0)*gh; c.fillText(String.fromCharCode(33+ci),x+pad+f/FASES,y+gh/2); }
+  const W=cv.width, d=c.getImageData(0,0,cv.width,cv.height).data;
+  for(let ci=0;ci<94;ci++) for(let f=0;f<FASES;f++){
+    const k=ci*FASES+f, x0=(k%NC)*gw, y0=((k/NC)|0)*gh, pos=[], alfa=[];
+    for(let y=0;y<gh;y++){ let o=((y0+y)*W+x0)*4+3; for(let x=0;x<gw;x++,o+=4){ const a=d[o]; if(a>=6){ pos.push(y*gw+x); alfa.push(a); } } }
+    A.mapa.set((33+ci)*FASES+f,{n:pos.length,pos:Int32Array.from(pos),a:Uint8Array.from(alfa)});
+  }
+  /* los demás (acentos, bloques…) se piden de a uno cuando aparecen */
+  A.cv=document.createElement('canvas'); A.cv.width=gw; A.cv.height=gh; A.ctx=A.cv.getContext('2d',{willReadFrequently:true});
   A.ctx.font=tam+'px '+mono; A.ctx.textBaseline='middle'; A.ctx.textAlign='left'; A.ctx.fillStyle='#fff';
-  cachesCPU.set(tam,A); if(cachesCPU.size>14) cachesCPU.delete(cachesCPU.keys().next().value);
+  cachesCPU.set(clave,A); if(cachesCPU.size>48) cachesCPU.delete(cachesCPU.keys().next().value);
   return A;
 }
 /* un glifo en una fase (0..3 cuartos de píxel a la derecha): lista dispersa [posición, alfa] */
@@ -141,7 +157,7 @@ function pintarCPU(T){
     const x0=Math.max(0,Math.round((c*T.cw+T.dx)*dpr)), x1=Math.min(Wd,Math.round((c*T.cw+T.cw+0.6+T.dx)*dpr));
     const y0=Math.max(0,Math.round((r*T.chh+T.dy)*dpr)), y1=Math.min(Hd,Math.round((r*T.chh+T.chh+0.6+T.dy)*dpr));
     for(let y=y0;y<y1;y++) d32.fill(px,y*Wd+x0,y*Wd+Math.max(x0,x1)); }
-  const fontDev=T.fontSize*dpr, tam=Math.max(6,Math.round(fontDev*2)/2), A=cpuAtlas(tam,T.mono);
+  const fontDev=T.fontSize*dpr, tam=escalon(fontDev), A=cpuAtlas(tam,T.mono);
   const x0g=(T.cw-T.adv)/2, {fbG,fbC,fbL,cols,rows}=T, N=cols*rows, gw=A.gw, ghalf=A.gh/2, pad=A.pad;
   let celdas=0;
   for(let L=0;L<4;L++){

@@ -18,7 +18,7 @@ const ahora=()=>performance.now();
 const iv=new Float32Array(N), cpu=new Float32Array(N), fl=new Float32Array(N), fp=new Float32Array(N), lat=new Float32Array(N);
 let i=0, n=0, tPrev=0, t0=0, cuadroN=0, fases={}, culpa='', pendientes=[], latUlt=0;
 F.muestreando=false;
-const motores={}, zonas=new Map(), tirones=[];
+const motores={}, zonas=new Map(), tirones=[], cuenta={}, muestreaTodo={'árboles':true,'rocas':true};
 F.fases=fases;
 /* una fase del cuadro actual (la llama flush, por ejemplo) */
 F.fase=(nombre,ms)=>{ if(F.apagado) return; fases[nombre]=(fases[nombre]||0)+ms; };
@@ -51,13 +51,18 @@ function mediana(a,m){ if(!m) return 16.7; const b=[]; for(let k=0;k<m;k++) b.pu
 /* ---- los motores: se envuelven sus funciones públicas; el envoltorio sólo cuesta en los cuadros muestreados ---- */
 function envolver(nombre,dueño,prop,clave){
   const f=dueño[prop]; if(typeof f!=='function'||f.__flu) return false;
+  /* Las funciones que se llaman miles de veces por cuadro (una por metro o por celda) NO se cronometran una a una:
+     cronometrar cuesta más que la función y metía un tirón cada 24 cuadros. Se mide 1 llamada de cada 32 y se
+     multiplica; las que se llaman una vez por cuadro se miden siempre. */
   const w=function(){
     if(!F.muestreando) return f.apply(this,arguments);
-    const t=ahora(); const r=f.apply(this,arguments); const d=ahora()-t;
+    if(muestreaTodo[nombre]!==true&&++cuenta[nombre]%32!==0) return f.apply(this,arguments);
+    const t=ahora(); const r=f.apply(this,arguments); const d=(ahora()-t)*(muestreaTodo[nombre]===true?1:32);
     motores[nombre]=(motores[nombre]||0)+d;
     if(clave){ const k=clave(arguments); zonas.set(k,(zonas.get(k)||0)+d); }
     return r;
   };
+  cuenta[nombre]=0;
   w.__flu=true; dueño[prop]=w; return true;
 }
 const bloque=a=>(Math.floor(a[0]/8)*8)+','+(Math.floor(a[1]/8)*8);
