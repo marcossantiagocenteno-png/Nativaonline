@@ -6,7 +6,7 @@ const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
 console.log('=== la escala del mundo a lo largo de todo el zoom ===');
 let peorX=0,peorY=0,mX=0,mY=0, prev=null;
 const paso=[];
-for(let m=9;m<=36;m*=1.01){
+for(let m=NV.ZOOM.cerca;m<=NV.ZOOM.lejos*1.0001;m*=1.01){
   NV.zoomAbsoluto(m); while(NV.acercarZoom()){}
   const d=NV.medidas();
   if(prev){
@@ -24,14 +24,14 @@ probar('a lo alto no hay escalones', peorY<0.03);
 
 console.log('\n=== la letra se queda del mismo tamaño ===');
 let lmin=1e9,lmax=0;
-for(let m=9;m<=36;m*=1.03){ NV.zoomAbsoluto(m); while(NV.acercarZoom()){}
+for(let m=NV.ZOOM.cerca;m<=NV.ZOOM.lejos*1.0001;m*=1.03){ NV.zoomAbsoluto(m); while(NV.acercarZoom()){}
   const l=NV.medidas().letra; if(l<lmin)lmin=l; if(l>lmax)lmax=l; }
 console.log('  entre', lmin.toFixed(1), 'y', lmax.toFixed(1), 'px');
 probar('la letra no cambia de tamaño con el zoom', lmax/lmin<1.35);
 
 console.log('\n=== un giro largo de ruedita planea, no salta ===');
-NV.zoomAbsoluto(28); while(NV.acercarZoom()){}
-for(let i=0;i<14;i++) NV.zoomRelativo(0.94);     // catorce clics de golpe
+NV.zoomAbsoluto(NV.ZOOM.lejos); while(NV.acercarZoom()){}
+for(let i=0;i<14;i++) NV.zoomRelativo(0.94);     // catorce clics de golpe: llega al tope cercano
 let cuadros=0, mayor=0, antes=NV.medidas().metros;
 while(NV.acercarZoom() && cuadros<400){
   const ahora=NV.medidas().metros;

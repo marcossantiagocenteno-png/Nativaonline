@@ -7,16 +7,25 @@
    solapan y dejan de leerse como letras sueltas. OVX/OVY controlan cuánto. */
 const OVX=0.70, OVY=0.54;
 const ASPECTO=OVY/(0.6*OVX);          // alto de celda respecto del ancho
-const METROS_MIN=9, METROS_MAX=72;    // cuánto mundo entra a lo ancho
+const METROS_MIN=9, METROS_MAX=72;    // la escala completa: cuánto mundo entra a lo ancho
+/* La escala completa es de 9 a 72 metros, pero el jugador sólo recorre del 20 al
+   40% de ella. Tan cerca como 9 m la letra se ve como un bloque y tan lejos como
+   72 cada cosa queda en un puñado de celdas: ni uno ni otro sirve para jugar.
+   El porcentaje se mide en escala LOGARÍTMICA, que es como el ojo lee un zoom
+   (pasar de 10 a 9 se siente igual que de 40 a 36): 0% es 9 m, 100% es 72 m. */
+const ZOOM_USO=[0.20,0.40];
+const enEscala=p=>METROS_MIN*Math.pow(METROS_MAX/METROS_MIN,p);
+const ZOOM_CERCA=enEscala(ZOOM_USO[0]), ZOOM_LEJOS=enEscala(ZOOM_USO[1]);
+const ZOOM_INI=enEscala((ZOOM_USO[0]+ZOOM_USO[1])/2);          // arranca en el medio del rango
 /* Cuánto se puede alejar depende del ancho real de la pantalla: en un teléfono
    vertical, pedir 72 metros dejaría cada metro en cinco píxeles y las letras en
    dos. El tope se calcula para que el carácter nunca baje de ~2,7 px de ancho. */
-function metrosMaximos(anchoPx){ return clamp(anchoPx/(4*2.7), 18, METROS_MAX); }
+function metrosMaximos(anchoPx){ return Math.min(ZOOM_LEJOS, clamp(anchoPx/(4*2.7), 18, METROS_MAX)); }
 /* Cuánto mundo entra a lo ancho al empezar. El detalle de cualquier cosa son
    las celdas que ocupa, y las celdas son su tamaño en pantalla: a 28 metros el
    personaje medía doce filas de las cuarenta y cinco que tiene dibujadas. A 21
    mide diecisiete, que es un 40% más de celdas en cada eje. */
-let metrosVista=21, metrosDestino=21;
+let metrosVista=ZOOM_INI, metrosDestino=ZOOM_INI;
 
 /* El zoom no cambia el tamaño de la letra: cambia cuántas letras entran en un
    metro. Así se puede parar en cualquier punto entre el mínimo y el máximo sin
@@ -53,7 +62,7 @@ function aplicarEscala(anchoPx){
 }
 function zoomAbsoluto(m){
   const tope=metrosMaximos(($('stage')||{clientWidth:1200}).clientWidth||1200);
-  metrosDestino=clamp(m,METROS_MIN,tope);
+  metrosDestino=clamp(m,ZOOM_CERCA,tope);
 }
 function zoomRelativo(f){ zoomAbsoluto(metrosDestino*f); }
 function layout(){
@@ -173,6 +182,9 @@ function flush(){
 
 NV.layout=layout; NV.aplicarEscala=aplicarEscala;
 NV.zoomAbsoluto=zoomAbsoluto; NV.zoomRelativo=zoomRelativo;
+NV.ZOOM={cerca:ZOOM_CERCA, lejos:ZOOM_LEJOS, ini:ZOOM_INI, uso:ZOOM_USO, escala:[METROS_MIN,METROS_MAX]};
+/* en qué punto de la escala completa (0 a 1) está un ancho de vista en metros */
+NV.zoomPorcentaje=m=>Math.log(m/METROS_MIN)/Math.log(METROS_MAX/METROS_MIN);
 NV.metrosVista=()=>metrosVista;
 NV.CPM=()=>CPM; NV.HPM=()=>HPM;
 /* Fondo por celda, sólo para los sprites. El fondo de pantalla entera se

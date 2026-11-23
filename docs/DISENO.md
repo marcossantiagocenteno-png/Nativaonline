@@ -343,7 +343,9 @@ norte-sur comprimido; lo que tiene altura se levanta sobre su casilla y tapa lo 
 queda detrás. Eso da la profundidad: 2.5D sin tres dimensiones.
 
 **El zoom es continuo**: no hay niveles ni escalones, y se puede dejar en
-cualquier punto entre 9 y 72 metros de ancho de pantalla. El truco es que el zoom
+cualquier punto del rango que se le permite al jugador. La escala completa del
+motor va de 9 a 72 metros de ancho de pantalla, pero **el jugador sólo recorre del
+20 al 40 % de ella**, de 13,6 a 20,7 m (ver más abajo). El truco es que el zoom
 **no cambia el tamaño de la letra —que se queda siempre en unos 7,5 píxeles—
 sino cuántas letras entran en un metro**: de 42 caracteres por metro bien de
 cerca a 6 bien de lejos. Así el mundo crece y se achica sin saltos, y la cantidad
@@ -352,16 +354,38 @@ cuesta más que alejarse.
 
 | ancho visible | caracteres por metro | filas por metro | fondo visible |
 |---|---|---|---|
-| 9 m | 42 | 14 | 12 m |
-| 24 m | 16 | 5 | 35 m |
-| 48 m | 8 | 3 | 59 m |
-| 72 m | 6 | 2 | 99 m |
+| 9 m (0 %, fuera del rango del jugador) | 42 | 14 | 12 m |
+| **13,6 m (20 %, el más cerca)** | 27 | 9 | 19 m |
+| **16,8 m (30 %, donde arranca)** | 22 | 7 | 24 m |
+| **20,7 m (40 %, el más lejos)** | 18 | 6 | 28 m |
+| 48 m (fuera del rango) | 8 | 3 | 59 m |
+| 72 m (100 %, fuera del rango) | 6 | 2 | 99 m |
 
-El juego **empieza en 21 metros de ancho**, no en 28. El detalle de cualquier
-cosa son las celdas que ocupa, y las celdas son su tamaño en pantalla: a 28
-metros el personaje medía doce filas de las cuarenta y cinco que tiene
-dibujadas, y a 21 mide diecinueve. Es un 40% más de celdas en cada eje, que es
-de donde sale el detalle; no hay otro lugar de donde sacarlo.
+(Medido con una pantalla de 1.200 px de ancho.)
+
+#### El rango del jugador: del 20 al 40 % del zoom
+
+Cerca del mínimo (9 m) la letra se ve como un bloque y no hay terreno que mirar;
+cerca del máximo (72 m) cada cosa queda en un puñado de celdas y el mundo se
+vuelve un mapa. Ni uno ni otro sirve para jugar, así que el motor conserva la
+escala completa —9 a 72 m— pero `zoomAbsoluto` sólo deja llegar a una ventana de
+ella (`ZOOM_USO` en `lienzo.js`, expuesta como `NV.ZOOM`).
+
+**El porcentaje se mide en escala logarítmica**, no lineal, porque así lee el ojo
+un zoom (pasar de 10 a 9 m se siente igual que de 40 a 36). Con la escala
+lineal el 20–40 % habría sido de 21,6 a 34,2 m; con la logarítmica es de 13,6 a
+20,7 m. Si se quisiera lo otro, cambia la función `enEscala` y nada más.
+
+- El juego **arranca en el medio del rango**, 16,8 m (30 %). Antes arrancaba a
+  21 m, que ahora es el tope lejano. Con 7 filas por metro en vez de 6, el
+  personaje gana un 17 % de filas, que es de donde sale el detalle.
+- La partida guardada con un zoom viejo (45 m, por ejemplo) se recorta al tope al
+  cargar; no hace falta migrar nada.
+- En una pantalla angosta manda el tope de la pantalla si es menor
+  (`metrosMaximos`), pero nunca baja del mínimo del rango.
+- La rueda del ratón, `+`/`-` y el pellizco no cambiaron, y ahora recorren un
+  rango más corto: de punta a punta son unos siete clics de rueda, y a las
+  pruebas de suavidad (`zoom.js`, `suave.js`) les corresponde el nuevo rango.
 
 **Los caracteres por metro son enteros; los píxeles por metro no.** Esa es la
 distinción que hace que el zoom se sienta continuo y no a escalones. Cuántas

@@ -57,8 +57,13 @@ function cuadro(conRelieve,suelo,cx,cy){
 }
 /* un punto de vista donde el cuadro tenga de las dos laderas, para que compare */
 let CX=60,CY=60,mejor=-1;
-for(let x=-200;x<=300;x+=20) for(let y=-200;y<=300;y+=20){
-  let o=0,c=0; for(let i=0;i<21;i++) for(let j=0;j<29;j+=2){ const f=NV.luzRelieve(x-10+i+0.5,y-14+j+0.5); if(f<0.92)o++; else if(f>1.08)c++; }
+NV.sueloEn=()=>'g'; m.ponerYo(60,60); m.draw_();
+const E0=m.estado(), AN=Math.ceil(E0.cols/E0.CPM), AL=Math.ceil(E0.rowsN/E0.RPM);    // lo que ve la cámara, en metros
+const DX=60-E0.camX, DY=60-E0.camY;                    // dónde queda el personaje dentro de la vista, en metros
+console.log('  la cámara ve '+AN+' × '+AL+' m, con el personaje a '+DX+' m del borde oeste y '+DY+' del norte');
+const LIM=NV.limites();      // la cámara no sale del mundo: el punto de vista tiene que dejar entera la ventana adentro
+for(let x=LIM.x0+DX+2;x<=LIM.x1-AN+DX-2;x+=20) for(let y=LIM.y0+DY+2;y<=LIM.y1-AL+DY-2;y+=20){
+  let o=0,c=0; for(let i=0;i<AN;i++) for(let j=0;j<AL;j+=2){ const f=NV.luzRelieve(x-DX+i+0.5,y-DY+j+0.5); if(f<0.92)o++; else if(f>1.08)c++; }
   if(Math.min(o,c)>mejor){ mejor=Math.min(o,c); CX=x; CY=y; }
 }
 console.log('  punto de vista elegido: ('+CX+', '+CY+')');

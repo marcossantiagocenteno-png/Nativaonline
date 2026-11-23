@@ -17,7 +17,7 @@ const m=cargar(`module.exports={
       const o=espumar; espumar=function(wx,wy,cx,cyb,c,t){ const antes=_cc; o(wx,wy,cx,cyb,c,t);
         if(_cc!==antes) f(wx,wy); }; return true; },   // solo cuenta la que de verdad pintó espuma
   estado:()=>({fbG,fbC,fbL,cols,rowsN,CPM,RPM,HPM,camX,camY}),
-  CPM:()=>CPM,
+  CPM:()=>CPM, RPM:()=>RPM, HPM:()=>HPM,
   /* le da a dibujarReflejo una lista de casillas inventadas, en vez de las de un árbol */
   reflejarDirecto:(tr,br,t,celdas)=>{
     for(let q=0;q<celdas.length;q++){ const c=celdas[q]; gB[q*4]=c[0]; gB[q*4+1]=c[1]; gB[q*4+2]=c[2]; gB[q*4+3]=c[3]; }
@@ -72,7 +72,7 @@ function costa(pend){
       if(d>0&&d<0.20){ sc+=l; nc++; } else if(d>0.45&&d<0.80){ sl+=l; nl++; }
     }
   }
-  return {rms, salto, espuma:espuma.length, hayEspuma, lejosEsp, mojada:nc&&nl?(sc/nc)/(sl/nl):1, nc, nl};
+  return {rms, salto, pend, rpm:m.RPM(), espuma:espuma.length, hayEspuma, lejosEsp, mojada:nc&&nl?(sc/nc)/(sl/nl):1, nc, nl};
 }
 
 console.log('=== la orilla es una curva, no una escalera ===');
@@ -91,7 +91,14 @@ console.log('\n=== espuma del lado del agua, arena mojada del lado de la tierra 
   console.log('  casillas de espuma '+r.espuma+' · la más lejana a '+r.lejosEsp.toFixed(3)
               +' m del borde · la tierra pegada al borde recibe '+(r.mojada*100).toFixed(0)+'% de la luz de la de más adentro');
   probar('hay una franja de espuma', r.hayEspuma && r.espuma>150);
-  probar('la espuma se pega a la orilla', r.hayEspuma && r.lejosEsp<0.35);
+  /* La banda llega a 0,22 m en perpendicular (0,13 + 0,09). Medida en vertical sobre
+     una pendiente, 0,22/cos; y el borde se estima como el punto medio entre dos
+     filas, así que la medición tiene un error de hasta una fila (1/RPM m), que
+     crece al acercar el zoom. Ese error NO es espuma de más. */
+  const limite=0.22/Math.cos(Math.atan(r.pend))+1/r.rpm+0.01;
+  console.log('  límite: banda 0,22 m en vertical ('+(0.22/Math.cos(Math.atan(r.pend))).toFixed(3)+') + una fila ('
+              +(1/r.rpm).toFixed(3)+' m, con '+r.rpm+' filas por metro) = '+limite.toFixed(3)+' m');
+  probar('la espuma se pega a la orilla', r.hayEspuma && r.lejosEsp<limite);
   probar('la arena pegada al agua está más oscura (mojada)', r.nc>10 && r.nl>10 && r.mojada<0.85);
 }
 
@@ -161,7 +168,7 @@ function reflejos(conAgua){
   NV.objetosEn=()=>[];
   m.ponerYo(56,58); m.draw_();
   const E=m.estado(), br=(56-E.camY)*E.RPM+E.RPM-1, c0=(56-E.camX)*E.CPM+Math.floor(E.CPM/2);
-  const gris=(220<<16)|(220<<8)|220, celdas=[], ALTO=44;
+  const gris=(220<<16)|(220<<8)|220, celdas=[], ALTO=Math.max(4,Math.round(4.5*E.HPM));   // las filas de un árbol de 4,5 m con este zoom
   for(let h=0;h<=ALTO;h++) for(let dc=-3;dc<=3;dc++) celdas.push([c0+dc,br-h,35,gris]);
   m.reflejarDirecto({h:4.5},br,0,celdas);
   const E2=m.estado(), rojo=c=>(c>>16)&255;
