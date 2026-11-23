@@ -13,14 +13,18 @@ const METROS_MIN=9, METROS_MAX=72;    // la escala completa: cuánto mundo entra
    72 cada cosa queda en un puñado de celdas: ni uno ni otro sirve para jugar.
    El porcentaje se mide en escala LOGARÍTMICA, que es como el ojo lee un zoom
    (pasar de 10 a 9 se siente igual que de 40 a 36): 0% es 9 m, 100% es 72 m. */
-const ZOOM_USO=[0.20,0.40];
-const enEscala=p=>METROS_MIN*Math.pow(METROS_MAX/METROS_MIN,p);
-const ZOOM_CERCA=enEscala(ZOOM_USO[0]), ZOOM_LEJOS=enEscala(ZOOM_USO[1]);
-const ZOOM_INI=enEscala((ZOOM_USO[0]+ZOOM_USO[1])/2);          // arranca en el medio del rango
+/* El zoom estándar sale de la muestra de referencia: ahí una persona mide unos 55 px
+   de alto en una pantalla de 1.200 de ancho, que en este motor son 28 metros a lo
+   ancho. El jugador sólo puede acercarse o alejarse un 15 % de eso, y nada más. */
+const ZOOM_BASE=28, ZOOM_MARGEN=0.15;
+const enPorcentaje=m=>Math.log(m/METROS_MIN)/Math.log(METROS_MAX/METROS_MIN);
+const ZOOM_CERCA=ZOOM_BASE*(1-ZOOM_MARGEN), ZOOM_LEJOS=ZOOM_BASE*(1+ZOOM_MARGEN);
+const ZOOM_USO=[enPorcentaje(ZOOM_CERCA),enPorcentaje(ZOOM_LEJOS)];
+const ZOOM_INI=ZOOM_BASE;
 /* Cuánto se puede alejar depende del ancho real de la pantalla: en un teléfono
    vertical, pedir 72 metros dejaría cada metro en cinco píxeles y las letras en
    dos. El tope se calcula para que el carácter nunca baje de ~2,7 px de ancho. */
-function metrosMaximos(anchoPx){ return Math.min(ZOOM_LEJOS, clamp(anchoPx/(4*2.7), 18, METROS_MAX)); }
+function metrosMaximos(anchoPx){ return Math.max(ZOOM_CERCA, Math.min(ZOOM_LEJOS, clamp(anchoPx/(4*2.7), 18, METROS_MAX))); }
 /* Cuánto mundo entra a lo ancho al empezar. El detalle de cualquier cosa son
    las celdas que ocupa, y las celdas son su tamaño en pantalla: a 28 metros el
    personaje medía doce filas de las cuarenta y cinco que tiene dibujadas. A 21

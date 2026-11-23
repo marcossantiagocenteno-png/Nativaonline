@@ -7,6 +7,7 @@
 // mueva ni un árbol ni una piedra, así que se compara contra una huella de los
 // objetos de cada panel tomada ANTES del cambio.
 const cargar=require('./cargar.js');
+global.__arboles=true;       // estas pruebas miden los árboles: se encienden (el juego los trae apagados)
 const NV=cargar();
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
 

@@ -395,7 +395,17 @@ cuesta más que alejarse.
 
 (Medido con una pantalla de 1.200 px de ancho.)
 
-#### El rango del jugador: del 20 al 40 % del zoom
+#### El rango del jugador: ±15 % del zoom estándar (28 m)
+
+**Esto manda sobre todo lo que sigue en esta sección.** El zoom estándar es de **28 metros a
+lo ancho** (`ZOOM_BASE` en `lienzo.js`), sacado de la muestra de referencia: ahí una persona
+mide unos 55 px de alto en una pantalla de 1.200 px de ancho, y en este motor eso son 28 m
+(con 13 caracteres y 4 filas por metro). El juego arranca ahí y el jugador sólo puede
+acercarse o alejarse un 15 %: de 23,8 a 32,2 m (`ZOOM_MARGEN`). `NV.ZOOM.uso` da ese rango en
+porcentaje de la escala logarítmica de 9 a 72 m (47 % a 61 %). Lo que sigue habla del rango
+anterior, del 20 al 40 %, y queda como historia.
+
+#### (histórico) El rango del jugador: del 20 al 40 % del zoom
 
 Cerca del mínimo (9 m) la letra se ve como un bloque y no hay terreno que mirar;
 cerca del máximo (72 m) cada cosa queda en un puñado de celdas y el mundo se
@@ -1343,3 +1353,20 @@ jugadores, muerte permanente y un bosque que recuerda.
 corren solos y un servidor que se apaga, ya no es una página estática. Necesita un
 servidor de verdad. Todo lo anterior se construye en solitario; el servidor llega
 cuando el juego ya sea bueno para uno solo.
+
+### El personaje del jugador y los árboles (22/11)
+
+**Myrella sin arte.** El jugador ya no usa `NV.ARTE.myrella`: se crea con `arte:null` y se
+dibuja el monito de `figuraRespaldo` en `dibujar.js`, de palitos y blanco (`O` de cabeza, `|`
+de cuerpo, `/` `\` en brazos y piernas), de 1,75 m. Al caminar las piernas se abren y se
+cierran con cada paso. El archivo `src/arte/myrella.js` y el motor de arte (`sprites.js`) se
+dejan donde están, sin tocar, porque se van a reutilizar para reconstruirla y sus pruebas
+(`sprites.js`, `personajes.js`) los miden; el jugador simplemente no los usa.
+
+**Sin árboles.** `NV.CONFIG.arboles=false` (en `base.js`) es el estado del juego: los árboles
+(`k:'arbol'`, las cuatro especies, el místico incluido) se generan igual y se quitan al final
+de cada panel, junto con la casilla que ocupaban, para que el azar de las piedras y de todo
+lo demás no se mueva. Siguen los arbustos, los troncos caídos y las piedras. Con
+`arboles:true` vuelven tal cual estaban. Las pruebas que miden árboles ponen
+`global.__arboles=true` antes de cargar (`pruebas/cargar.js` lo aplica justo después de
+`base.js`); `pruebas/sinarboles.js` comprueba que no quede ninguno y que nada más se mueva.

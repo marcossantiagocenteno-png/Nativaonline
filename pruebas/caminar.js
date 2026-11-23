@@ -36,15 +36,16 @@ console.log('\n=== los objetos llegan a la pantalla ===');
    puede depender de dónde cayó el bosque sorteado */
 const obj0=NV_.objetosEn, yo=m.me();
 NV_.objetosEn=(a,b,c,d)=>[...obj0(a,b,c,d),
-  ...[-7,-4,-1,2,5,8].map((dx,i)=>({x:yo.x+dx,y:yo.y+(i%2?-3:-6),h:4+(i%3),k:'arbol',sp:'encino',s:1000+i*977}))];
+  ...[-7,-4,-1,2,5,8].map((dx,i)=>({x:yo.x+dx,y:yo.y+(i%2?-3:-6),h:4+(i%3),k:'arbol',sp:'encino',s:1000+i*977}))]
+  .sort((p,q)=>p.y-q.y);     // la pantalla los espera ordenados de norte a sur
 m.draw_();
 const g=m.fbG(), C=m.fbC();
 let tronco=0, copa=0;
 for(let i=0;i<g.length;i++){
   if(!g[i]) continue;
   const ch=String.fromCharCode(g[i]), v=C[i], r=(v>>16)&255, gg=(v>>8)&255, b=v&255;
-  if('thH'.indexOf(ch)>=0 && r>gg && gg>b) tronco++;
-  if('oe8@pqgdb6'.indexOf(ch)>=0 && gg>r) copa++;     // el encino ahora es de glifos: p q g d b 6
+  if('1iltj'.indexOf(ch)>=0) tronco++;      // el encino es de glifos: los ralos (1 i l t j) son el tronco y el pie
+  if('pqgdb6'.indexOf(ch)>=0 && gg>r) copa++;  // y los densos (p q g d b 6), verdes, la copa
 }
 console.log('  troncos:', tronco, '· follaje:', copa);
 probar('se dibujan troncos', tronco>30);

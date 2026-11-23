@@ -31,11 +31,11 @@ const max=NV.metrosVista();
 console.log('  se queda entre', min.toFixed(1), 'y', max.toFixed(1), 'metros de ancho ('
             +(NV.zoomPorcentaje(min)*100).toFixed(0)+'% y '+(NV.zoomPorcentaje(max)*100).toFixed(0)+'% de la escala de 9 a 72)');
 probar('respeta el mínimo y el máximo', Math.abs(min-NV.ZOOM.cerca)<0.05 && Math.abs(max-NV.ZOOM.lejos)<0.05);
-probar('el jugador sólo recorre del 20 al 40% de la escala completa',
-       Math.abs(NV.zoomPorcentaje(min)-0.20)<0.005 && Math.abs(NV.zoomPorcentaje(max)-0.40)<0.005);
+probar('el jugador sólo recorre un 15 % a cada lado del zoom estándar (28 m)',
+       Math.abs(min-28*0.85)<0.05 && Math.abs(max-28*1.15)<0.05);
 NV.zoomAbsoluto(NV.ZOOM.ini); for(let i=0;i<90;i++) NV.acercarZoom();
-probar('arranca dentro del rango, en el medio', NV.metrosVista()>NV.ZOOM.cerca && NV.metrosVista()<NV.ZOOM.lejos
-       && Math.abs(NV.zoomPorcentaje(NV.metrosVista())-0.30)<0.005);
+probar('arranca en el zoom estándar, dentro del rango', NV.metrosVista()>NV.ZOOM.cerca && NV.metrosVista()<NV.ZOOM.lejos
+       && Math.abs(NV.metrosVista()-28)<0.05);
 
 console.log('\n=== el zoom llega de a poco ===');
 NV.zoomAbsoluto(NV.ZOOM.lejos); for(let i=0;i<90;i++) NV.acercarZoom();

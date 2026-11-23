@@ -456,6 +456,13 @@ function generarPanel(pi,pj,def,L){
     if(t.k==='arbol') pm(t.x,t.y,t.sp==='mistico'?'Y':'T');
     else if(t.k==='hoguera') pm(t.x,t.y,'f');
   }
+  /* Sin árboles (NV.CONFIG.arboles=false): se generan igual, para que el azar de
+     las piedras y de todo lo demás no se mueva, y se quitan al final junto con la
+     casilla que ocupaban. Con arboles:true vuelven tal cual estaban. */
+  if(NVg.CONFIG.arboles===false){
+    for(const t of p.trees) if(t.k==='arbol') p.occ[t.y*L+t.x]=0;
+    p.trees=p.trees.filter(t=>t.k!=='arbol');
+  }
   calcularSombras(p,L);
   return p;
 }

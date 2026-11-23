@@ -35,7 +35,11 @@ global.requestAnimationFrame=cb=>{
 };
 global.performance={now:()=>Number(process.hrtime.bigint()/1000000n)};
 global.setInterval=()=>0;global.clearInterval=()=>{};global.setTimeout=()=>0;global.clearTimeout=()=>{};
-const src=ORDEN.map(f=>fs.readFileSync(R+f,'utf8')).join('\n;\n');
+/* El juego trae el mundo sin árboles (NV.CONFIG.arboles=false). Las pruebas que miden
+   árboles ponen global.__arboles=true ANTES de cargar: se aplica justo después de base.js,
+   antes de que se genere el primer panel. */
+const partes=ORDEN.map(f=>fs.readFileSync(R+f,'utf8'));
+const src=[partes[0],'window.NV.CONFIG.arboles=!!global.__arboles;',...partes.slice(1)].join('\n;\n');
 /* Las partículas dependen del reloj, y casi todas las pruebas comparan cuadros: arrancan apagadas.
    La que las mide (particulas.js) las enciende con NV.particulas=true. */
 module.exports=function(extra){

@@ -1,5 +1,6 @@
 // Los cinco paneles: nombres, continuidad y que se pueda entrar y salir.
 const cargar=require('./cargar.js');
+global.__arboles=true;       // estas pruebas miden los árboles: se encienden (el juego los trae apagados)
 const NV=cargar();
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
 const L=NV.LADO;

@@ -1618,7 +1618,7 @@ function lienzoDe(ancho){
 }
 
 function drawPlayer(haze){
-  if(!_jugador) _jugador=NV.nuevoPersonaje({arte:'myrella',nombre:'Myrella',alto:2.15});
+  if(!_jugador) _jugador=NV.nuevoPersonaje({arte:null,nombre:'Myrella',alto:1.75});   // sin arte: monito de palitos, hasta reconstruirla
   const p=_jugador;
   p.x=me.x; p.y=me.y;
   p.desdeX=NV.desdeX; p.desdeY=NV.desdeY;
@@ -1629,42 +1629,34 @@ function drawPlayer(haze){
   if(!puesta) figuraRespaldo(p,haze);
 }
 
-/* Si el arte no cargó, una figura dibujada con glifos: nunca se queda sin
-   personaje en pantalla. */
+/* El monito: una figura de palitos, blanca, de 1,75 m. Es lo que se dibuja cuando un
+   personaje no tiene arte; hoy es todo lo que hay de Myrella. Cabeza `O`, cuerpo `|`,
+   brazos y piernas `/` `\`; al caminar las piernas se abren y se cierran con cada paso. */
 function figuraRespaldo(p,haze){
-  const H=Math.max(6,Math.round(1.75*HPM));
-  const Wc=Math.max(3,Math.round(0.55*CPM));
+  const H=Math.max(6,Math.round((p.alto||1.75)*HPM));
   const P=NV.posPersonaje(p,Date.now());
   const bc=Math.round((P.x-camX)*CPM+CPM/2), br=Math.round((P.y-camY)*RPM+RPM-1);
+  const blanco=packc(236,238,240);
+  const q=(c,r,g)=>put(c,r,g.charCodeAt(0),blanco);
+  const andando=Date.now()-(p.ultimoPaso||0)<(p.pasoMs||186)+120;
+  const abierto=andando?(Math.floor((p.andado||0)*2)%2?1:0):0;
   const headR=Math.max(1,Math.round(H*0.09));
   const headY=br-H+headR;
-  const shoulder=br-Math.round(H*0.76);
-  const hip=br-Math.round(H*0.44);
-  const put2=(c,r,g,lit)=>put(c,r,g.charCodeAt(0),packs('piel',lit*haze));
-  /* cabeza */
+  const shoulder=br-Math.round(H*0.76), hip=br-Math.round(H*0.44);
   for(let dy=-headR;dy<=headR;dy++) for(let dx=-headR;dx<=headR;dx++){
     const u=(dx*dx)/(headR*headR*1.6)+(dy*dy)/(headR*headR);
-    if(u>1) continue;
-    put2(bc+dx,headY+dy, u>0.62?'o':'O', 0.70+0.45*((dx+headR)/(2*headR)));
+    if(u<=1&&u>0.30) q(bc+dx,headY+dy,'O');
   }
-  /* torso */
-  const tw=Math.max(1,Math.round(Wc*0.22));
-  for(let r=shoulder;r<=hip;r++)
-    for(let c=-tw;c<=tw;c++)
-      put2(bc+c,r,'|',0.62+0.48*((c+tw)/(2*tw)));
-  /* brazos */
+  for(let r=headY+headR+1;r<=hip;r++) q(bc,r,'|');
   const armL=Math.round(H*0.30);
   for(let a=0;a<armL;a++){
-    const dx=Math.round(a*0.55), dy=a;
-    put2(bc-tw-dx,shoulder+dy,'\\',0.66);
-    put2(bc+tw+dx,shoulder+dy,'/',1.02);
+    const dx=Math.round(a*0.55);
+    q(bc-1-dx,shoulder+a,'/'); q(bc+1+dx,shoulder+a,'\\');
   }
-  /* piernas */
   const legL=br-hip;
   for(let a=0;a<=legL;a++){
-    const dx=Math.round(a*0.42);
-    put2(bc-dx,hip+a,'\\',0.68);
-    put2(bc+dx,hip+a,'/',0.98);
+    const dx=Math.round(a*(0.42+0.30*abierto));
+    q(bc-1-dx,hip+a,'/'); q(bc+1+dx,hip+a,'\\');
   }
 }
 
