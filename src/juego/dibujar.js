@@ -47,9 +47,15 @@ function draw_(){
   const dtS=relojAmbiente();                            // segundos reales desde el cuadro anterior
   const dtC=dtS>0?dtS:1/30;
   const pp=NV.posDibujo?NV.posDibujo(Date.now()):me;
-  const destX=clamp(pp.x-colsM/2+0.5, LIM.x0, Math.max(LIM.x0,LIM.x1-colsM));
-  const destY=clamp(pp.y-rowsM/2+0.5, LIM.y0, Math.max(LIM.y0,LIM.y1-rowsM));
-  if(NV.camXf===undefined){ NV.camXf=destX; NV.camYf=destY; }
+  let destX=clamp(pp.x-colsM/2+0.5, LIM.x0, Math.max(LIM.x0,LIM.x1-colsM));
+  let destY=clamp(pp.y-rowsM/2+0.5, LIM.y0, Math.max(LIM.y0,LIM.y1-rowsM));
+  /* CÁMARA LIBRE (Modo Dios, Espacio + arrastrar): un desplazamiento en metros sobre lo que seguiría al personaje. Se
+     recorta a los límites del mundo y el recorte se devuelve al desplazamiento, para que no se acumule más allá del borde. */
+  if(NV.camLibre){
+    const L=NV.camLibre, ox=Math.max(LIM.x0,Math.min(Math.max(LIM.x0,LIM.x1-colsM),destX+L.x)), oy=Math.max(LIM.y0,Math.min(Math.max(LIM.y0,LIM.y1-rowsM),destY+L.y));
+    L.x=ox-destX; L.y=oy-destY; destX=ox; destY=oy;
+  }
+  if(NV.camXf===undefined||NV.camDirecta){ NV.camXf=destX; NV.camYf=destY; }
   const sigue=1-Math.exp(-dtC/CAM_TAU);
   NV.camXf += (destX-NV.camXf)*sigue;
   NV.camYf += (destY-NV.camYf)*sigue;

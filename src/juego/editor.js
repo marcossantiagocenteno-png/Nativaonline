@@ -166,10 +166,36 @@
   };
   E.pilas=()=>({deshacer:pila.length,rehacer:rehacer.length});
 
+  /* ---------- mover el mapa: Espacio + arrastrar ----------
+     La cámara se desplaza en metros sobre lo que seguiría al personaje (NV.camLibre). Mientras se arrastra, la cámara no se
+     suaviza (NV.camDirecta): el terreno se queda pegado al cursor. El personaje no se mueve. Inicio vuelve a él. */
+  E.espacio=false; E.paneo=null;
+  function cursorMapa(){ const cv=$e('cv'); if(cv) cv.style.cursor=E.paneo?'grabbing':E.espacio?'grab':'crosshair'; }
+  function iniciarPaneo(e){
+    const L=NV.camLibre||(NV.camLibre={x:0,y:0});
+    E.paneo={px:e.clientX,py:e.clientY,x0:L.x,y0:L.y,id:e.pointerId};
+    NV.camDirecta=true;
+    try{ $e('cv').setPointerCapture(e.pointerId); }catch(_){}
+    cursorMapa(); programarCuadro();
+  }
+  function moverPaneo(e){
+    const P=E.paneo, M=NV.medidas(), L=NV.camLibre; if(!P||!L) return;
+    L.x=P.x0-(e.clientX-P.px)/M.pxmX; L.y=P.y0-(e.clientY-P.py)/M.pxmY;
+    programarCuadro();
+  }
+  function finPaneo(){
+    if(!E.paneo) return;
+    try{ $e('cv').releasePointerCapture(E.paneo.id); }catch(_){}
+    E.paneo=null; NV.camDirecta=false; cursorMapa(); programarCuadro();
+  }
+  E.finPaneo=finPaneo;
+  E.volverAlPersonaje=function(){ NV.camLibre=null; finPaneo(); decir('La vista vuelve al personaje.'); programarCuadro(); };
+
   /* ---------- el ratón ---------- */
   function alBajar(e){
     if(!E.activo) return;
     e.preventDefault();
+    if(E.espacio&&e.button===0){ iniciarPaneo(e); return; }
     if(E.modo!=='objetos'){ E.modos[E.modo].bajar(e); return; }
     apuntar(e);
     const h=E.hover; if(!h) return;
@@ -193,6 +219,7 @@
   }
   function alMover(e){
     if(!E.activo) return;
+    if(E.paneo){ moverPaneo(e); return; }
     if(E.modo!=='objetos'){ E.modos[E.modo].mover(e); return; }
     const antes=E.hover?E.hover.x+','+E.hover.y+','+E.hover.id:'', ctrl0=E.ctrl;
     apuntar(e);
@@ -210,7 +237,7 @@
     if(typeof detenerRuta==='function') detenerRuta();
     const p=$e('dios'); if(p) p.classList.add('show');
     $e('cv').style.cursor='crosshair';
-    decir('<b>Modo Dios</b>\nElegí algo de la paleta y hacé clic en el terreno.\nRueda o + / − : zoom libre (hasta 200 m).');
+    decir('<b>Modo Dios</b>\nElegí algo de la paleta y hacé clic en el terreno.\nRueda o + / − : zoom libre (hasta 200 m).\nEspacio + arrastrar: mover el mapa · Inicio: volver al personaje.');
     refrescar(); programarCuadro();
   };
   E.salir=function(){
@@ -218,6 +245,7 @@
     const Mx=E.modos[E.modo]; if(Mx&&Mx.cerrar) Mx.cerrar();
     if(NV.creador) NV.creador.cerrar();
     clearTimeout(tGuardar); NV.mundo.guardarBorrador();   // lo editado ya está en el mundo; además queda guardado
+    NV.camLibre=null; NV.camDirecta=false; E.espacio=false; E.paneo=null;
     NV.zoomLibre(false); E.activo=false; E.sel=null; E.fantasma=null; E.hover=null; NV.pick(false);
     const p=$e('dios'); if(p) p.classList.remove('show');
     $e('cv').style.cursor='';
@@ -292,13 +320,21 @@
       const k=(e.key||'').toLowerCase();
       if(k==='g'&&e.shiftKey&&!e.ctrlKey&&!e.metaKey){ e.preventDefault(); E.activo?E.salir():E.entrar(); return; }
       if(!E.activo) return;
+      const campo=/^(INPUT|SELECT|TEXTAREA)$/.test((e.target&&e.target.tagName)||'');
+      if((e.code==='Space'||k===' ')&&!campo){ e.preventDefault(); if(!E.espacio){ E.espacio=true; cursorMapa(); } return; }
+      if(k==='home'&&!campo){ e.preventDefault(); E.volverAlPersonaje(); return; }
       if(E.modo!=='objetos'){ const M=E.modos[E.modo]; if(M.tecla&&M.tecla(e,k)){ e.preventDefault(); return; } }
       if(k==='control'){ E.ctrl=true; refrescar(); programarCuadro(); return; }
       if(k==='escape'&&E.sel){ elegir(null); return; }
       if((e.ctrlKey||e.metaKey)&&k==='z'){ e.preventDefault(); e.shiftKey?rehacerUno():deshacer(); return; }
       if((e.ctrlKey||e.metaKey)&&k==='y'){ e.preventDefault(); rehacerUno(); return; }
     });
-    addEventListener('keyup',e=>{ if(E.activo&&(e.key||'').toLowerCase()==='control'){ E.ctrl=false; refrescar(); programarCuadro(); } });
+    addEventListener('keyup',e=>{
+      if(E.activo&&(e.key||'').toLowerCase()==='control'){ E.ctrl=false; refrescar(); programarCuadro(); }
+      if(E.activo&&(e.code==='Space'||e.key===' ')){ E.espacio=false; cursorMapa(); if(!/^(INPUT|SELECT|TEXTAREA)$/.test((e.target&&e.target.tagName)||'')) e.preventDefault(); }   // un botón con foco no se activa con la barra
+    });
+    addEventListener('pointerup',finPaneo); addEventListener('pointercancel',finPaneo);
+    addEventListener('blur',()=>{ E.espacio=false; finPaneo(); });
     const b=id=>$e(id);
     b('diosModoObj').addEventListener('click',()=>E.cambiarModo('objetos'));
     b('diosModoCam').addEventListener('click',()=>E.cambiarModo('caminos'));
