@@ -392,6 +392,10 @@ function raster(A,CPM,HPM,luz){
 
   /* autosombra: si hacia el sol hay algo más cerca de la cámara que el rayo, esta celda está tapada */
   const Ls=luz.L, ZS=A.ext.z1-A.ext.z0;
+  /* luz de lectura: el sol del entorno suele quedar detrás del árbol y las caras que miran a cámara se pierden.
+     Se conserva el lado (este/oeste) y la altura, y se inclina hacia la cámara lo justo para ver el volumen. */
+  const ly=Ls.y*0.35+0.50, ln=Math.hypot(Ls.x,ly,Ls.z)||1;
+  const luzV=Object.assign({},luz,{L:{x:Ls.x/ln,y:ly/ln,z:Ls.z/ln}});
   const sombraProp=new Float32Array(n).fill(1);
   const dists=[0.30,0.62];
   for(let r=0;r<Hh;r++) for(let q=0;q<W;q++){
@@ -414,7 +418,7 @@ function raster(A,CPM,HPM,luz){
   for(let r=0;r<Hh;r++) for(let q=0;q<W;q++){
     const i=r*W+q, ty=T[i]; if(!ty) continue;
     const v=V(r);
-    let lum=ENT().sobreCara(NE[i],NS[i],NU[i]*(ty===3?1:0),luz);
+    let lum=ENT().sobreCara(NE[i],NS[i],NU[i]*(ty===3?1:0),luzV);
     if(ty===3){
       /* abajo y adentro, más oscuro; arriba y al frente, más claro */
       const ao=0.88+0.12*clamp((Z[i]-zc0)/zcs,0,1), vf=0.88+0.22*clamp((v-vc0)/vcs,0,1);
