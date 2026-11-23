@@ -574,6 +574,7 @@ function drawGroundRow(my,rBase,haze,t){
     if(det) prepararDetalle(mx,my,det);
 
     /* altura: cada columna de celdas sube lo que sube el terreno ahí */
+    const luzMetro=light;               // la luz del metro antes de que cada celda la afine (la usan los caminos)
     fijarAlza(mx,my,base);
     usaCol=true;
     pastoPreparar(mx,my,grass);
@@ -689,6 +690,22 @@ function drawGroundRow(my,rBase,haze,t){
         for(let k=0;k<CPM;k++){
           if(cerca){ afinar(k,sy); light=_lz; calor=_cal; }
           detallar(det,k,sy,mx*CPM+k,cyb,base,rb,light,calor);
+        }
+      }
+    }
+    /* los caminos del Modo Dios (motor de caminos): se pintan encima del suelo y del pasto de este metro, sólo en
+       los metros que algún camino toca. Sin caminos no se mira nada y el cuadro sale idéntico. */
+    if(!mt.ola&&NV.caminos&&NV.caminos.red.idx.size){
+      const lista=NV.caminos.deMetro(mx,my);
+      if(lista){
+        for(let sy=0;sy<RPM;sy++){
+          const rb=top+sy, wy=my+(sy+0.5)/RPM, cyb=my*RPM+sy;
+          for(let k=0;k<CPM;k++){
+            let lz=luzMetro;
+            if(cerca){ afinar(k,sy); lz=_lz; }
+            const s=NV.caminos.celdaRed(mx+(k+0.5)/CPM,wy,clamp(0.25+0.75*lz,0.2,1.4),mx*CPM+k,cyb,lista);
+            if(s) put(base+k,rb,NV.caminos.sal.g,NV.caminos.sal.c);
+          }
         }
       }
     }

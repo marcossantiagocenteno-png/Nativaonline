@@ -63,6 +63,14 @@ button.on{border-color:var(--oro);color:var(--oro)}
 #diosEstado{color:var(--dim);font-size:9px;line-height:1.35;margin-top:5px;min-height:3.9em;white-space:pre-wrap}
 #diosEstado b{color:var(--oro);font-weight:400}
 #dios .fila button{flex:1}
+#diosCaminos{display:none}
+#dios.camMode #diosPaleta{display:none}
+#dios.camMode #diosCaminos{display:block}
+#diosCaminos .grupo{color:var(--dim);font-size:8px;margin:4px 0 1px;letter-spacing:.6px;text-transform:uppercase}
+#diosCaminos .camFam{display:block;width:100%;text-align:left;margin-top:2px}
+#diosCaminos .fila{margin-top:2px}
+#diosCaminos .camVar{font-size:9px;padding-left:1px;padding-right:1px}
+#camAncho{flex:2;text-align:center;color:var(--oro);font-size:9px;letter-spacing:1px;align-self:center;overflow:hidden;white-space:nowrap}
 
 /* lo que se dice al explorar */
 #bubble{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);

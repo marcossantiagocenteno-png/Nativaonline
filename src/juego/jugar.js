@@ -450,9 +450,10 @@ NV.casillaEn=function(col,fil){
   for(let gy=tope;gy>=g0-1;gy--){
     const a=alza(gy), arriba=(gy-camY)*RPM-a+lift;
     const abajo=arriba+RPM-1+Math.max(0,a-alza(gy+1));
-    if(fil>=arriba&&fil<=abajo) return {x:gx,y:gy};
+    /* wx,wy: el punto exacto del mundo bajo la celda (en metros, con fracción): lo usa el Modo Dios para trazar caminos */
+    if(fil>=arriba&&fil<=abajo) return {x:gx,y:gy,wx:wx,wy:gy+Math.max(0,Math.min(1,(fil-arriba+0.5)/RPM))};
   }
-  return {x:gx,y:g0};
+  return {x:gx,y:g0,wx:wx,wy:g0+0.5};
 };
 /* un toque corto manda caminar; arrastrar o pellizcar, no */
   let tocó=null;

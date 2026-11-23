@@ -23,5 +23,6 @@ window.NV_MODULOS=[
   'juego/dibujar',
   'juego/particulas',
   'juego/editor',
+  'juego/editor-caminos',
   'juego/jugar'
 ];

@@ -6,7 +6,12 @@
       paneles:{ 'pi,pj':{ def:{bioma,nombre,esq?}, suelo:[[x,y,'d'],..],
                           objetos:{agregar:[{x,y,k,h,sp?,s?,len?}], quitar:[[x,y],..]},
                           alturas:[[x,y,dm],..] } },
-      rasgos:[{id,tipo:'camino'|'rio'|..,puntos:[[x,y],..],ancho,material:'d'}]}
+      rasgos:[{id,tipo:'camino'|'rio'|..,puntos:[[x,y],..],ancho,material:'d'}],
+      caminos:[{id,tipo:'camino',puntos:[[x,y],..],camino:{familia,params,vs,anchos,semTrazado,semTextura,fin,sectores}}]}
+
+   `rasgos` son líneas de una sola letra de material (el suelo plano de siempre). `caminos` son los del motor de
+   caminos (src/juego/caminos.js): se PINTAN encima del suelo, en cada cuadro, y no tocan el terreno ni los paneles;
+   por eso agregar o quitar uno no regenera nada, sólo vuelve a dibujar.
 
    Coordenadas: las de ADENTRO del juego (x crece al este, y crece al SUR), en metros enteros del
    mundo. Los paneles se llaman 'pi,pj' como en paneles.js (pj crece al sur).
@@ -23,25 +28,27 @@
 
 const NVe = window.NV;
 
-const FORMATO = 1;
+const FORMATO = 2;
 const L = NVe.LADO;
 const clavePanel = (pi,pj)=>pi+','+pj;
 const claveXY = (x,y)=>x+','+y;
 const kAlt = (x,y)=>(x+2000)*8192+(y+2000);      // la misma clave que usa paneles.js
 
 /* ---------- estado interno (Maps para buscar rápido; se serializa ordenado) ---------- */
-let D = null;                    // {semilla, pan:Map<'pi,pj', P>, rasgos:[]}
+let D = null;                    // {semilla, pan:Map<'pi,pj', P>, rasgos:[], caminos:[]}
 let idxAlt = new Map();          // kAlt -> metros de diferencia
 const oyentes = [];
 let version = 0;                 // sube con cada cambio: el editor y el guardado saben si hay algo nuevo
 
 const nuevoP = ()=>({def:null, suelo:new Map(), agregar:[], quitar:new Set(), alturas:new Map()});
-function datosVacios(){ return {semilla:NVe.CONFIG.seed, pan:new Map(), rasgos:[]}; }
+function datosVacios(){ return {semilla:NVe.CONFIG.seed, pan:new Map(), rasgos:[], caminos:[]}; }
 const pDe = (k,crear)=>{ let P=D.pan.get(k); if(!P&&crear){ P=nuevoP(); D.pan.set(k,P); } return P||null; };
 const panelDeXY = (x,y)=>clavePanel(Math.floor(x/L),Math.floor(y/L));
 
 /* ---------- validación y conversión (archivo <-> estado) ---------- */
-const MIGRACIONES = {};          // MIGRACIONES[n] = f(datos) que sube un archivo del formato n al n+1
+const MIGRACIONES = {          // MIGRACIONES[n] = f(datos) que sube un archivo del formato n al n+1
+  1:o=>Object.assign({},o,{formato:2,caminos:o.caminos||[]})     // 1 -> 2: aparecen los caminos del motor de caminos
+};
 function validar(o){
   if(!o||typeof o!=='object') throw new Error('el mundo no es un objeto');
   let f=o.formato|0;
@@ -65,10 +72,22 @@ function validar(o){
     for(const p of r.puntos) if(typeof p[0]!=='number'||typeof p[1]!=='number') throw new Error('rasgo '+r.id+': punto inválido');
     if(!(r.ancho>0)||!mat(r.material)) throw new Error('rasgo '+r.id+': ancho o material inválido');
   }
+  for(const r of (o.caminos||[])) validarCamino(r);
   return o;
 }
+/* estructura, no familia: este archivo se lee ANTES de que cargue el motor de caminos; la familia se comprueba al armarlo */
+function validarCamino(r){
+  const num=v=>typeof v==='number'&&isFinite(v);
+  if(!r||typeof r.id!=='string'||!r.id||r.id.slice(0,2)==='__') throw new Error('camino sin nombre válido');
+  if(!Array.isArray(r.puntos)||r.puntos.length<2) throw new Error('camino '+r.id+': necesita al menos dos puntos');
+  for(const p of r.puntos) if(!Array.isArray(p)||!num(p[0])||!num(p[1])) throw new Error('camino '+r.id+': punto inválido');
+  const c=r.camino; if(!c||typeof c.familia!=='string') throw new Error('camino '+r.id+': sin familia');
+  if(!c.params||typeof c.params!=='object'||!(c.params.ancho>0)) throw new Error('camino '+r.id+': sin parámetros');
+  if(c.vs&&(!Array.isArray(c.vs)||c.vs.length!==r.puntos.length)) throw new Error('camino '+r.id+': vs no coincide con los puntos');
+  if(c.anchos&&(!Array.isArray(c.anchos)||c.anchos.length!==r.puntos.length)) throw new Error('camino '+r.id+': anchos no coincide con los puntos');
+}
 function desdeArchivo(o){
-  o=validar(o); const d={semilla:o.semilla,pan:new Map(),rasgos:[]};
+  o=validar(o); const d={semilla:o.semilla,pan:new Map(),rasgos:[],caminos:(o.caminos||[]).map(r=>JSON.parse(JSON.stringify(r)))};
   for(const k in (o.paneles||{})){
     const s=o.paneles[k], P=nuevoP();
     P.def=s.def?JSON.parse(JSON.stringify(s.def)):null;
@@ -85,7 +104,8 @@ const porXY=(a,b)=>a[1]-b[1]||a[0]-b[0];
 const partir=k=>k.split(',').map(Number);
 /* ordenado y sin adornos: el archivo cambia sólo donde cambia el mundo (se lleva bien con git) */
 function aArchivo(d){
-  const o={formato:FORMATO,semilla:d.semilla,paneles:{},rasgos:d.rasgos.map(r=>({id:r.id,tipo:r.tipo,puntos:r.puntos.map(p=>[p[0],p[1]]),ancho:r.ancho,material:r.material}))};
+  const o={formato:FORMATO,semilla:d.semilla,paneles:{},rasgos:d.rasgos.map(r=>({id:r.id,tipo:r.tipo,puntos:r.puntos.map(p=>[p[0],p[1]]),ancho:r.ancho,material:r.material})),
+    caminos:d.caminos.map(r=>JSON.parse(JSON.stringify(r)))};
   for(const k of Array.from(d.pan.keys()).sort()){
     const P=d.pan.get(k), s={};
     if(P.def) s.def=JSON.parse(JSON.stringify(P.def));
@@ -244,6 +264,17 @@ function aplicarUna(op,toca){
           for(let pi=Math.floor((Math.min(...xs)-m)/L);pi<=Math.floor((Math.max(...xs)+m)/L);pi++)
             for(const k of vecinos(clavePanel(pi,pj))) toca.add(k); }
       break; }
+    case 'camino': {
+      /* poner (datos) o quitar (datos:null) UN camino, entero. Su inversa es lo que había: así sirve para crear,
+         editar y borrar, y deshacer es volver a poner el estado anterior. No toca paneles: se pinta por encima. */
+      if(typeof op.id!=='string') throw new Error('camino sin nombre');
+      if(op.datos){ validarCamino(op.datos); if(op.datos.id!==op.id) throw new Error('el camino no es el que dice ser'); }
+      const i=D.caminos.findIndex(q=>q.id===op.id), previo=i<0?null:D.caminos[i];
+      if(op.datos){ const n=JSON.parse(JSON.stringify(op.datos)); if(i<0) D.caminos.push(n); else D.caminos[i]=n; }
+      else if(i>=0) D.caminos.splice(i,1);
+      if(!previo&&!op.datos) break;
+      inv={t:'camino',id:op.id,datos:previo?JSON.parse(JSON.stringify(previo)):null};
+      toca.caminos=true; break; }
     case 'panel': {
       const k=clavePanel(op.pi,op.pj);
       if(op.def!==null&&(!op.def||typeof op.def.bioma!=='string')) throw new Error('def sin bioma');
@@ -258,20 +289,23 @@ function editar(op){
   const toca=new Set(); toca.soloObjetos=true;
   const inv=aplicarUna(op,toca);
   if(toca.size) tocar(toca,!toca.soloObjetos);
+  if(toca.caminos){ version++; avisarCaminos(); for(const f of oyentes) f([]); }
   return inv;
 }
+/* el motor de caminos guarda su propia red (con índices); acá sólo se le avisa qué datos hay */
+function avisarCaminos(){ if(NVe.caminos&&NVe.caminos.sincronizar) NVe.caminos.sincronizar(D?D.caminos:[]); }
 
 /* ---------- cargar, exportar, borrador ---------- */
 function cargar(o){
   D=desdeArchivo(o); reindexar();
   const todos=new Set(); for(const k of NVe.cachePaneles.keys()) todos.add(k);
-  tocar(todos);
+  tocar(todos); avisarCaminos();
 }
 const exportar=()=>aArchivo(D||datosVacios());
 const texto=()=>JSON.stringify(exportar());
 /* el contenido de src/mundo/mundo-datos.js: lo que se sube al repositorio para que todos entren al mismo mundo */
 const comoScript=()=>'/* Nativa Online — EL MUNDO EDITADO (archivo de datos). Lo escribe el Modo Dios; ver docs/DISENO.md. */\nwindow.NV.MUNDO_DATOS='+JSON.stringify(exportar(),null,1)+';\n';
-const vacio=()=>{ const o=exportar(); return !Object.keys(o.paneles).length&&!o.rasgos.length; };
+const vacio=()=>{ const o=exportar(); return !Object.keys(o.paneles).length&&!o.rasgos.length&&!o.caminos.length; };
 function importarTexto(t){
   t=String(t).trim().replace(/^[\s\S]*?NV\.MUNDO_DATOS\s*=\s*/,'').replace(/;\s*$/,'');
   cargar(JSON.parse(t));
@@ -300,7 +334,7 @@ const defDe=k=>{ const P=D&&D.pan.get(k); return P&&P.def||null; };
 const clavesDefinidas=()=>D?Array.from(D.pan.entries()).filter(([,P])=>P.def).map(([k])=>k):[];
 const alCambiar=f=>{ oyentes.push(f); return ()=>{ const i=oyentes.indexOf(f); if(i>=0) oyentes.splice(i,1); }; };
 const estadisticas=()=>{ const d=D||datosVacios(); let suelo=0,agregar=0,quitar=0,alt=0; for(const P of d.pan.values()){ suelo+=P.suelo.size; agregar+=P.agregar.length; quitar+=P.quitar.size; alt+=P.alturas.size; }
-  return {paneles:d.pan.size,suelo,agregar,quitar,alturas:alt,rasgos:d.rasgos.length,version}; };
+  return {paneles:d.pan.size,suelo,agregar,quitar,alturas:alt,rasgos:d.rasgos.length,caminos:d.caminos.length,version}; };
 
 /* ---------- arranque: el archivo del mundo, si trae algo ---------- */
 D=datosVacios();
@@ -311,4 +345,5 @@ if(NVe.MUNDO_DATOS){
 
 NVe.mundo={FORMATO,aplicar,editar,cargar,exportar,texto,comoScript,importarTexto,vacio,descargar,
   guardarBorrador,cargarBorrador,borrarBorrador,deltaAltura,defDe,clavesDefinidas,alCambiar,estadisticas,
-  validar:o=>{ validar(o); return true; },version:()=>version};
+  validar:o=>{ validar(o); return true; },version:()=>version,
+  caminosDatos:()=>D?D.caminos:[]};

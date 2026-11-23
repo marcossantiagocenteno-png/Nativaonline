@@ -13,7 +13,8 @@
 (function(NV){
   const FANTASMA=65535;                       // id en el búfer de apuntado para la vista previa
   const ORO=[200,162,74], ORO_VIVO=[255,232,160], ROJO=[214,70,56];
-  const E=NV.editor={activo:false, sel:null, fantasma:null, hover:null, ctrl:false};
+  const E=NV.editor={activo:false, sel:null, fantasma:null, hover:null, ctrl:false,
+    modo:'objetos', modos:{}};        // otras herramientas (los caminos) se registran en E.modos y reciben el ratón y el teclado
   let pila=[], rehacer=[], tGuardar=null, motivo=null, pie='';
 
   const $e=id=>document.getElementById(id);
@@ -118,12 +119,25 @@
     guardarPronto(); tictac(); NV.olvidarObjetos(); programarCuadro(); decir('Rehecho.'); refrescar();
   }
   E.deshacer=deshacer; E.rehacer=rehacerUno; E.elegir=elegir;
+  E.hacer=hacer; E.decir=decir; E.refrescar=refrescar; E.apoyo={porQueNo};
+  /* cambiar de herramienta: la de objetos es la de siempre; las demás son módulos de E.modos */
+  E.cambiarModo=function(m){
+    if(m===E.modo||(m!=='objetos'&&!E.modos[m])) return;
+    const M0=E.modos[E.modo]; if(M0&&M0.cerrar) M0.cerrar();
+    if(E.modo==='objetos'){ elegir(null); E.hover=null; }
+    E.modo=m; pie='';
+    const p=$e('dios'); if(p) p.classList.toggle('camMode',m==='caminos');
+    for(const [id,k] of [['diosModoObj','objetos'],['diosModoCam','caminos']]){ const b=$e(id); if(b) b.classList.toggle('on',m===k); }
+    const M=E.modos[m]; if(M&&M.abrir) M.abrir();
+    refrescar(); programarCuadro();
+  };
   E.pilas=()=>({deshacer:pila.length,rehacer:rehacer.length});
 
   /* ---------- el ratón ---------- */
   function alBajar(e){
     if(!E.activo) return;
     e.preventDefault();
+    if(E.modo!=='objetos'){ E.modos[E.modo].bajar(e); return; }
     apuntar(e);
     const h=E.hover; if(!h) return;
     if(e.button===2){                                   // clic derecho: elimina SOLO el objeto apuntado
@@ -141,6 +155,7 @@
   }
   function alMover(e){
     if(!E.activo) return;
+    if(E.modo!=='objetos'){ E.modos[E.modo].mover(e); return; }
     const antes=E.hover?E.hover.x+','+E.hover.y+','+E.hover.id:'', ctrl0=E.ctrl;
     apuntar(e);
     const ahora=E.hover?E.hover.x+','+E.hover.y+','+E.hover.id:'';
@@ -162,6 +177,7 @@
   };
   E.salir=function(){
     if(!E.activo) return;
+    const Mx=E.modos[E.modo]; if(Mx&&Mx.cerrar) Mx.cerrar();
     clearTimeout(tGuardar); NV.mundo.guardarBorrador();   // lo editado ya está en el mundo; además queda guardado
     E.activo=false; E.sel=null; E.fantasma=null; E.hover=null; NV.pick(false);
     const p=$e('dios'); if(p) p.classList.remove('show');
@@ -174,7 +190,8 @@
     const est=$e('diosEstado'); if(!est) return;
     const h=E.hover; let t='';
     motivo=null;
-    if(h&&h.obj){
+    if(E.modo!=='objetos') t=E.modos[E.modo].estado();
+    else if(h&&h.obj){
       const r=NV.entradaDeObjeto(h.obj);
       t='<b>'+(r?r.entrada.nombre:'Objeto')+'</b>\nCtrl + clic: regenerar\nClic derecho: eliminar';
     } else if(E.sel){
@@ -201,6 +218,7 @@
   /* resaltado de la silueta bajo el cursor, tinte de la vista previa y marcador de la casilla.
      Se llama dentro de draw_, antes de volcar al lienzo. */
   E.pintar=function(){
+    if(E.modo!=='objetos'){ const M=E.modos[E.modo]; if(M&&M.pintar) M.pintar(); return; }
     const h=E.hover, n=cols*rowsN;
     if(h&&h.obj){
       const col=E.ctrl?ORO_VIVO:ORO, a=E.ctrl?0.75:0.55;
@@ -234,6 +252,7 @@
       const k=(e.key||'').toLowerCase();
       if(k==='g'&&e.shiftKey&&!e.ctrlKey&&!e.metaKey){ e.preventDefault(); E.activo?E.salir():E.entrar(); return; }
       if(!E.activo) return;
+      if(E.modo!=='objetos'){ const M=E.modos[E.modo]; if(M.tecla&&M.tecla(e,k)){ e.preventDefault(); return; } }
       if(k==='control'){ E.ctrl=true; refrescar(); programarCuadro(); return; }
       if(k==='escape'&&E.sel){ elegir(null); return; }
       if((e.ctrlKey||e.metaKey)&&k==='z'){ e.preventDefault(); e.shiftKey?rehacerUno():deshacer(); return; }
@@ -241,6 +260,9 @@
     });
     addEventListener('keyup',e=>{ if(E.activo&&(e.key||'').toLowerCase()==='control'){ E.ctrl=false; refrescar(); programarCuadro(); } });
     const b=id=>$e(id);
+    b('diosModoObj').addEventListener('click',()=>E.cambiarModo('objetos'));
+    b('diosModoCam').addEventListener('click',()=>E.cambiarModo('caminos'));
+    for(const k in E.modos) if(E.modos[k].iniciar) E.modos[k].iniciar();
     b('diosDeshacer').addEventListener('click',deshacer);
     b('diosRehacer').addEventListener('click',rehacerUno);
     b('diosSalir').addEventListener('click',E.salir);

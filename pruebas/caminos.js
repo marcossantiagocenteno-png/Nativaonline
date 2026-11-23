@@ -1,5 +1,5 @@
 // El motor de caminos: trazado, campo, las cuatro familias, parámetros, edición local y determinismo.
-// El motor está en estado de laboratorio: esta prueba también vigila que NO se haya metido al juego.
+// El motor ya está integrado: dibujar.js lo pinta por metro y el mundo editable lo guarda (ver pruebas/caminos-juego.js).
 const fs=require('fs');
 const cargar=require('./cargar.js');
 const m=cargar('module.exports={NV:window.NV};');
@@ -7,12 +7,12 @@ const NV=m.NV, C=NV.caminos; const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).
 
 /* ---- registro y estado ---- */
 const mot=NV.motores.obtener('caminos');
-probar('el motor está dado de alta y en estado de laboratorio (pendiente)', !!mot&&mot.estado==='pendiente');
+probar('el motor está dado de alta y en el dibujo del suelo (en-dibujar)', !!mot&&mot.estado==='en-dibujar');
 probar('declara preview y prueba que existen', fs.existsSync(mot.preview)&&fs.existsSync(mot.prueba));
 probar('tiene caras de generar, dibujar y editor', !!mot.caras.generar&&!!mot.caras.dibujar&&!!mot.caras.editor);
 probar('las cuatro familias están', Object.keys(C.FAMILIAS).join()==='tierra,tierra-antigua,empedrado,empedrado-antiguo');
 const dibujarSrc=fs.readFileSync('src/juego/dibujar.js','utf8')+fs.readFileSync('src/juego/jugar.js','utf8')+fs.readFileSync('src/mundo/paneles.js','utf8');
-probar('ni dibujar.js, ni jugar.js ni los paneles lo usan todavía (no se integra sin aprobación)', !/caminos|NV\.caminos/.test(dibujarSrc.replace(/sendero|caminos? de|camino viejo|camino que busca|el camino/gi,'')));
+probar('dibujar.js lo usa sólo a través de deMetro/celdaRed, y los paneles no lo conocen', /NV\.caminos\.deMetro/.test(dibujarSrc)&&!/NV\.caminos/.test(fs.readFileSync('src/mundo/paneles.js','utf8')));
 
 /* ---- ayudas ---- */
 const CPM=13, RPM=4, LF=0.9;

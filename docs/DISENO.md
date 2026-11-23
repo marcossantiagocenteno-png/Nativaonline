@@ -1274,15 +1274,20 @@ parámetros —cobertura, trazo, zona— en `NV.pasto.cfg`, y su prueba propia `
 caminos, empedrado, vegetación y rocas se extraen **uno por uno** igual, con el test dorado como red, y cada uno
 se registra al salir.
 
-### El formato del archivo (formato 1)
+### El formato del archivo (formato 2)
 
 ```
-{formato:1, semilla:'bosque-02',
+{formato:2, semilla:'bosque-02',
  paneles:{ 'pi,pj':{ def:{bioma,nombre,esq?}, suelo:[[x,y,'d'],..],
                      objetos:{agregar:[{x,y,k,h,..}], quitar:[[x,y],..]},
                      alturas:[[x,y,metros],..] } },
- rasgos:[{id,tipo,puntos:[[x,y],..],ancho,material}]}
+ rasgos:[{id,tipo,puntos:[[x,y],..],ancho,material}],
+ caminos:[{id,tipo:'camino',puntos:[[x,y],..],camino:{familia,params,vs,anchos,semTrazado,semTextura,fin,sectores}}]}
 ```
+
+Formato 2 (23/11): aparece `caminos`, los del motor de caminos. El 1 se lee y se sube solo (`MIGRACIONES[1]`, sin caminos).
+Los `rasgos` son líneas de una letra de material (suelo plano); los `caminos` NO tocan paneles ni terreno: se pintan encima del
+suelo en cada cuadro, así que agregar o quitar uno no regenera nada.
 
 Coordenadas del interior del juego (x al este, **y al sur**), en metros. Orden de aplicación por
 panel: rasgos (caminos, ríos) → pinceladas de suelo → objetos (quitar, agregar). Las alturas son una
@@ -1356,12 +1361,27 @@ Cada operación sobre objetos invalida un solo panel (16 ms) en vez de los 9 vec
 
 Prueba: `node pruebas/editor.js`.
 
-## Motor de caminos, tierra y empedrados (23/11, LABORATORIO: aún no está en el juego)
+## Motor de caminos, tierra y empedrados (23/11)
 
 Archivo: `src/juego/caminos.js` (`NV.caminos`). Laboratorio: `preview/caminos.html`. Prueba: `node pruebas/caminos.js`.
-Registrado como motor `caminos`, estado `pendiente` (= todavía no lo llama el juego). **Ni `dibujar.js`, ni
-`jugar.js`, ni los paneles lo usan**: `pruebas/caminos.js` lo vigila, y el test dorado sigue en "Todo igual". Integrarlo y
-darle herramientas en el Modo Dios espera la aprobación de Marcos sobre las variantes.
+Registrado como motor `caminos`, estado `en-dibujar`. **Integrado el 23/11** como herramienta del Modo Dios (Marcos eligió
+probar las 12 variantes sobre el mapa real; la variante final sigue siendo decisión suya). Prueba del motor: `pruebas/caminos.js`;
+prueba de la integración: `pruebas/caminos-juego.js`.
+
+**En el juego.** (1) *Datos:* operación `{t:'camino',id,datos|null}` en `NV.mundo.editar`; su inversa es lo que había, así sirve para
+crear, editar y borrar, y el deshacer es el de siempre. (2) *Suelo:* `drawGroundRow` pregunta `NV.caminos.deMetro(mx,my)` y, sólo en
+los metros que algún camino toca (y que no son agua), pinta con `celdaRed` encima del suelo y del pasto de ese metro; sin caminos
+el cuadro es idéntico (el dorado lo vigila). (3) *Editor:* `src/juego/editor-caminos.js`, la pestaña "caminos" del Modo Dios.
+`NV.casillaEn` ahora devuelve también `wx,wy` (el punto exacto del mundo, con fracción).
+
+**Controles (pestaña caminos).** Clic en vacío empieza un camino y cada clic suma un punto; doble clic, Enter, clic derecho o
+"terminar" lo cierra; Retroceso quita el último punto; Esc cancela. `[` y `]` (o `-` / `+`, o los botones) cambian el ancho: al
+trazar valen para los puntos que vienen (el ancho cambia a lo largo del camino), con un camino elegido escalan todo. Clic sobre un
+camino lo elige y los botones de familia (4) y variante (natural, media, detallada) lo cambian: son las 12 variantes. Shift+clic
+sobre un camino hace nacer un ramal (mismo material y textura que el padre, se afila). Alt+clic empieza un camino nuevo aunque haya
+otro debajo (para cruzarlos). Ctrl+clic sobre un camino: otra textura, mismo trazado. Clic derecho sobre un camino (sin trazar) o
+Supr: borrar. Ctrl+Z / Ctrl+Shift+Z deshacen y rehacen todo. Mientras se traza, el camino se ve provisional en el suelo (id `__trazo`,
+que no es del mundo y `sincronizar` no toca).
 
 **Independiente del lienzo.** El motor no pinta: para una casilla (metros del mundo) devuelve si la cubre y, si la cubre, el glifo
 y el color (`NV.caminos.sal.g/.c`). Quien pinte hace el `put()`. El laboratorio lo usa con **el pasto real** (`pasto.js`, sin
@@ -1400,10 +1420,11 @@ de otra familia, con mezcla), `fijarFin` (`redondo`, `afila`, `plaza`), `bifurca
 ancho), `agregar` / `quitar` en la red (`NV.caminos.red`, índice de 16 m; una intersección es dos caminos y el borde se funde con un
 mínimo suave). `aDatos` / `deDatos` guardan y leen un camino. Las herramientas se declaran en la cara `editor` del registro.
 
-**Al integrar (pendiente):** el formato 1 del mundo guarda `rasgos` con `material` de una letra; un camino necesita `camino:{...}`
-(familia, parámetros, `vs`, anchos, semillas, fin, sectores) y su validación en `ediciones.js`; hay que subir `FORMATO` y escribir su
-migración. Los glifos nuevos del suelo: `0` y `8` (extremo denso de la piedra, exclusivo del empedrado por la regla 3) y la tierra
-reutiliza `. , : ; - _ =`.
+**Lo que quedó al integrar.** El formato subió a 2 con `caminos` (ver "El formato del archivo"); `validarCamino` revisa la estructura
+(la familia se comprueba al armar el camino, porque el archivo se lee antes de que cargue el motor). Los glifos nuevos del suelo:
+`0` y `8` (extremo denso de la piedra, exclusivo del empedrado por la regla 3); la tierra reutiliza `. , : ; - _ =`. `NV.caminos.sincronizar`
+pone la red al día con los datos del mundo y sólo rehace lo que cambió.
 
-**Costo medido:** ~0,4 µs por casilla consultada (30×20 m en ~12 ms). El juego redibuja el suelo en cada cuadro (el pendiente de
-guardar el suelo ya pintado sigue abierto), así que una vez integrado conviene pintar el camino sólo en los metros que lo tocan.
+**Costo medido:** ~0,4 µs por casilla consultada en el laboratorio. En el juego simulado, ocho caminos largos a la vista suman ~35 ms por
+cuadro sobre ~30 ms del suelo sin ellos (en Node, no en un navegador): el pendiente de guardar el suelo ya pintado sigue abierto y es
+el que lo bajaría. `deMetro` ya descarta los metros lejos del eje con la grilla de 4 m de cada camino.

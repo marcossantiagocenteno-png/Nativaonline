@@ -8,7 +8,7 @@ const NVi = window.NV;
 
 /* Sello de versión, puesto por sellar.sh al publicar. Se ve en el pie: así
    Marcos y yo sabemos al instante si está mirando la última versión. */
-NVi.VERSION='23/11 00:07';
+NVi.VERSION='23/11 10:19';
 
 NVi.MARCADO = `<div id="stage">
   <canvas id="cv"></canvas>
@@ -29,7 +29,21 @@ NVi.MARCADO = `<div id="stage">
 
   <div id="dios">
     <div id="diosTit">Modo Dios</div>
+    <div class="fila"><button id="diosModoObj" class="on">objetos</button><button id="diosModoCam">caminos</button></div>
     <div id="diosPaleta"></div>
+    <div id="diosCaminos">
+      <div class="grupo">Familia</div>
+      <button class="camFam" data-fam="tierra">tierra</button>
+      <button class="camFam" data-fam="tierra-antigua">tierra antigua</button>
+      <button class="camFam" data-fam="empedrado">empedrado</button>
+      <button class="camFam" data-fam="empedrado-antiguo">empedrado antiguo</button>
+      <div class="grupo">Variante</div>
+      <div class="fila"><button class="camVar" data-var="natural">natural</button><button class="camVar" data-var="intermedia">media</button><button class="camVar" data-var="detallada">detallada</button></div>
+      <div class="grupo">Anchura</div>
+      <div class="fila"><button id="camAncMenos" title="[">&minus;</button><span id="camAncho"></span><button id="camAncMas" title="]">+</button></div>
+      <div class="fila"><button id="camTerminar">terminar</button><button id="camTextura" title="Ctrl + clic">otra textura</button></div>
+      <div class="fila"><button id="camBorrar" title="Supr o clic derecho">borrar</button></div>
+    </div>
     <div id="diosEstado"></div>
     <div class="fila"><button id="diosDeshacer" title="Ctrl+Z">deshacer</button><button id="diosRehacer" title="Ctrl+Shift+Z">rehacer</button></div>
     <div class="fila"><button id="diosExportar">exportar</button><button id="diosSalir">salir</button></div>

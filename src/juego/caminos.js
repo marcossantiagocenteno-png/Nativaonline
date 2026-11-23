@@ -264,6 +264,29 @@ function nuevo(o){
 function agregar(c){ if(RED.caminos.has(c.id)) quitar(c.id); RED.caminos.set(c.id,c); indexar(c); RED.version++; return c; }
 function quitar(id){ const c=RED.caminos.get(id); if(!c) return null; indexar(c,true); RED.caminos.delete(id); RED.version++; return c; }
 function vaciar(){ RED.caminos.clear(); RED.idx.clear(); RED.version++; }
+/* los caminos que pueden tocar el metro (mx,my), o null: lo que pregunta el suelo antes de pintar. La lista es de uso
+   inmediato (se reutiliza en cada llamada). */
+const _mt=[];
+function deMetro(mx,my){
+  const l=RED.idx.get(Math.floor(mx/CH)*65536+Math.floor(my/CH)); if(!l) return null;
+  /* un metro cabe entero en una celda de 4 m de la grilla de cada camino: si esa celda no existe, el camino no lo toca */
+  const k=Math.floor(mx/CELDA_IDX)*65536+Math.floor(my/CELDA_IDX); _mt.length=0;
+  for(let i=0;i<l.length;i++){ const p=l[i]._p; if(p&&p.grid.has(k)) _mt.push(l[i]); }
+  return _mt.length?_mt:null;
+}
+/* poner la red al día con los datos del mundo editado ({id,tipo,puntos,camino}); sólo se rehace lo que cambió */
+const _huella=new Map();
+function sincronizar(datos){
+  const vistos=new Set();
+  for(const d of datos){
+    vistos.add(d.id); const h=JSON.stringify(d);
+    if(_huella.get(d.id)===h&&RED.caminos.has(d.id)) continue;
+    try{ agregar(deDatos(d)); _huella.set(d.id,h); }
+    catch(e){ console.warn('camino '+d.id+' ignorado: '+e.message); quitar(d.id); _huella.delete(d.id); }
+  }
+  /* los ids que empiezan con '__' son vistas provisionales del editor (el trazo en curso): no son del mundo y no se tocan */
+  for(const id of Array.from(RED.caminos.keys())) if(!vistos.has(id)&&id.slice(0,2)!=='__'){ quitar(id); _huella.delete(id); }
+}
 const unir=(a,b)=>!a?(b&&b.slice()):!b?a.slice():[Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[2],b[2]),Math.max(a[3],b[3])];
 /* caja de los tramos del camino cuya coordenada estable cae en [va,vb], con el alcance de lo que pinta */
 function cajaV(p,va,vb){
@@ -605,10 +628,13 @@ NV.caminos={FAMILIAS,PARAMS,VARIANTES,PAL,sal,red:RED,
   parametrosDe,variante,nuevo,preparar,agregar,quitar,vaciar,editar:E,puntoEn,bifurcar,
   recto,curvo,sinuoso,sendero,conectar,
   vDeS,campo:(c,x,y)=>campo(c,x,y)?{d:_d,s:_s,v:_v,w:_w,lat:_lat}:null,
-  celda,celdaRed,aDatos,deDatos,_tex:tex,_vn:vn};
+  celda,celdaRed,aDatos,deDatos,deMetro,sincronizar,_tex:tex,_vn:vn};
 
-/* Alta en el registro: estado 'pendiente' = todavía no lo usa el juego. */
-if(NV.motores) NV.motores.registrar({id:'caminos',nombre:'Caminos, tierra y empedrados',estado:'pendiente',
+/* al arrancar, el mundo editado ya pudo traer caminos (ediciones.js carga antes que este archivo) */
+if(NV.mundo&&NV.mundo.caminosDatos) sincronizar(NV.mundo.caminosDatos());
+
+/* Alta en el registro. */
+if(NV.motores) NV.motores.registrar({id:'caminos',nombre:'Caminos, tierra y empedrados',estado:'en-dibujar',
   archivo:'src/juego/caminos.js',preview:'preview/caminos.html',prueba:'pruebas/caminos.js',
   caras:{generar:o=>NV.caminos.nuevo(o), dibujar:celdaRed,
          editor:{parametros:PARAMS,familias:Object.keys(FAMILIAS).reduce((a,f)=>{ a[f]={nombre:FAMILIAS[f].nombre,parametros:parametrosDe(f)}; return a; },{}),
