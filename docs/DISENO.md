@@ -1538,3 +1538,21 @@ definir un panel con cualquiera de ellos (operación `panel`). Para las pruebas,
 `cargar()`) restaura los nueve paneles y la semilla vieja (`CONFIG.mundoViejo`): así `dorado.js` sigue cuidando los
 motores sobre el mundo rico, sin cambios en la huella. `pruebas/limpio.js` vigila el mundo nuevo. Queda el relieve
 suave de luz (ver "relieve"): no es un objeto ni cambia dónde se camina.
+
+## Terreno y vegetación por sectores (laboratorio, NO integrado)
+
+`preview/terreno.html` + `preview/terreno-motor.js` (`NV.terreno`) + `preview/terreno.js`; prueba: `pruebas/terreno.js`.
+Pendiente de aprobación de Marcos: no está en `src/modulos.js`, ni en `NV.motores`, ni en Modo Dios.
+
+- **No es otro motor de pasto.** Es una capa de configuración territorial: sectores rectangulares en metros del mundo
+  (`{x,y,w,h,terreno,pasto,flores,relieve,visual,trans,sem}`) que, por celda, deciden con qué perillas se llama al `pastoFranja`
+  real (`NV.pasto.cfg`) y transforman lo que dibuja envolviendo `put` sólo durante esa llamada (altura, tono, estado, nieve).
+  `pasto.js` no se modificó. Con la configuración neutra el resultado es idéntico glifo por glifo (lo vigila la prueba).
+- **Luz y viento son los globales:** la luz del metro y `dPasto` entran por `dibujarMetro`, como hoy entran al pasto.
+- **Transiciones:** peso 0..1 por celda según distancia al borde (gradual, irregular, orgánica, definida) y ancho en metros;
+  lo continuo se mezcla, lo discreto (terreno, estado, colores de flor) lo decide un solo sector por celda con ruido coherente.
+- **Terrenos:** 20, cada uno con su propia función de textura y su rampa de glifos; `veg` y una máscara por terreno
+  hacen que el pasto no crezca donde no cabe (arena, quemado, nieve...).
+- **Guardado:** `NV.terreno.exportar()/importar()` (JSON, formato 1); sectores, semilla y historial por sector. Sin azar al reabrir.
+- **Relieve:** en el laboratorio se ve como luz y alzado visual; el relieve como geometría real (altura que se camina) se decide al integrar.
+- **Aislamiento:** cada metro sólo consulta los sectores que lo tocan (más su ancho de transición); editar o regenerar uno no mueve los demás.
