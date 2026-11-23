@@ -463,6 +463,7 @@ function decidirOrilla(u,v,wx,wy){
    cae cada cuarto, y de qué color es la mancha. Después cada celda sólo tira un
    dado contra esa cifra. La densidad se da por metro cuadrado y se reparte entre
    las celdas que haya, así que no cambia con el zoom. */
+const _gT=[0,0,0], _gM=[0,0,0], _gB=[0,0,0];     // colores de brizna por tono, se reusan
 const _zn=[], _zf=[];
 function prepararDetalle(mx,my,lista){
   for(let d=0;d<lista.length;d++){
@@ -771,17 +772,23 @@ function drawGroundRow(my,rBase,haze,t){
       const largo=mt.largo||type==='G';
       /* pocas briznas, largas y finas sobre el fondo oscuro, como la muestra: menos de una
          por franja y metro, así que el número se reparte con un dado en vez de redondear */
-      const nPer=CPM*(largo?0.078:0.09)*calidad;      // el triple que la primera versión rala
+      const nPer=CPM*(largo?0.12:0.09)*calidad;      // el triple de la primera versión rala y un poco más
       const nf=nPer*clamp(0.20+densMata*1.10,0.12,1.7);
       const n=Math.floor(nf)+((hash3(mx*53+sy,my*71,19)%1000)<(nf%1)*1000?1:0);
-      let colT=packs(mt.fam2||mt.fam,light*1.3);
-      let colM=packs(mt.fam,light*0.95);
-      let colB=packs(mt.fam,light*0.55);             // la base de la brizna, en sombra
+      /* tres tonos de verde por brizna (oscuro, medio, claro): el prado no es de un solo color */
+      const TONOS=[0.70,1,1.30];
+      for(let i=0;i<3;i++){
+        _gT[i]=packs(mt.fam2||mt.fam,light*1.3*TONOS[i]);
+        _gM[i]=packs(mt.fam,light*0.95*TONOS[i]);
+        _gB[i]=packs(mt.fam,light*0.55*TONOS[i]);    // la base de la brizna, en sombra
+      }
       for(let b=0;b<n;b++){
         const hb=hash3(mx*997+b,my*131+sy*37,7);
         const c0=base+((hb%(CPM*8))/8|0);
-        if(cerca){ afinar(c0-base,sy); colT=packs(mt.fam2||mt.fam,_lz*1.3); colM=packs(mt.fam,_lz*0.95); colB=packs(mt.fam,_lz*0.55); }
-        const mAlto=(largo?0.45:0.13)+(((hb>>5)%100)/100)*(largo?0.65:0.27);      // brizna larga y fina: 0,45 a 1,1 m
+        const ti=(hb>>17)%3;
+        let colT=_gT[ti], colM=_gM[ti], colB=_gB[ti];
+        if(cerca){ afinar(c0-base,sy); colT=packs(mt.fam2||mt.fam,_lz*1.3*TONOS[ti]); colM=packs(mt.fam,_lz*0.95*TONOS[ti]); colB=packs(mt.fam,_lz*0.55*TONOS[ti]); }
+        const mAlto=(largo?0.30:0.13)+(((hb>>5)%100)/100)*(largo?1.10:0.27);      // de brizna corta a larga: 0,3 a 1,4 m
         const alto=Math.max(2,Math.round(mAlto*HPM));
         const own=((((hb>>9)%9)-4)/4)*0.95;
         /* el pasto seco o pisado se acuesta: la brizna sale tendida y no parada */
@@ -794,12 +801,16 @@ function drawGroundRow(my,rBase,haze,t){
           const tip=(r===alto-1);
           let g;
           if(largo){
-            g='I';                                  // el pasto es sólo I, de distintos largos
+            /* el pasto es sólo | / \ , de distintos largos y tonos: la inclinación de la brizna
+               decide cuál */
+            if(Math.abs(lean)<0.26) g='|';
+            else if(lean<0)         g=(r>0)?'\\':'|';
+            else                    g=(r>0)?'/':'|';
           } else {
             g = tip?'*':'\u00b0';
           }
-          if(largo&&tip&&flor) put(c0+(largo?0:dx),rb-r,'qeo+'.charCodeAt((hb>>25)%4),packc(225,240,230));
-          else put(c0+(largo?0:dx),rb-r,g.charCodeAt(0),tip?colT:(largo&&f<0.5)?colB:colM);   // base oscura, punta clara
+          if(largo&&tip&&flor) put(c0+dx,rb-r,'@eo'.charCodeAt((hb>>25)%3),packc(235,245,238));
+          else put(c0+dx,rb-r,g.charCodeAt(0),tip?colT:(largo&&f<0.5)?colB:colM);   // base oscura, punta clara
         }
       }
       if(det){
@@ -812,7 +823,7 @@ function drawGroundRow(my,rBase,haze,t){
       /* puntitos claros en el pasto (flores diminutas, luciérnagas quietas): en la
          referencia hay muchos y se leen sobre el verde oscuro. Fijos, sin parpadeo. */
       { const hp=hash3(mx,my*RPM+sy,29)%140;
-        if(hp<9) put(base+((hash3(mx,my+sy,31))%CPM),rb-((sy*5)%3),'qeo'.charCodeAt(hp%3),
+        if(hp<9) put(base+((hash3(mx,my+sy,31))%CPM),rb-((sy*5)%3),'@eo'.charCodeAt(hp%3),
                      hp<5?packc(225,240,230):packc(170,200,195)); }
     }
     usaCol=false;

@@ -1379,10 +1379,11 @@ lo demás no se mueva. Siguen los arbustos, los troncos caídos y las piedras. C
   mundo, el clima, los eclipses ni los relámpagos. Todo eso se sigue calculando; solo
   se ignora. Poner `luzFija:false` devuelve el sistema entero. Las pruebas cargan con
   la luz viva (`global.__luzFija` en `pruebas/cargar.js`, apagado por defecto).
-- **Un solo pasto, hecho sólo de `I`.** Los materiales `g`, `G`, `h` y `n` se dibujan con
-  la misma definición: briznas rectas de `I` de 0,45 a 1,1 m, base en sombra y punta
-  clara. Son pocas (sin alfombra de relleno) para que el fondo oscuro se vea entre ellas,
-  como en la muestra. Una de cada siete remata en una flor blanca (`q`, `e`, `o` o `+`) y
-  hay puntitos sueltos de `q`, `e`, `o`. El detalle del suelo en el pasto es sólo la flor
-  `+`; los guijarros y la hojarasca ya no se dibujan ahí.
+- **Un solo pasto, hecho sólo de `|`, `/` y `\`.** Los materiales `g`, `G`, `h` y `n` se
+  dibujan con la misma definición. Cada brizna es una columna de esos tres glifos (la
+  inclinación decide cuál, y el viento la mece), de 0,3 a 1,4 m, en uno de tres tonos de
+  verde (oscuro, medio, claro) con la base en sombra y la punta clara. No hay alfombra de
+  relleno: el fondo oscuro se ve entre las briznas. Una de cada siete remata en una flor
+  blanca (`@`, `e` u `o`) y hay puntitos sueltos de los mismos glifos. El detalle del
+  suelo en el pasto es sólo la flor `+`; los guijarros y la hojarasca ya no se dibujan ahí.
 - Las manchas de tierra del pasto quedan apagadas (`MANCHAS_DE_TIERRA` en `dibujar.js`).

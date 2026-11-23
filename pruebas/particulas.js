@@ -27,9 +27,9 @@ function particulas(suelo,objetos,ahora,hora,estacion,viento){
   AHORA=ahora;
   m.ponerYo(40,60); m.draw_(); m.draw_();                 // el viento se mide en el cuadro anterior
   /* el contador de cuadros mueve el pasto: se fija para que las dos tomas difieran sólo en las partículas */
-  m.cuadro(500); m.draw_();
+  m.cuadro(500); m.draw_(); m.cuadro(500); m.draw_();     // dos veces: el viento que mece las briznas se mide en el cuadro anterior
   const con=m.estado(); const gc=con.fbG.slice(), cc=con.fbC.slice();
-  const volver=m.quitar(); m.cuadro(500); m.draw_(); volver();
+  const volver=m.quitar(); m.cuadro(500); m.draw_(); m.cuadro(500); m.draw_(); volver();
   const sin=m.estado(); const dif=[];
   for(let i=0;i<gc.length;i++) if(gc[i]!==sin.fbG[i]||cc[i]!==sin.fbC[i]) dif.push({r:Math.floor(i/con.cols),c:i%con.cols,g:gc[i],col:cc[i]});
   return {dif,E:con};

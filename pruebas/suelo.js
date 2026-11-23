@@ -86,7 +86,7 @@ console.log('\n=== el pasto crece a parches ===');
     let n=0;
     for(const f of fil) for(let k=0;k<st.CPM;k++){
       const ch=f[mx*st.CPM+k];
-      if(ch==='I') n++;
+      if(ch==='|'||ch==='/'||ch==='\\') n++;
     }
     porMetro.push(n);
   }
