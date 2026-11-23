@@ -31,7 +31,10 @@
       const h=document.createElement('div'); h.className='grupo'; h.textContent=g.nombre; cont.appendChild(h);
       for(const it of g.items){
         const b=document.createElement('button'); b.textContent=it.nombre; b.dataset.id=it.id; b.className='diosItem';
-        b.addEventListener('click',()=>elegir(E.sel&&E.sel.id===it.id?null:it));
+        b.addEventListener('click',()=>{
+          if(it.disenar&&NV.creador){ NV.creador.abrir(NV.motorDeEntrada(it.id),it,null); return; }   // se diseña antes de colocar
+          elegir(E.sel&&E.sel.id===it.id?null:it);
+        });
         cont.appendChild(b);
       }
     }
@@ -73,6 +76,16 @@
       if(NV.solidoEn(x+i,y)) return 'Ahí no cabe: ya hay algo.';
       if(me.x===x+i&&me.y===y) return 'Ahí estás parado.';
     }
+    /* un objeto ancho (una formación, una roca grande) ocupa todo su pie: nada de agua, de otro objeto ni de vacío */
+    const fx=(o&&o.fx)|0, fy=(o&&o.fy)|0;
+    if(fx||fy) for(let dy=-fy;dy<=fy;dy++) for(let dx=-fx;dx<=fx;dx++){
+      if(!dx&&!dy) continue;
+      const g2=NV.sueloEn(x+dx,y+dy);
+      if(!g2) return 'Más allá no hay nada todavía.';
+      if(g2==='P') return 'Toca el agua: correla un poco.';
+      if(NV.solidoEn(x+dx,y+dy)) return 'No cabe: choca con algo.';
+      if(me.x===x+dx&&me.y===y+dy) return 'Ahí estás parado.';
+    }
     return null;
   }
 
@@ -96,17 +109,17 @@
     const no=porQueNo(x,y,o);
     if(no){ decir(no); return; }
     /* lo que se pone es EXACTAMENTE lo que se veía en la vista previa; después sale otra variante */
-    if(hacer({t:'objeto+',x,y,objeto:o},E.sel.nombre+' colocado.'))
+    if(hacer({t:'objeto+',x,y,objeto:o},(E.sel.etiqueta||E.sel.nombre)+' colocado.'))
       E.fantasma=NV.motorDeEntrada(E.sel.id).caras.objetos.crear(E.sel.id);
   }
   function regenerar(o){
     const r=NV.entradaDeObjeto(o); if(!r){ decir('Ese objeto no se puede regenerar.'); return; }
     const nuevo=Object.assign({},o,r.motor.caras.objetos.variar(o)); delete nuevo.x; delete nuevo.y; delete nuevo.fantasma;
-    hacer({t:'lote',ops:[{t:'objeto-',x:o.x,y:o.y},{t:'objeto+',x:o.x,y:o.y,objeto:nuevo}]},r.entrada.nombre+': otra variante.');
+    hacer({t:'lote',ops:[{t:'objeto-',x:o.x,y:o.y},{t:'objeto+',x:o.x,y:o.y,objeto:nuevo}]},(r.entrada.etiqueta||r.entrada.nombre)+': otra variante.');
   }
   function eliminar(o){
     const r=NV.entradaDeObjeto(o);
-    hacer({t:'objeto-',x:o.x,y:o.y},(r?r.entrada.nombre:'Objeto')+' eliminado.');
+    hacer({t:'objeto-',x:o.x,y:o.y},(r?(r.entrada.etiqueta||r.entrada.nombre):'Objeto')+' eliminado.');
   }
   function deshacer(){
     const op=pila.pop(); if(!op){ decir('No hay nada que deshacer.'); return; }
@@ -118,6 +131,12 @@
     const inv=NV.mundo.editar(op); if(inv) pila.push(inv);
     guardarPronto(); tictac(); NV.olvidarObjetos(); programarCuadro(); decir('Rehecho.'); refrescar();
   }
+  /* lo que la ventana de diseño entrega: armar la herramienta con un objeto exacto, o cambiar uno ya puesto */
+  E.armar=function(entrada,objeto){ E.sel=entrada; E.fantasma=objeto; marcarPaleta(); refrescar(); programarCuadro(); };
+  E.reemplazar=function(o,nuevo){
+    const n=Object.assign({},nuevo); delete n.x; delete n.y; delete n.fantasma;
+    return hacer({t:'lote',ops:[{t:'objeto-',x:o.x,y:o.y},{t:'objeto+',x:o.x,y:o.y,objeto:n}]},'Cambiado.');
+  };
   E.deshacer=deshacer; E.rehacer=rehacerUno; E.elegir=elegir;
   E.hacer=hacer; E.decir=decir; E.refrescar=refrescar; E.apoyo={porQueNo};
   /* cambiar de herramienta: la de objetos es la de siempre; las demás son módulos de E.modos */
@@ -150,7 +169,11 @@
       if(h.obj) regenerar(h.obj); else decir('Ahí no hay nada que regenerar.');
       return;
     }
-    if(!E.sel){ decir(h.obj?'Control + clic lo regenera; clic derecho lo elimina.':'Elegí algo de la paleta.'); return; }
+    if(!E.sel){
+      const r=h.obj&&NV.entradaDeObjeto(h.obj);
+      if(r&&r.entrada.disenar&&NV.creador){ NV.creador.abrir(r.motor,r.entrada,h.obj); return; }   // se edita con sus perillas
+      decir(h.obj?'Control + clic lo regenera; clic derecho lo elimina.':'Elegí algo de la paleta.'); return;
+    }
     colocar(h.x,h.y);
   }
   function alMover(e){
@@ -178,6 +201,7 @@
   E.salir=function(){
     if(!E.activo) return;
     const Mx=E.modos[E.modo]; if(Mx&&Mx.cerrar) Mx.cerrar();
+    if(NV.creador) NV.creador.cerrar();
     clearTimeout(tGuardar); NV.mundo.guardarBorrador();   // lo editado ya está en el mundo; además queda guardado
     E.activo=false; E.sel=null; E.fantasma=null; E.hover=null; NV.pick(false);
     const p=$e('dios'); if(p) p.classList.remove('show');
@@ -193,11 +217,11 @@
     if(E.modo!=='objetos') t=E.modos[E.modo].estado();
     else if(h&&h.obj){
       const r=NV.entradaDeObjeto(h.obj);
-      t='<b>'+(r?r.entrada.nombre:'Objeto')+'</b>\nCtrl + clic: regenerar\nClic derecho: eliminar';
+      t='<b>'+(r?(r.entrada.etiqueta||r.entrada.nombre):'Objeto')+'</b>\n'+(r&&r.entrada.disenar?'Clic: editar con perillas\n':'')+'Ctrl + clic: regenerar\nClic derecho: eliminar';
     } else if(E.sel){
       motivo=h?porQueNo(h.x,h.y,E.fantasma):null;
-      t='Colocando <b>'+E.sel.nombre+'</b>\n'+(motivo||'Clic: colocar · Esc: soltar');
-    } else t='Elegí algo de la paleta.\nCtrl + clic regenera, clic derecho elimina.';
+      t='Colocando <b>'+(E.sel.etiqueta||E.sel.nombre)+'</b>\n'+(motivo||'Clic: colocar · Esc: soltar');
+    } else t='Elegí algo de la paleta.\nClic en una roca nueva la edita; Ctrl + clic regenera, clic derecho elimina.';
     if(t!==pie){ pie=t; est.innerHTML=t.replace(/\n/g,'<br>'); }
     const d=$e('diosDeshacer'), r2=$e('diosRehacer');
     if(d) d.disabled=!pila.length; if(r2) r2.disabled=!rehacer.length;
@@ -244,6 +268,7 @@
   /* ---------- puesta en marcha (cuando el juego ya tiene su pantalla) ---------- */
   E.iniciar=function(){
     armarPaleta();
+    if(NV.creador) NV.creador.iniciar();
     const cv=$e('cv');
     cv.addEventListener('pointerdown',alBajar);
     cv.addEventListener('pointermove',alMover);

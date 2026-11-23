@@ -392,8 +392,10 @@ function rasterCaja(S,u0,cols,R0,rows,opt){
 }
 
 /* ------------------------------------------------------------------ ROCA: RASTER Y PINTADO ---- */
+/* La clave de caché de la luz: redondeada, para que el paso de la hora del día no obligue a rehacer cada roca en cada cuadro. */
+const LK=l=>{ const q=(v,k)=>Math.round((v||0)/k); return [q(l.L.x,0.03),q(l.L.y,0.03),q(l.L.z,0.03),q(l.amb,0.04),q(l.r,0.05),q(l.g,0.05),q(l.b,0.05),q(l.porMetro,0.05)].join(','); };
 function rasterRoca(S,CPM,HPM,RPM,luz,det){
-  const key=CPM+'|'+HPM+'|'+RPM+'|'+luz.firma+'|'+det;
+  const key=CPM+'|'+HPM+'|'+RPM+'|'+LK(luz)+'|'+det;
   if(S._r&&S._r.key===key) return S._r;
   const phi=Math.atan2(RPM,HPM), cphi=Math.cos(phi), sphi=Math.sin(phi), K=HPM/cphi, B=S.box, pad=3;
   const Ytop=B.vmax*cphi+B.zmax*sphi, Ybot=-B.zmax*sphi;
@@ -464,7 +466,7 @@ function pintar(S,ctx){
   }
   const {cols,rows,c0,R0}=R;
   for(let r=0;r<rows;r++){
-    const rr=br-(R0-r); if(rr<0||rr>=rMax) continue;
+    const rr=br-(R0-r); if(rr<(ctx.rmin||0)||rr>=rMax) continue;
     for(let c=0;c<cols;c++){
       const i=r*cols+c, g=F.G[i]; if(!g) continue;
       const cc=bc+c-c0; if(cc<0||cc>=cMax) continue;
@@ -478,7 +480,7 @@ function pintar(S,ctx){
    altura de la luz. También devuelve el contacto (oscurece justo al pie). */
 function sombra(S,ctx){
   const E=ENT(), CPM=ctx.CPM||13, RPM=ctx.RPM||4, luz=E.luz(ctx.x||0,ctx.y||0,ctx.t||0);
-  const key=CPM+'|'+RPM+'|'+luz.firma; if(S._s&&S._s.key===key) return S._s.h;
+  const key=CPM+'|'+RPM+'|'+LK(luz); if(S._s&&S._s.key===key) return S._s.h;
   const cuerpos=[];
   if(S.tipo==='roca'){
     const n=Math.max(2,Math.round(S.a/Math.max(0.2,S.h*0.5)));
@@ -510,7 +512,7 @@ function perturbacion(S,ctx){
 const TRAMO=64;                                    // columnas por tramo
 function rasterTramo(F,k,CPM,HPM,RPM,luz,det){
   F._t=F._t||new Map();
-  const key=k+'|'+CPM+'|'+HPM+'|'+RPM+'|'+luz.firma+'|'+det+'|'+(F._v&&F._v[k]||0);
+  const key=k+'|'+CPM+'|'+HPM+'|'+RPM+'|'+LK(luz)+'|'+det+'|'+(F._v&&F._v[k]||0);
   const hit=F._t.get(k); if(hit&&hit.key===key) return hit;
   const phi=Math.atan2(RPM,HPM), cphi=Math.cos(phi), sphi=Math.sin(phi), K=HPM/cphi, B=F.box, pad=2;
   const Ytop=B.vmax*cphi+B.zmax*sphi, Ybot=-B.zmax*sphi, R0=Math.ceil(Ytop*K)+pad, rows=R0+Math.ceil(-Ybot*K)+pad+2;
@@ -534,7 +536,7 @@ function pintarFormacion(F,ctx){
   const k0=ven?Math.max(0,Math.floor((ven[0])/TRAMO)):0, k1=ven?Math.min(nT-1,Math.floor(ven[1]/TRAMO)):nT-1;
   const tr=[]; for(let k=k0;k<=k1;k++){ const t=rasterTramo(F,k,CPM,HPM,RPM,luz,det); if(t) tr.push(t); }
   if(!tr.length) return;
-  const rows=tr[0].rows, R0=tr[0].R0, totalCols=(k1-k0+1)*TRAMO+2*2, ox=2, key=[k0,k1,contorno,ctx.pasto||0,CPM,HPM,luz.firma,det].join('|')+'|'+tr.map(t=>t.key).join('~');
+  const rows=tr[0].rows, R0=tr[0].R0, totalCols=(k1-k0+1)*TRAMO+2*2, ox=2, key=[k0,k1,contorno,ctx.pasto||0,CPM,HPM,LK(luz),det].join('|')+'|'+tr.map(t=>t.key).join('~');
   let FR=F._fr;
   if(!FR||FR.key!==key){
     const G=new Uint8Array(totalCols*rows), C=new Int32Array(totalCols*rows);
@@ -552,7 +554,7 @@ function pintarFormacion(F,ctx){
   }
   const base=ctx.bc+k0*TRAMO-ox;
   for(let r=0;r<FR.rows;r++){
-    const rr=br-(FR.R0-r); if(rr<0||rr>=rMax) continue;
+    const rr=br-(FR.R0-r); if(rr<(ctx.rmin||0)||rr>=rMax) continue;
     for(let c=0;c<FR.totalCols;c++){
       const i=r*FR.totalCols+c, g=FR.G[i]; if(!g) continue;
       const cc=base+c; if(cc<0||cc>=cMax) continue;
@@ -622,15 +624,110 @@ const pintarGrupo=(Gp,ctx)=>{
 };
 
 NV.rocoso={MATERIALES,MATS,TAMANOS,TAMS,FORMAS,TIPOS_FORM,TIPOS,GRUPOS,GRUPOS_ID,ESTADO0,
-  crearRoca,crearFormacion,raster:rasterRoca,pintar,pintarFormacion,invalidarFormacion,sombra,pintarSombra,perturbacion,grupo,pintarGrupo,catalogo,ORLA,TRAMO};
+  crearRoca,crearFormacion,pieDe,aObjeto,previa,raster:rasterRoca,pintar,pintarFormacion,invalidarFormacion,sombra,pintarSombra,perturbacion,grupo,pintarGrupo,catalogo,ORLA,TRAMO};
+
+/* ------------------------------------------------------------------ MODO DIOS ----
+   Lo que este motor ofrece para colocar (cara "objetos") y para diseñar a mano (cara "creador"). Un objeto del
+   mundo es {k:'rocoso', r:receta, h, s, fx, fy}: la receta es el spec del motor, tal cual; el resto lo derivan
+   el mundo (ocupación) y el dibujo (altura para el reflejo). Regenerar = otra semilla con la misma receta. */
+const azarEd=()=>(NV.azarEditor||Math.random)();
+const nuevaSem=()=>((azarEd()*60000)|0)+1;
+const clon=o=>JSON.parse(JSON.stringify(o));
+const ROCA0={mat:'granito',tam:'media',forma:'irregular',escala:1,yaw:0,estado:{musgo:0,liquen:0,humedad:0,erosion:0,enterrada:0}};
+const FORM0={tipo:'acantilado',mat:'caliza',ancho:24,inclinacion:0,pie:true,estado:{musgo:0.3,liquen:0.2,humedad:0.1,erosion:0,enterrada:0}};
+const DISENO={};                                   // el último diseño de cada entrada: lo que se coloca "otra vez"
+const ID_ROCA='rocoso:roca', ID_FORM='rocoso:formacion';
+const idDe=spec=>spec&&spec.tipo?ID_FORM:ID_ROCA;
+function limpiar(spec){
+  const o=clon(spec); o.estado=Object.assign({},ESTADO0,o.estado);
+  if(o.tipo){ o.ancho=clamp(+o.ancho||24,6,48); } else { o.escala=clamp(+o.escala||1,0.3,3); }
+  return o;
+}
+function aObjeto(spec){
+  const r=limpiar(spec), S=r.tipo?crearFormacion(r):crearRoca(r);
+  const fx=r.tipo?Math.ceil(S.W/2):Math.min(6,Math.round(S.a)), fy=r.tipo?Math.min(4,Math.ceil(S.D*0.5)):Math.min(6,Math.round(S.c));
+  return {k:'rocoso',r,h:+S.hmax.toFixed(2),s:r.sem|0,fx,fy};
+}
+const baseDe=id=>clon(id===ID_FORM?FORM0:ROCA0);
+const paraPaleta=[
+  {id:ID_ROCA,nombre:'Roca (diseñar)',etiqueta:'Roca diseñada',k:'rocoso',disenar:true,encaja:o=>o.k==='rocoso'&&!!o.r&&!o.r.tipo},
+  {id:ID_FORM,nombre:'Formación (diseñar)',etiqueta:'Formación diseñada',k:'rocoso',disenar:true,encaja:o=>o.k==='rocoso'&&!!o.r&&!!o.r.tipo}];
+const opc=(obj)=>Object.keys(obj).map(k=>[k,obj[k]]);
+const NOM_MAT=MATS.reduce((a,k)=>{ a[k]=MATERIALES[k].nombre; return a; },{});
+const NOM_TAM={pequena:'Pequeña',media:'Mediana',grande:'Grande'};
+const NOM_FORMA={redondeada:'Redondeada',ovalada:'Ovalada',angular:'Angular',afilada:'Afilada',plana:'Plana',alargada:'Alargada',irregular:'Irregular',estratificada:'Estratificada',fracturada:'Fracturada',erosionada:'Erosionada'};
+const NOM_TIPO=TIPOS.reduce((a,k)=>{ a[k]=TIPOS_FORM[k].nombre; return a; },{});
+const ESTADOS_CAMPOS=[
+  {ruta:'estado.musgo',etq:'Musgo',tipo:'rng',min:0,max:1,paso:0.05,grupo:'Estado'},
+  {ruta:'estado.liquen',etq:'Líquenes',tipo:'rng',min:0,max:1,paso:0.05,grupo:'Estado'},
+  {ruta:'estado.humedad',etq:'Humedad',tipo:'rng',min:0,max:1,paso:0.05,grupo:'Estado'}];
+const CAMPOS={
+  [ID_ROCA]:[
+    {ruta:'mat',etq:'Material',tipo:'sel',opciones:opc(NOM_MAT),grupo:'Piedra'},
+    {ruta:'tam',etq:'Tamaño',tipo:'sel',opciones:opc(NOM_TAM),grupo:'Piedra'},
+    {ruta:'forma',etq:'Forma',tipo:'sel',opciones:opc(NOM_FORMA),grupo:'Piedra'},
+    {ruta:'escala',etq:'Escala',tipo:'rng',min:0.5,max:2,paso:0.05,grupo:'Piedra'},
+    {ruta:'yaw',etq:'Orientación',tipo:'rng',min:0,max:6.28,paso:0.1,fmt:'grados',grupo:'Piedra'}]
+    .concat(ESTADOS_CAMPOS,[
+    {ruta:'estado.erosion',etq:'Erosión',tipo:'rng',min:0,max:1,paso:0.05,grupo:'Estado'},
+    {ruta:'estado.enterrada',etq:'Parcialmente enterrada',tipo:'rng',min:0,max:1,paso:0.05,grupo:'Estado'}]),
+  [ID_FORM]:[
+    {ruta:'tipo',etq:'Tipo',tipo:'sel',opciones:opc(NOM_TIPO),grupo:'Formación'},
+    {ruta:'mat',etq:'Material',tipo:'sel',opciones:opc(NOM_MAT),grupo:'Formación'},
+    {ruta:'ancho',etq:'Ancho (m)',tipo:'rng',min:8,max:48,paso:1,grupo:'Formación'},
+    {ruta:'alto',etq:'Alto (m)',tipo:'rng',min:0,max:18,paso:1,auto:0,grupo:'Formación'},
+    {ruta:'estrato',etq:'Grosor de estrato (m)',tipo:'rng',min:0,max:3,paso:0.1,auto:0,grupo:'Estructura'},
+    {ruta:'columnas',etq:'Columnas (m)',tipo:'rng',min:-0.5,max:8,paso:0.5,auto:-0.5,grupo:'Estructura'},
+    {ruta:'erosion',etq:'Canales de erosión',tipo:'rng',min:-0.05,max:1,paso:0.05,auto:-0.05,grupo:'Estructura'},
+    {ruta:'derrumbe',etq:'Derrumbe al pie',tipo:'rng',min:-0.05,max:1,paso:0.05,auto:-0.05,grupo:'Estructura'},
+    {ruta:'inclinacion',etq:'Inclinación',tipo:'rng',min:-0.4,max:0.4,paso:0.05,def:0,grupo:'Estructura'},
+    {ruta:'pie',etq:'Rocas sueltas al pie',tipo:'chk',grupo:'Estructura'}].concat(ESTADOS_CAMPOS)};
+/* Las rocas sueltas al pie de una formación: posiciones en metros desde su borde izquierdo (x) y hacia el sur (y) */
+function pieDe(F){
+  if(F._pie) return F._pie;
+  const sp=F.spec, G=grupo('piedemonte',sp.sem|0,{mat:sp.mat,densidad:F.W/20}), out=[];
+  for(const e of G.rocas){ const s2=Object.assign({},e.spec,{escala:(e.spec.escala||1)*0.55}); out.push({S:crearRoca(s2),x:F.W/2+e.x*(F.W/14),y:0.8+Math.abs(e.y)*0.35}); }
+  return F._pie=out;
+}
+/* La escena de vista previa de un diseño: tamaño en metros, zoom y qué se pinta (el que la dibuja pone suelo, luz y put) */
+const PCACHE=new Map();
+const solidoDe=r=>{ const k=JSON.stringify(r); let S=PCACHE.get(k); if(!S){ if(PCACHE.size>24) PCACHE.clear(); S=r.tipo?crearFormacion(r):crearRoca(r); PCACHE.set(k,S); } return S; };
+function previa(spec,opt){
+  opt=opt||{}; const r=limpiar(spec);
+  if(r.tipo){
+    const F=solidoDe(r), vis=Math.min(F.W,16), pan=clamp(opt.pan||0,0,1)*(F.W-vis), mw=Math.ceil(vis)+2, mh=Math.ceil(F.Hh*1.7+F.D+5), cy=mh-3;
+    const items=[{x:1,y:cy,pintar:ctx=>{ const C=ctx.CPM; ctx.bc=Math.round(1*C)-Math.round(pan*C); ctx.ventana=[pan*C-4,(pan+vis)*C+4]; pintarSombra(F,ctx); pintarFormacion(F,ctx); }}];
+    if(r.pie!==false) for(const e of pieDe(F)){ const x=1+e.x-pan; if(x<-1.5||x>vis+3.5) continue;
+      items.push({x,y:cy+e.y,pintar:ctx=>{ pintarSombra(e.S,ctx); pintar(e.S,ctx); }}); }
+    return {mw,mh,z:opt.rapido?0.5:1,items,S:F,pan,vis,detalle:'alto '+F.Hh.toFixed(1)+' m · ancho '+F.W+' m'};
+  }
+  const S=solidoDe(r), z=({pequena:3,media:2,grande:1})[r.tam]||1, ub=S.box.umax, zm=S.box.zmax;
+  const mw=Math.max(Math.ceil(ub*2)+2,r.tam==='pequena'?3:5), mh=Math.ceil(S.h*1.7+zm)+2;
+  return {mw,mh,z,S,items:[{x:mw/2,y:mh-(zm+0.6),pintar:ctx=>{ pintarSombra(S,ctx); pintar(S,ctx); }}],detalle:S.h.toFixed(2)+' m de alto'};
+}
+const resumen=o=>{ const r=o.r; return r.tipo?(NOM_TIPO[r.tipo]+' · '+NOM_MAT[r.mat]+' · '+r.ancho+' m de ancho'):(NOM_MAT[r.mat]+' · '+NOM_TAM[r.tam].toLowerCase()+' · '+NOM_FORMA[r.forma].toLowerCase()); };
 
 if(NV.entorno) NV.entorno.conectar('rocoso',{viento:[],luz:true,sombra:true,contorno:true});
-if(NV.motores) NV.motores.registrar({id:'rocoso',nombre:'Rocas, peñascos y formaciones',estado:'pendiente',
+if(NV.motores) NV.motores.registrar({id:'rocoso',nombre:'Rocas, peñascos y formaciones',estado:'integrado',
   archivo:'src/juego/rocoso.js',preview:'preview/rocoso.html',prueba:'pruebas/rocoso.js',
   caras:{generar:o=>o&&o.tipo?crearFormacion(o):crearRoca(o), dibujar:(ctx,S)=>S.tipo==='formacion'?pintarFormacion(S,ctx):pintar(S,ctx),
-    editor:{materiales:MATS.reduce((a,k)=>{ a[k]=MATERIALES[k].nombre; return a; },{}), tamanos:TAMS, formas:FORMAS, formaciones:TIPOS,
+    objetos:{
+      catalogo:()=>paraPaleta,
+      crear:id=>aObjeto(Object.assign(clon(DISENO[id]||baseDe(id)),{sem:nuevaSem()})),
+      variar:o=>aObjeto(Object.assign(clon(o.r),{sem:nuevaSem()}))
+    },
+    creador:{
+      titulo:id=>id===ID_FORM?'Diseñar una formación':'Diseñar una roca',
+      campos:id=>CAMPOS[id]||CAMPOS[ID_ROCA],
+      nuevo:id=>Object.assign(clon(DISENO[id]||baseDe(id)),{sem:nuevaSem()}),
+      variar:spec=>Object.assign(clon(spec),{sem:nuevaSem()}),
+      aObjeto, deObjeto:o=>({id:idDe(o.r),spec:clon(o.r)}), idDe,
+      recordar:(id,spec)=>{ DISENO[id]=clon(spec); },
+      previa, resumen
+    },
+    editor:{materiales:NOM_MAT, tamanos:TAMS, formas:FORMAS, formaciones:TIPOS,
       estado:{musgo:[0,1],liquen:[0,1],humedad:[0,1],erosion:[0,1],enterrada:[0,1]},
       parametros:{escala:[0.5,2],yaw:[0,6.28],detalle:[0,2],contorno:[false,true]},
       conexiones:['luz y sombra proyectada','contorno compartido (silueta exterior)','sin viento'],
-      herramientas:['colocar','eliminar','regenerar','duplicar','agrupar','formación: trazar y editar tramos']}}});
+      herramientas:['colocar','eliminar','regenerar','diseñar (ventana del Modo Dios)','formación: trazar y editar tramos']}}});
 })(window.NV);

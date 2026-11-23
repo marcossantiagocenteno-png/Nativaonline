@@ -80,7 +80,8 @@ function draw_(){
   let hS=0;
   for(let x=camX;x<=camX+colsM;x+=3) for(let y=camY+rowsM;y<=camY+rowsM+10;y+=3) hS=Math.max(hS,NV.alturaEn(x,y));
   const extS=Math.min(14,Math.ceil(hS*HPM/RPM)+2);
-  let objetos=NV.objetosEn(camX-2, camY-extN-2, camX+colsM+2, lastRow+2);
+  const mAn=NV.mundo&&NV.mundo.margenAncho?NV.mundo.margenAncho():0;          // una formación ancha cuyo centro está fuera de vista
+  let objetos=NV.objetosEn(camX-2-mAn, camY-extN-2, camX+colsM+2+mAn, lastRow+2);
   if(NV.editor&&NV.editor.activo) objetos=NV.editor.conFantasma(objetos);   // la vista previa de lo que se va a colocar
   NV.objetosVista=objetos;                                                    // el editor apunta por índice en esta lista
   let ti=0; while(ti<objetos.length&&objetos[ti].y<camY-extN) ti++;
@@ -1323,6 +1324,7 @@ function drawObjeto(tr,haze,t){
   const bc=(tr.x-camX)*CPM+Math.floor(CPM/2), br=(tr.y-camY)*RPM+RPM-1;
   if(tr.k==='muro'){ drawMuro(tr,haze,t); return; }
   if(tr.k==='roca'){ drawRoca(tr,haze,t); return; }
+  if(tr.k==='rocoso'){ NV.dibujarRocoso(tr,haze,t); return; }
   if(false){
     const hgt=Math.max(3,Math.round(tr.h*HPM*0.85));
     const hw=Math.max(2,(tr.h*CPM*0.95)/2);

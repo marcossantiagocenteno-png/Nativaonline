@@ -81,7 +81,7 @@ for(const t of R.GRUPOS_ID){
 const gm=R.grupo('bloques',3,{mat:'granito'}); ok(gm.rocas.some(r=>r.elev>0)||gm.rocas.length>=2,'bloques: se apilan o se agrupan');
 const gp=R.grupo('rio',3,{mat:'basalto'}); ok(gp.rocas.some(r=>r.agua!=null),'río: alguna roca sumergida');
 /* registro y conexiones */
-const m=NV.motores.obtener('rocoso'); ok(m&&m.estado==='pendiente'&&!m.caras.objetos,'registrado como pendiente, sin cara objetos');
+const m=NV.motores.obtener('rocoso'); ok(m&&m.estado==='integrado'&&m.caras.objetos&&m.caras.creador,'registrado, con caras objetos y creador (Modo Dios)');
 ok(E.conexiones().some(c=>c.id==='rocoso'&&c.luz&&c.contorno&&(!c.viento||!c.viento.length)),'declara luz, sombra y contorno; sin viento');
 ok(R.catalogo().length>=R.TAMS.length*R.FORMAS.length,'catálogo completo');
 /* errores claros */

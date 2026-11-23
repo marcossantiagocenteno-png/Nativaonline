@@ -125,7 +125,7 @@ function reindexar(){
 }
 
 /* ---------- aplicar las ediciones a un panel recién generado ---------- */
-const OCUPAN={arbol:1,roca:1,hoguera:1};
+const OCUPAN={arbol:1,roca:1,hoguera:1,rocoso:1};
 /* las casillas (índices del panel) que ocupa un objeto: un tronco, len a lo largo; una roca grande, su ancho */
 function huella(t){
   const out=[];
@@ -343,7 +343,14 @@ if(NVe.MUNDO_DATOS){
   catch(e){ console.warn('mundo-datos.js ignorado: '+e.message); D=datosVacios(); }
 }
 
-NVe.mundo={FORMATO,aplicar,editar,cargar,exportar,texto,comoScript,importarTexto,vacio,descargar,
+/* cuánto, a los lados, llega el objeto editado más ancho (una formación): el dibujo mira esos metros de más para no
+   perderla cuando su centro queda fuera de la pantalla. 0 sin objetos anchos, así que el juego sin ediciones no cambia. */
+let _mv=-1,_mD=null,_mm=0;
+const margenAncho=()=>{
+  if(_mv!==version||_mD!==D){ _mv=version; _mD=D; _mm=0; if(D) for(const P of D.pan.values()) for(const a of P.agregar) if((a.fx||0)>_mm) _mm=a.fx; }
+  return _mm>4?_mm:0;
+};
+NVe.mundo={FORMATO,aplicar,margenAncho,editar,cargar,exportar,texto,comoScript,importarTexto,vacio,descargar,
   guardarBorrador,cargarBorrador,borrarBorrador,deltaAltura,defDe,clavesDefinidas,alCambiar,estadisticas,
   validar:o=>{ validar(o); return true; },version:()=>version,
   caminosDatos:()=>D?D.caminos:[]};

@@ -9,6 +9,7 @@
      ambiente(x,y,t)     consulta: responde en un punto y un instante (el viento, la luz)
      editor              qué ofrece al Modo Dios: {parametros:{nombre:{tipo,min,max,def}}, herramientas:[...]}
      objetos             {catalogo,crear,variar}: lo que el Modo Dios puede colocar, borrar y regenerar de este motor
+     creador             {campos,nuevo,variar,aObjeto,deObjeto,previa,...}: las perillas de la ventana de diseño del Modo Dios
    y datos de ubicación:
      id, nombre, version, estado ('integrado' | 'en-dibujar' | 'pendiente'),
      preview ('preview/x.html'), prueba ('pruebas/x.js'), archivo ('src/...').
@@ -18,7 +19,7 @@
 
 const NVr = window.NV;
 
-const CARAS=['generar','dibujar','ambiente','editor','objetos'];
+const CARAS=['generar','dibujar','ambiente','editor','objetos','creador'];
 const ESTADOS=['integrado','en-dibujar','pendiente'];
 const motores=new Map();
 
@@ -35,6 +36,12 @@ function registrar(def){
            variar(objeto)      -> campos nuevos         otra variante REAL de la misma categoría */
       const o=caras[c]; if(!o||typeof o.catalogo!=='function'||typeof o.crear!=='function'||typeof o.variar!=='function')
         throw new Error(def.id+': la cara "objetos" necesita catalogo, crear y variar');
+    }
+    else if(c==='creador'){
+      /* la ventana de diseño del Modo Dios: campos(id) -> perillas, nuevo(id) -> receta, aObjeto(receta) -> objeto,
+         deObjeto(objeto) -> {id,spec}, variar(receta), previa(receta) -> escena */
+      const o=caras[c]; for(const f of ['campos','nuevo','variar','aObjeto','deObjeto','previa'])
+        if(!o||typeof o[f]!=='function') throw new Error(def.id+': la cara "creador" necesita '+f);
     }
     else if(c==='editor'){ if(caras[c]&&typeof caras[c]!=='object') throw new Error(def.id+': editor debe ser un objeto'); }
     else if(caras[c]&&typeof caras[c]!=='function') throw new Error(def.id+': la cara "'+c+'" debe ser una función');

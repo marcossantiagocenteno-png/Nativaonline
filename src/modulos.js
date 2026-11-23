@@ -22,10 +22,12 @@ window.NV_MODULOS=[
   'juego/pasto',
   'juego/caminos',
   'juego/arbolado',          // motor de árboles (laboratorio: el juego todavía no lo llama)
-  'juego/rocoso',            // motor de rocas y formaciones (laboratorio: el juego todavía no lo llama)
+  'juego/rocoso',            // motor de rocas y formaciones (lo coloca y lo diseña el Modo Dios)
+  'juego/rocoso-juego',      // puente: dibuja en el juego los objetos {k:'rocoso'}
   'juego/dibujar',
   'juego/particulas',
   'juego/editor',
   'juego/editor-caminos',
+  'juego/creador',           // la ventana de diseño del Modo Dios: las perillas de los motores
   'juego/jugar'
 ];

@@ -1471,3 +1471,29 @@ necesita tu autorización.
   integrar**: rasterizar tramos sólo en la ventana visible y fuera del hilo del cuadro.
 - Laboratorio: `preview/rocoso.html` (muestrario de las doce, materiales, banco con controles reales, agrupaciones, formaciones, favoritas
   guardadas como receta). Pruebas: `pruebas/rocoso.js`.
+
+## La ventana de diseño del Modo Dios (23/11)
+
+**Qué es.** Un motor con cara `creador` puede ser diseñado a mano desde el Modo Dios: se elige "Roca (diseñar)" o
+"Formación (diseñar)" en la paleta y se abre una ventana con la vista previa (la dibuja el **mismo motor** que dibuja el
+juego) y las perillas reales del motor. `src/juego/creador.js` es la ventana; no sabe de rocas: lee el descriptor.
+
+**El contrato (`caras.creador`)**: `campos(id)` (lista de perillas: `sel`, `rng` con `auto`, `chk`; ruta tipo `estado.musgo`),
+`nuevo(id)` (receta inicial, recuerda el último diseño), `variar(receta)` (otra semilla), `aObjeto(receta)` (el objeto del
+mundo), `deObjeto(objeto)` (receta e id), `previa(receta,{pan,rapido})` (escena: tamaño en metros, zoom y piezas a pintar),
+`recordar`, `resumen`, `titulo`. `NV.motores.registrar` lo valida.
+
+**El objeto del mundo**: `{k:'rocoso', r:receta, h, s, fx, fy}`. La receta es el `spec` del motor tal cual (se exporta en
+`mundo-datos.js` sin tocar el formato 2); `fx,fy` son los metros que ocupa a cada lado (la formación ocupa todo su ancho).
+El dibujo lo hace `src/juego/rocoso-juego.js` (puente: entrega al motor la cámara, el búfer y la bruma del juego); el sólido
+de cada receta se cachea. El juego sin ediciones **no cambia**: lo vigila el dorado.
+
+**Cómo se usa**: *nuevo*: paleta → perillas → "colocar" → clic en el terreno (la vista previa en el cursor es la pieza exacta;
+la siguiente sale con otra semilla y las mismas perillas). *Editar*: clic sobre una pieza puesta (sin nada elegido) → perillas →
+"aplicar" (un solo paso de deshacer). Ctrl+clic regenera, clic derecho elimina, como siempre.
+
+**Detalles que importan**: la sombra la proyecta el motor al dibujar (el mapa de sombras del panel ignora `rocoso`); una
+formación ancha cuyo centro queda fuera de pantalla se sigue dibujando (`NV.mundo.margenAncho()` agranda la búsqueda de
+objetos sólo si hay piezas anchas); la caché de la luz se redondea para que el paso de la hora no rehaga cada roca en cada cuadro;
+durante el arrastre de una perilla la vista previa de una formación va a media resolución y se completa al soltar.
+Pruebas: `pruebas/rocoso-juego.js`.

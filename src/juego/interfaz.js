@@ -8,7 +8,7 @@ const NVi = window.NV;
 
 /* Sello de versión, puesto por sellar.sh al publicar. Se ve en el pie: así
    Marcos y yo sabemos al instante si está mirando la última versión. */
-NVi.VERSION='23/11 11:54';
+NVi.VERSION='23/11 12:08';
 
 NVi.MARCADO = `<div id="stage">
   <canvas id="cv"></canvas>
@@ -47,6 +47,16 @@ NVi.MARCADO = `<div id="stage">
     <div id="diosEstado"></div>
     <div class="fila"><button id="diosDeshacer" title="Ctrl+Z">deshacer</button><button id="diosRehacer" title="Ctrl+Shift+Z">rehacer</button></div>
     <div class="fila"><button id="diosExportar">exportar</button><button id="diosSalir">salir</button></div>
+  </div>
+
+  <div id="creador">
+    <div id="creaCab"><span id="creaTit"></span><button id="creaCerrar" title="Cerrar (Esc)">&times;</button></div>
+    <div id="creaVistaCaja"><canvas id="creaVista"></canvas></div>
+    <div id="creaInfo"></div>
+    <div id="creaPanFila"><span>recorrer</span><input id="creaPan" type="range" min="0" max="1" step="0.02" value="0.5"></div>
+    <div id="creaCampos"></div>
+    <div class="fila"><button id="creaRegen" title="Otra variante con las mismas perillas">otra semilla</button><button id="creaLuz">luz: estudio</button></div>
+    <div class="fila"><button id="creaColocar">colocar</button><button id="creaAplicar">aplicar</button></div>
   </div>
 
   <div id="bubble"></div>
