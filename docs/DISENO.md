@@ -782,6 +782,44 @@ una altura. Subir de verdad (desplazar filas, que los objetos acompañen la
 pendiente, caminar cuesta arriba) es un cambio de mundo y queda abierto.
 Los valores `ganancia`, `piso` y `techo` están en `RELIEVE` y son estimados.
 
+#### Detalle suelto: flores, guijarros y hojarasca
+
+Un pasto de pura brizna es un verde parejo que no tiene nada que mirar de cerca,
+y con el zoom nuevo (13,6 a 20,7 m) se mira de bastante cerca. El pasto corto lleva
+ahora tres detalles, el pasto largo y el seco dos (`DET` y `detalle` en el
+diccionario):
+
+| detalle | glifo | color | dónde |
+|---|---|---|---|
+| flores | `+` | `flor` (rosa) o `hoja` (ocre) | pasto corto |
+| guijarros | `o` | `piedra` | pasto corto, largo y seco |
+| hojarasca | `,` | `hoja` o `hongo` | pasto corto, largo y seco |
+
+- **Salen en manchas**, de un solo color cada una, con un ruido en metros del
+  mundo (la mancha de flores mide unos 2,6 m, la de guijarros 4,5). Medido contra
+  la misma cantidad repartida al azar: el índice de dispersión por metro es de
+  2,6 contra 1,0 en las flores, 2,3 contra 1,1 en los guijarros y 3,9 contra 0,9
+  en la hojarasca.
+- **La densidad es por metro cuadrado, no por celda.** Por celda, acercar el zoom
+  llenaba el prado de flores. Medido en los mismos metros a los dos extremos del
+  zoom: 1,43 contra 1,44 flores por m², 0,19 contra 0,18 guijarros, 1,36 contra 1,41
+  de hojarasca.
+- **No van en los metros que tocan otro material.** Ahí las celdas pueden ser de
+  la arena o del agua de al lado y una flor en el agua no se puede. Se comprobó
+  con una costa: cero detalles en el agua y cero en el metro que la toca, y sí en
+  el metro de al lado.
+- Siguen la luz: de noche una flor pasa de luminosidad 150 a 29.
+- Glifos por la regla 3: `+` no lo usaba ningún suelo, `o` ya era la identidad
+  del guijarral y `,` es el extremo ralo compartido.
+- Cuesta lo mismo que no tenerlo: 10,2 ms contra 10,8 ms un cuadro de pasto, medido
+  en el navegador simulado.
+
+**Lo que no es**: son celdas del suelo, no objetos. No se pisan ni se pueden
+recoger, y no se mecen con el viento como las briznas. Un primer ajuste tuvo
+manchas que casi no se formaban (flores a 0,30 por m² en vez de 4): `tex2` se
+concentra cerca de 0,5 y casi ninguna celda llegaba al centro de la mancha. Por
+eso existe `borde`, que fija qué tan rápido satura.
+
 ### El borde entre dos materiales
 
 Éste es el defecto que más se nota y el que ninguna textura arregla, porque no

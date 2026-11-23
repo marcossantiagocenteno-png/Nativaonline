@@ -380,6 +380,35 @@ function decidirOrilla(u,v,wx,wy){
   _ob=(m-umbral)/(g>0.12?g:0.12);          // metros; >0 del lado del agua
   return letraDeClase(_ob>0,u,v);
 }
+/* ---------- detalle suelto del suelo: flores, guijarros, hojarasca ----------
+   Ver DET en el diccionario. Cada metro calcula una sola vez, para cada detalle,
+   16 valores de mancha (un cuarto de metro de paso): cuánto adentro de una mancha
+   cae cada cuarto, y de qué color es la mancha. Después cada celda sólo tira un
+   dado contra esa cifra. La densidad se da por metro cuadrado y se reparte entre
+   las celdas que haya, así que no cambia con el zoom. */
+const _zn=[], _zf=[];
+function prepararDetalle(mx,my,lista){
+  for(let d=0;d<lista.length;d++){
+    const D=lista[d], z=_zn[d]||(_zn[d]=new Float32Array(16)), f=_zf[d]||(_zf[d]=new Uint8Array(16));
+    for(let j=0;j<4;j++) for(let i=0;i<4;i++){
+      const wx=mx+(i+0.5)/4, wy=my+(j+0.5)/4;
+      const n=tex2(wx+D.sem,wy,D.escala);
+      z[j*4+i]= clamp((n-D.corte)/D.borde,0,1);
+      f[j*4+i]= D.fam.length>1 ? Math.min(D.fam.length-1,Math.floor(tex2(wx+D.sem+91,wy+37,D.escala*2.2)*D.fam.length)) : 0;
+    }
+  }
+}
+function detallar(lista,k,sy,cx,cyb,base,rb,light,calor){
+  const sub=((sy*4/RPM)|0)*4+((k*4/CPM)|0);
+  for(let d=0;d<lista.length;d++){
+    const z=_zn[d][sub]; if(z<=0) continue;
+    const D=lista[d];
+    const h=hash3(cx,cyb,D.sem);
+    if((h%100000)>=D.porM2*z/(CPM*RPM)*100000) continue;
+    const col=packs(D.fam[_zf[d][sub]],clamp(light*1.12,0,1.4),calor*0.75);
+    put(base+k,rb-(D.alza?((h>>17)%2):0),D.glifo.charCodeAt(0),col);
+  }
+}
 /* la franja de espuma: ancha y angosta con el vaivén, y entrecortada */
 function espumar(wx,wy,cx,cyb,calor,t){
   const banda=0.13+0.09*(0.5+0.5*NV.sen((wx*1.7+wy*1.3)*6.28318-t*1.3));   // metros
@@ -477,6 +506,10 @@ function drawGroundRow(my,rBase,haze,t){
     /* cuánta mata hay en este metro: un ruido suave, para que el pasto crezca a
        parches y no parejo como una cancha */
     const densMata=grass?clamp(mt.mata*(0.30+1.45*tex2(mx+0.5,my+0.5,1.6)),0,1.4):0;
+    /* el detalle no va en los metros que tocan otro material: ahí las celdas
+       pueden ser de la arena o del agua de al lado, y una flor en el agua no */
+    const det=(grass&&!mezclar&&mt.detalle)?mt.detalle:null;
+    if(det) prepararDetalle(mx,my,det);
 
     /* las RPM franjas se recorren de norte a sur: lo de más al sur tapa */
     for(let sy=0;sy<RPM;sy++){
@@ -622,11 +655,11 @@ function drawGroundRow(my,rBase,haze,t){
           put(c0+dx,rb-r,g.charCodeAt(0),tip?colT:colM);
         }
       }
-      if(mt.extra){
-        for(let k=0;k<CPM;k+=2){
-          const hc=hash3(mx*CPM+k,my*RPM+sy,23);
-          if(cerca){ afinar(k,sy); light=_lz; }
-          if((hc%100)<4) put(base+k,rb-1-((hc>>7)%2),mt.extra.charCodeAt(0),packs(mt.efam||mt.fam,light*1.1));
+      if(det){
+        const cyb=my*RPM+sy;
+        for(let k=0;k<CPM;k++){
+          if(cerca){ afinar(k,sy); light=_lz; calor=_cal; }
+          detallar(det,k,sy,mx*CPM+k,cyb,base,rb,light,calor);
         }
       }
       if((hash3(mx,my*RPM+sy,29)%140)<3) put(base+((hash3(mx,my+sy,31))%CPM),rb-((sy*5)%3),46,packc(205,230,215));

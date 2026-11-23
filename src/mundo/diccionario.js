@@ -31,12 +31,37 @@
    mata    : cuánta mata de pasto hay; la reparte un ruido por metro, así crece
              a parches y no parejo como una cancha
    tendido : cuánto se acuesta la brizna, para el pasto seco o pisado
-   manto   : cuánta nieve cubre, y por dónde asoma lo de abajo */
+   manto   : cuánta nieve cubre, y por dónde asoma lo de abajo
+   detalle : lista de DET que se esparcen sobre este suelo (flores, guijarros...) */
+
+/* Detalle suelto del suelo. Cada uno aparece en MANCHAS (un ruido en metros del
+   mundo, así que no cambia con el zoom) y con una densidad en cosas por metro
+   CUADRADO en el centro de la mancha, no por celda: por celda, acercarse
+   llenaba el prado de flores.
+     glifo  : el carácter. Va por la regla 3: '+' no lo usa ningún suelo; 'o' es
+              el extremo denso del guijarral (un guijarro es un guijarro);
+              ',' es el extremo ralo compartido
+     fam    : familias de color; cada mancha elige UNA, para que sea de un color
+     escala : tamaño de la mancha, en metros
+     corte  : qué parte del ruido queda fuera de manchas (más alto = menos manchas)
+     borde  : cuánto ruido hace falta por encima del corte para llegar a la densidad
+              plena: chico = manchas de borde marcado, grande = se van ralando
+     porM2  : cuántos hay por metro cuadrado en el centro de la mancha
+     alza   : si sube sobre una brizna (la flor) o va a ras del suelo
+     sem    : desfase del ruido y de la semilla, para que dos detalles no coincidan */
+const DET={
+  flores:   {glifo:'+', fam:['flor','hoja'],   escala:2.6, corte:0.58, borde:0.10, porM2:5.0, alza:1, sem:311},
+  guijarros:{glifo:'o', fam:['piedra'],        escala:4.5, corte:0.60, borde:0.10, porM2:2.5, alza:0, sem:523},
+  hojarasca:{glifo:',', fam:['hoja','hongo'],  escala:3.2, corte:0.55, borde:0.12, porM2:8.0, alza:0, sem:707}
+};
 const MAT={                                   // capa SUELO, en uso
-  g:{n:'pasto corto', fam:'verde',  ramp:[' ','\u00b0','\u00b0','*','*'], mata:0.72},
-  G:{n:'pasto largo', fam:'verdeO', ramp:['|','|','|','|','|'], tip:['|','/','\\'], fam2:'verde', mata:0.70},
+  g:{n:'pasto corto', fam:'verde',  ramp:[' ','\u00b0','\u00b0','*','*'], mata:0.72,
+     detalle:[DET.flores,DET.guijarros,DET.hojarasca]},
+  G:{n:'pasto largo', fam:'verdeO', ramp:['|','|','|','|','|'], tip:['|','/','\\'], fam2:'verde', mata:0.70,
+     detalle:[DET.hojarasca,DET.guijarros]},
   h:{n:'pasto seco',  fam:'hoja',   ramp:['|','|','|','|','|'], fam2:'hoja',
-     mata:0.52, tendido:0.6, largo:1},
+     mata:0.52, tendido:0.6, largo:1,
+     detalle:[DET.hojarasca,DET.guijarros]},
   n:{n:'pasto nevado',fam:'nieve',  ramp:[' ','.','\u00b0','*','*'], fam2:'verdeO',
      mata:0.60, manto:0.62, largo:1},
   s:{n:'arena de río',fam:'arena',  ramp:['.','.',':','\u00b0',';'],
