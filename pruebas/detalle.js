@@ -17,14 +17,16 @@ m.tictac(); NV.actualizarCielo(DIA);
 NV.fuegoEn=()=>0; NV.calorCerca=()=>false; NV.calorEn=()=>0; NV.nieblaEn=()=>0;
 NV.objetosEn=()=>[];
 NV.alturaEn=()=>0;     // estas pruebas miden otra cosa sobre un suelo plano: la altura tiene su propia prueba (altura.js)
-const GLIFO={flor:43, guijarro:111, hojarasca:44};      // '+', 'o', ','
+/* el pasto es sólo I con flores blancas: del detalle suelto queda la flor ('+'); los guijarros y la
+   hojarasca ya no se dibujan en el pasto */
+const GLIFO={flor:43};      // '+'
 
 /* dibuja y devuelve las celdas de cada detalle, con su metro y su color */
 function cuadro(suelo,cx,cy,zoom){
   NV.sueloEn=suelo;
   NV.zoomAbsoluto(zoom||NV.ZOOM.ini); while(NV.acercarZoom()){}
   m.ponerYo(cx,cy); m.draw_();
-  const E=m.estado(), det={flor:[],guijarro:[],hojarasca:[]};
+  const E=m.estado(), det={flor:[]};
   for(let r=0;r<E.rowsN;r++) for(let c=0;c<E.cols;c++){
     const i=r*E.cols+c; if(!E.fbG[i]||E.fbL[i]!==0) continue;
     for(const k in GLIFO) if(E.fbG[i]===GLIFO[k])
@@ -44,8 +46,8 @@ const dispersion=(lista,E,AN,AL)=>{                    // varianza sobre media d
 console.log('=== hay detalle en el pasto ===');
 const g=cuadro(()=>'g',120,90);                         // todo pasto corto
 for(const k in g.det) console.log('  '+k.padEnd(10)+g.det[k].length+' celdas en '+g.area+' m²  →  '+(g.det[k].length/g.area).toFixed(2)+' por m²');
-probar('hay flores, guijarros y hojarasca en el pasto corto', g.det.flor.length>10&&g.det.guijarro.length>10&&g.det.hojarasca.length>20);
-probar('no es una alfombra: menos de 12 detalles por m² en total', (g.det.flor.length+g.det.guijarro.length+g.det.hojarasca.length)/g.area<12);
+probar('hay flores en el pasto', g.det.flor.length>10);
+probar('no es una alfombra: menos de 12 detalles por m² en total', g.det.flor.length/g.area<12);
 
 console.log('\n=== salen en manchas, no parejo ===');
 /* Se compara contra lo mismo REPARTIDO AL AZAR: las mismas cuentas, tiradas en
@@ -53,13 +55,9 @@ console.log('\n=== salen en manchas, no parejo ===');
 let sem=12345; const azar=()=>{ sem=(Math.imul(sem,1103515245)+12345)&0x7fffffff; return sem/0x7fffffff; };
 const barajado=(lista,E,AN,AL)=>lista.map(()=>({mx:E.camX+Math.floor(azar()*AN), my:E.camY+1+Math.floor(azar()*(AL-2))}));
 const par=(lista)=>{ const a=dispersion(lista,g.E,g.AN,g.AL), b=dispersion(barajado(lista,g.E,g.AN,g.AL),g.E,g.AN,g.AL); return {a,b}; };
-const pFl=par(g.det.flor), pGu=par(g.det.guijarro), pHo=par(g.det.hojarasca);
+const pFl=par(g.det.flor);
 console.log('  índice de dispersión por metro (1 = al azar), real contra la misma cantidad repartida al azar:');
-console.log('    flores '+pFl.a.indice.toFixed(1)+' contra '+pFl.b.indice.toFixed(1)
-          +' · guijarros '+pGu.a.indice.toFixed(1)+' contra '+pGu.b.indice.toFixed(1)
-          +' · hojarasca '+pHo.a.indice.toFixed(1)+' contra '+pHo.b.indice.toFixed(1));
 probar('las flores salen en manchas (el doble o más que al azar)', pFl.a.indice>=2*pFl.b.indice && pFl.a.indice>2);
-probar('los guijarros y la hojarasca también', pGu.a.indice>=2*pGu.b.indice&&pHo.a.indice>=2*pHo.b.indice&&pGu.a.indice>2&&pHo.a.indice>2);
 /* una mancha es de un solo color: dentro de un metro, las flores no mezclan familias */
 const colPorM=new Map(); for(const d of g.det.flor){ const k=d.mx+','+d.my; (colPorM.get(k)||colPorM.set(k,[]).get(k)).push(d.col); }
 const luzDe=c=>((c>>16)&255)-((c&255));     // rojo menos azul: separa lo rosado de lo ocre
@@ -71,7 +69,7 @@ probar('cada mancha de flores es de un color, no un confeti', metrosF>5&&mezcla/
 console.log('\n=== no cambia con el zoom ===');
 /* Misma zona del mundo a los dos extremos del zoom: sólo se cuentan los metros
    que se ven en los dos cuadros, y en cuatro puntos distintos para tener cuenta. */
-const tot={cerca:{flor:0,guijarro:0,hojarasca:0},lejos:{flor:0,guijarro:0,hojarasca:0}}; let metrosComunes=0;
+const tot={cerca:{flor:0},lejos:{flor:0}}; let metrosComunes=0;
 for(const [cx,cy] of [[120,90],[40,50],[150,40],[70,140]]){
   const a=cuadro(()=>'g',cx,cy,NV.ZOOM.cerca), b=cuadro(()=>'g',cx,cy,NV.ZOOM.lejos);
   const ax0=a.E.camX, ax1=a.E.camX+a.AN, ay0=a.E.camY+1, ay1=a.E.camY+a.AL-1;
@@ -87,7 +85,7 @@ for(const k in tot.cerca) console.log('  '+k.padEnd(10)+'cerca '+(tot.cerca[k]/m
 console.log('  ('+metrosComunes+' m² vistos en los dos zooms)');
 const r=(k)=>tot.cerca[k]/Math.max(1,tot.lejos[k]);
 probar('en los mismos metros hay la misma cantidad de detalle cerca y lejos (±30 %)',
-       ['flor','guijarro','hojarasca'].every(k=>tot.lejos[k]>30&&r(k)>0.7&&r(k)<1.43));
+       ['flor'].every(k=>tot.lejos[k]>30&&r(k)>0.7&&r(k)<1.43));
 
 console.log('\n=== no pisa la orilla ni el agua ===');
 const Y0=90;
@@ -100,12 +98,12 @@ console.log('  detalles en el cuadro: '+todas+' · en metros de agua: '+enAgua+'
 probar('hay detalle en la parte de tierra del cuadro, incluido el metro vecino al de la orilla', todas>30&&aDosMetros>0);
 probar('ninguno cae en el agua ni en el metro pegado a la orilla', enAgua===0&&pegadas===0);
 const arena=cuadro(()=>'s',120,90);
-probar('la arena no lleva detalle de pasto', arena.det.flor.length+arena.det.guijarro.length+arena.det.hojarasca.length===0);
+probar('la arena no lleva detalle de pasto', arena.det.flor.length===0);
 
 console.log('\n=== queda quieto y se apaga de noche ===');
 const g1=cuadro(()=>'g',120,90), g2=cuadro(()=>'g',120,90);
 const clave=l=>l.map(d=>d.c+':'+d.r).join('|');
-probar('mismo cuadro, mismos detalles (no parpadea)', clave(g1.det.flor)===clave(g2.det.flor)&&clave(g1.det.guijarro)===clave(g2.det.guijarro));
+probar('mismo cuadro, mismos detalles (no parpadea)', clave(g1.det.flor)===clave(g2.det.flor));
 const dia=g1.det.flor.reduce((a,d)=>a+lum(d.col),0)/g1.det.flor.length;
 NV.actualizarCielo(NOCHE);
 const n1=cuadro(()=>'g',120,90);

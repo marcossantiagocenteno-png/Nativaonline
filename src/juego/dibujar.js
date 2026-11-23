@@ -771,7 +771,7 @@ function drawGroundRow(my,rBase,haze,t){
       const largo=mt.largo||type==='G';
       /* pocas briznas, largas y finas sobre el fondo oscuro, como la muestra: menos de una
          por franja y metro, así que el número se reparte con un dado en vez de redondear */
-      const nPer=CPM*(largo?0.026:0.09)*calidad;
+      const nPer=CPM*(largo?0.078:0.09)*calidad;      // el triple que la primera versión rala
       const nf=nPer*clamp(0.20+densMata*1.10,0.12,1.7);
       const n=Math.floor(nf)+((hash3(mx*53+sy,my*71,19)%1000)<(nf%1)*1000?1:0);
       let colT=packs(mt.fam2||mt.fam,light*1.3);
@@ -788,18 +788,18 @@ function drawGroundRow(my,rBase,haze,t){
         const tend=mt.tendido?mt.tendido*((hb>>13)%2?1:-1):0;
         const lean=clamp(own-bend*0.70+tend,-2.4,2.4);
         const span=Math.max(1,alto-1);
+        const flor=largo&&(hb>>21)%100<14;      // una de cada siete remata en flor blanca
         for(let r=0;r<alto;r++){
           const f=r/span, dx=Math.round(lean*(f*f*0.62+f*0.38)*alto*0.55);
           const tip=(r===alto-1);
           let g;
           if(largo){
-            if(Math.abs(lean)<0.26) g='|';
-            else if(lean<0)         g=(r>0)?'\\':'|';
-            else                    g=(r>0)?'/':'|';
+            g='I';                                  // el pasto es sólo I, de distintos largos
           } else {
             g = tip?'*':'\u00b0';
           }
-          put(c0+dx,rb-r,g.charCodeAt(0),tip?colT:(largo&&f<0.5)?colB:colM);   // base oscura, punta clara
+          if(largo&&tip&&flor) put(c0+(largo?0:dx),rb-r,'qeo+'.charCodeAt((hb>>25)%4),packc(225,240,230));
+          else put(c0+(largo?0:dx),rb-r,g.charCodeAt(0),tip?colT:(largo&&f<0.5)?colB:colM);   // base oscura, punta clara
         }
       }
       if(det){
@@ -812,8 +812,8 @@ function drawGroundRow(my,rBase,haze,t){
       /* puntitos claros en el pasto (flores diminutas, luciérnagas quietas): en la
          referencia hay muchos y se leen sobre el verde oscuro. Fijos, sin parpadeo. */
       { const hp=hash3(mx,my*RPM+sy,29)%140;
-        if(hp<9) put(base+((hash3(mx,my+sy,31))%CPM),rb-((sy*5)%3),hp<2?42:46,
-                     hp<5?packc(205,230,215):packc(150,190,185)); }
+        if(hp<9) put(base+((hash3(mx,my+sy,31))%CPM),rb-((sy*5)%3),'qeo'.charCodeAt(hp%3),
+                     hp<5?packc(225,240,230):packc(170,200,195)); }
     }
     usaCol=false;
     rellenarFrente(base,rBase,mx,haze);

@@ -58,15 +58,15 @@ const MAT={                                   // capa SUELO, en uso
   /* UN SOLO PASTO. En la muestra de referencia todo el prado es la misma brizna y sólo
      cambia la luz. Los cuatro materiales de pasto siguen existiendo —el generador y las
      pruebas los distinguen por su letra— pero se dibujan igual: brizna fina y erguida,
-     base en sombra y punta clara, con flores, hojarasca y guijarros sueltos entre medio. */
-  g:{n:'pasto', fam:'verdeO', ramp:['|','|','|','|','|'], tip:['|','/','\\'], fam2:'verde', largo:1, mata:0.70,
-     detalle:[DET.flores,DET.guijarros,DET.hojarasca]},
-  G:{n:'pasto', fam:'verdeO', ramp:['|','|','|','|','|'], tip:['|','/','\\'], fam2:'verde', largo:1, mata:0.70,
-     detalle:[DET.flores,DET.guijarros,DET.hojarasca]},
-  h:{n:'pasto', fam:'verdeO', ramp:['|','|','|','|','|'], tip:['|','/','\\'], fam2:'verde', largo:1, mata:0.70,
-     detalle:[DET.flores,DET.guijarros,DET.hojarasca]},
-  n:{n:'pasto', fam:'verdeO', ramp:['|','|','|','|','|'], tip:['|','/','\\'], fam2:'verde', largo:1, mata:0.70,
-     detalle:[DET.flores,DET.guijarros,DET.hojarasca]},
+     base en sombra y punta clara, con flores blancas sueltas. */
+  g:{n:'pasto', fam:'verdeO', ramp:["I","I","I","I","I"], tip:["I"], fam2:'verde', largo:1, mata:0.70,
+     detalle:[DET.flores]},
+  G:{n:'pasto', fam:'verdeO', ramp:["I","I","I","I","I"], tip:["I"], fam2:'verde', largo:1, mata:0.70,
+     detalle:[DET.flores]},
+  h:{n:'pasto', fam:'verdeO', ramp:["I","I","I","I","I"], tip:["I"], fam2:'verde', largo:1, mata:0.70,
+     detalle:[DET.flores]},
+  n:{n:'pasto', fam:'verdeO', ramp:["I","I","I","I","I"], tip:["I"], fam2:'verde', largo:1, mata:0.70,
+     detalle:[DET.flores]},
   s:{n:'arena de río',fam:'arena',  ramp:['.','.',':','\u00b0',';'],
      onda:{largo:0.8, angulo:0.0, fuerza:0.62}},
   y:{n:'arena de mar',fam:'roca2',  ramp:['.',':','\u00b0','=','='], mojada:1,
