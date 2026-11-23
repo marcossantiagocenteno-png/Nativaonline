@@ -43,18 +43,31 @@ console.log('\n=== relámpagos ===');
 // buscar un momento de tormenta y mirar un minuto real de relámpagos
 let tTor=null;
 for(let i=0;i<21500&&!tTor;i++){ if(NV.clima(i*0.02).tormenta) tTor=i*0.02; }
-const base=Date.now();
-let golpes=0, maxFl=0, muestras=0;
-for(let ms=0; ms<60000; ms+=130){                   // un minuto, al ritmo del motor
-  const fl=NV.probarRelampago? NV.probarRelampago(base+ms,true) : null;
-  if(fl===null) break;
-  muestras++; if(fl>0.05){golpes++; maxFl=Math.max(maxFl,fl);}
+/* El relámpago es una función del reloj real, y con una tasa de ~5 golpes por minuto
+   un minuto cualquiera tiene a veces cero. Con Date.now() la prueba fallaba una de
+   cada sesenta corridas. Se miran diez minutos FIJOS: lo que se exige es que
+   haya relámpagos en una tormenta y que nunca sean continuos, no que cada minuto
+   tenga uno. */
+if(!NV.probarRelampago){ console.log('  (sin acceso directo a la función; se comprueba en el navegador)'); }
+else {
+  const porMinuto=[]; let continuos=0, maxFl=0;
+  for(let k=0;k<10;k++){
+    const base=1.7e12+k*3600000+k*1234;
+    let golpes=0, muestras=0;
+    for(let ms=0; ms<60000; ms+=130){                  // un minuto, al ritmo del motor
+      const fl=NV.probarRelampago(base+ms,true); muestras++;
+      if(fl>0.05){ golpes++; maxFl=Math.max(maxFl,fl); }
+    }
+    porMinuto.push(golpes); if(golpes/muestras>=0.25) continuos++;
+  }
+  const total=porMinuto.reduce((a,b)=>a+b,0);
+  console.log('  golpes en cada uno de diez minutos de tormenta:', porMinuto.join(' '), '· el más fuerte', maxFl.toFixed(2));
+  probar('en diez minutos de tormenta hay relámpagos', total>0);
+  probar('ningún minuto de relámpagos es continuo', continuos===0);
+  probar('el ritmo es de unos pocos golpes por minuto (entre 1 y 15 de media)', total/10>=1 && total/10<=15);
+  const sin=NV.probarRelampago(1.7e12,false)||0;
+  probar('sin tormenta no hay relámpagos', sin===0 && [0,1,2,3,4,5].every(k=>!NV.probarRelampago(1.7e12+k*85,false)));
 }
-if(muestras){
-  console.log('  en un minuto de tormenta:', golpes, 'cuadros con fogonazo de', muestras,
-              '· el más fuerte', maxFl.toFixed(2));
-  probar('hay relámpagos, pero no continuos', golpes>0 && golpes/muestras<0.25);
-} else console.log('  (sin acceso directo a la función; se comprueba en el navegador)');
 
 console.log('\n'+ok.length+' comprobaciones pasaron'+(mal.length?', '+mal.length+' FALLARON:':''));
 mal.forEach(m=>console.log('  ✗',m));
