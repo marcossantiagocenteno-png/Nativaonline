@@ -1571,3 +1571,13 @@ Pruebas: `pruebas/terreno.js` (motor) y `pruebas/terreno-juego.js` (mundo, dibuj
 - **Glifos de las flores en sectores:** blanca = `e` y `@`; roja y amarilla = cruz chiquita `+` y punto `.`. (Un sector sin tocar sigue usando el pasto real, que
   dibuja sus flores blancas con `@ e o`; en cuanto se cambia algo del sector, pasan a `e @`.)
 - **Zoom libre en el Modo Dios:** `NV.zoomLibre(true)` al entrar (rueda o + / −) permite de 9 m a 200 m de ancho de vista; al salir vuelve al margen de siempre.
+
+## Motor global de fluidez
+
+**Diagnóstico (Chrome real, sin GPU):** el 78 % del tiempo de cada cuadro era `fillText` (~45 000 tramos de texto) y su armado; los motores gráficos suman ~10 %. Por eso el cuello no estaba en los motores.
+
+- `src/motor/pincel.js` — pintor de glifos que reemplaza a `fillText` en `flush`. Modo por defecto `cpu`: mezcla cada glifo en memoria desde una lista dispersa de píxeles (atlas por tamaño, 4 fases horizontales para posiciones fraccionarias) y sube el cuadro con un `putImageData`. No depende de la GPU. Modo `gl` (WebGL2 instanciado) disponible con `?pincel=gl`; `?pincel=texto` vuelve al pintor de siempre. Si algo falla, `flush` cae al pintor de texto.
+- `src/motor/fluidez.js` — `NV.fluidez`: medidor permanente que sólo observa (FPS, intervalo, variación, respuesta a controles, tiempo por motor y por sector de 8×8 m, tirones con su culpable). Muestrea los motores 1 de cada 24 cuadros; apagable (`apagado`).
+- `src/juego/editor-fluidez.js` — pestaña "Fluidez" del Modo Dios: panel con gráfica y diagnósticos, refresco 2 veces por segundo sólo con la pestaña abierta.
+- Medido antes → después: caminando 9,4 → ~42 FPS; zoom con rueda 25 → 54 FPS. Ningún motor gráfico se modificó.
+- Pendiente (necesita autorización): el ajuste automático `calidad` de `dibujar.js` baja el dibujo con tirones; choca con "no sacrificar calidad". Zoom centrado en el cursor: la cámara sigue al personaje, así que sólo tendría sentido en Modo Dios.

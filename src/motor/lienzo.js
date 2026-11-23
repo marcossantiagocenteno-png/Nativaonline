@@ -251,6 +251,6 @@ NV.acercarZoom=function(){
   layout();
   return true;
 }; NV.put=put; NV.flush=flush;
-/* el pintor por GPU sólo se enciende con ?pincel=gl mientras se prueba; sin esa señal, nada cambia */
-try{ { const m=/[?&]pincel=(gl|cpu)/.exec(location.search); if(m) NV.pincel.iniciar(m[1]); } }catch(e){}
+/* pintor: por defecto el de memoria ('cpu'); ?pincel=texto vuelve al de siempre, ?pincel=gl prueba WebGL */
+try{ { const m=/[?&]pincel=(gl|cpu|texto)/.exec(location.search); if(!m||m[1]!=='texto') NV.pincel.iniciar(m?m[1]:'cpu'); } }catch(e){}
 NV.packc=packc; NV.packs=packs;

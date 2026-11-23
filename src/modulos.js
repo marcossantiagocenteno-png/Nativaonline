@@ -32,6 +32,7 @@ window.NV_MODULOS=[
   'juego/particulas',
   'juego/editor',
   'juego/editor-caminos',
+  'juego/editor-fluidez',   // la pestaña "fluidez" del Modo Dios
   'juego/editor-terreno',    // la pestaña "terreno" del Modo Dios
   'juego/creador',           // la ventana de diseño del Modo Dios: las perillas de los motores
   'juego/jugar'
