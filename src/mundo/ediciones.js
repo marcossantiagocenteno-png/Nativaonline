@@ -41,7 +41,7 @@ const oyentes = [];
 let version = 0;                 // sube con cada cambio: el editor y el guardado saben si hay algo nuevo
 
 const nuevoP = ()=>({def:null, suelo:new Map(), agregar:[], quitar:new Set(), alturas:new Map()});
-function datosVacios(){ return {semilla:NVe.CONFIG.seed, pan:new Map(), rasgos:[], caminos:[]}; }
+function datosVacios(){ return {semilla:NVe.CONFIG.seed, pan:new Map(), rasgos:[], caminos:[], terreno:[]}; }
 const pDe = (k,crear)=>{ let P=D.pan.get(k); if(!P&&crear){ P=nuevoP(); D.pan.set(k,P); } return P||null; };
 const panelDeXY = (x,y)=>clavePanel(Math.floor(x/L),Math.floor(y/L));
 
@@ -73,6 +73,7 @@ function validar(o){
     if(!(r.ancho>0)||!mat(r.material)) throw new Error('rasgo '+r.id+': ancho o material inválido');
   }
   for(const r of (o.caminos||[])) validarCamino(r);
+  for(const r of (o.terreno||[])) validarTerreno(r);
   return o;
 }
 /* estructura, no familia: este archivo se lee ANTES de que cargue el motor de caminos; la familia se comprueba al armarlo */
@@ -86,8 +87,16 @@ function validarCamino(r){
   if(c.vs&&(!Array.isArray(c.vs)||c.vs.length!==r.puntos.length)) throw new Error('camino '+r.id+': vs no coincide con los puntos');
   if(c.anchos&&(!Array.isArray(c.anchos)||c.anchos.length!==r.puntos.length)) throw new Error('camino '+r.id+': anchos no coincide con los puntos');
 }
+/* un sector de terreno: estructura nada más; las perillas las normaliza el motor (src/juego/terreno.js) al dibujar */
+function validarTerreno(r){
+  const num=v=>typeof v==='number'&&isFinite(v);
+  if(!r||typeof r.id!=='string'||!r.id||r.id.slice(0,2)==='__') throw new Error('sector de terreno sin nombre válido');
+  for(const k of ['x','y','w','h']) if(!num(r[k])) throw new Error('sector '+r.id+': '+k+' inválido');
+  if(!(r.w>0)||!(r.h>0)) throw new Error('sector '+r.id+': sin tamaño');
+  if(typeof r.terreno!=='string') throw new Error('sector '+r.id+': sin terreno');
+}
 function desdeArchivo(o){
-  o=validar(o); const d={semilla:o.semilla,pan:new Map(),rasgos:[],caminos:(o.caminos||[]).map(r=>JSON.parse(JSON.stringify(r)))};
+  o=validar(o); const d={semilla:o.semilla,pan:new Map(),rasgos:[],caminos:(o.caminos||[]).map(r=>JSON.parse(JSON.stringify(r))),terreno:(o.terreno||[]).map(r=>JSON.parse(JSON.stringify(r)))};
   for(const k in (o.paneles||{})){
     const s=o.paneles[k], P=nuevoP();
     P.def=s.def?JSON.parse(JSON.stringify(s.def)):null;
@@ -105,7 +114,7 @@ const partir=k=>k.split(',').map(Number);
 /* ordenado y sin adornos: el archivo cambia sólo donde cambia el mundo (se lleva bien con git) */
 function aArchivo(d){
   const o={formato:FORMATO,semilla:d.semilla,paneles:{},rasgos:d.rasgos.map(r=>({id:r.id,tipo:r.tipo,puntos:r.puntos.map(p=>[p[0],p[1]]),ancho:r.ancho,material:r.material})),
-    caminos:d.caminos.map(r=>JSON.parse(JSON.stringify(r)))};
+    caminos:d.caminos.map(r=>JSON.parse(JSON.stringify(r))),terreno:d.terreno.map(r=>JSON.parse(JSON.stringify(r)))};
   for(const k of Array.from(d.pan.keys()).sort()){
     const P=d.pan.get(k), s={};
     if(P.def) s.def=JSON.parse(JSON.stringify(P.def));
@@ -275,6 +284,16 @@ function aplicarUna(op,toca){
       if(!previo&&!op.datos) break;
       inv={t:'camino',id:op.id,datos:previo?JSON.parse(JSON.stringify(previo)):null};
       toca.caminos=true; break; }
+    case 'terreno': {
+      /* poner (datos) o quitar (datos:null) UN sector de terreno entero; la inversa es lo que había. Se pinta por encima: no toca paneles. */
+      if(typeof op.id!=='string') throw new Error('sector sin nombre');
+      if(op.datos){ validarTerreno(op.datos); if(op.datos.id!==op.id) throw new Error('el sector no es el que dice ser'); }
+      const i=D.terreno.findIndex(q=>q.id===op.id), previo=i<0?null:D.terreno[i];
+      if(op.datos){ const n=JSON.parse(JSON.stringify(op.datos)); if(i<0) D.terreno.push(n); else D.terreno[i]=n; }
+      else if(i>=0) D.terreno.splice(i,1);
+      if(!previo&&!op.datos) break;
+      inv={t:'terreno',id:op.id,datos:previo?JSON.parse(JSON.stringify(previo)):null};
+      toca.terreno=true; break; }
     case 'panel': {
       const k=clavePanel(op.pi,op.pj);
       if(op.def!==null&&(!op.def||typeof op.def.bioma!=='string')) throw new Error('def sin bioma');
@@ -290,22 +309,24 @@ function editar(op){
   const inv=aplicarUna(op,toca);
   if(toca.size) tocar(toca,!toca.soloObjetos);
   if(toca.caminos){ version++; avisarCaminos(); for(const f of oyentes) f([]); }
+  if(toca.terreno){ version++; avisarTerreno(); for(const f of oyentes) f([]); }
   return inv;
 }
 /* el motor de caminos guarda su propia red (con índices); acá sólo se le avisa qué datos hay */
+function avisarTerreno(){ if(NVe.terreno&&NVe.terreno.sincronizar) NVe.terreno.sincronizar(D?D.terreno:[]); }
 function avisarCaminos(){ if(NVe.caminos&&NVe.caminos.sincronizar) NVe.caminos.sincronizar(D?D.caminos:[]); }
 
 /* ---------- cargar, exportar, borrador ---------- */
 function cargar(o){
   D=desdeArchivo(o); reindexar();
   const todos=new Set(); for(const k of NVe.cachePaneles.keys()) todos.add(k);
-  tocar(todos); avisarCaminos();
+  tocar(todos); avisarCaminos(); avisarTerreno();
 }
 const exportar=()=>aArchivo(D||datosVacios());
 const texto=()=>JSON.stringify(exportar());
 /* el contenido de src/mundo/mundo-datos.js: lo que se sube al repositorio para que todos entren al mismo mundo */
 const comoScript=()=>'/* Nativa Online — EL MUNDO EDITADO (archivo de datos). Lo escribe el Modo Dios; ver docs/DISENO.md. */\nwindow.NV.MUNDO_DATOS='+JSON.stringify(exportar(),null,1)+';\n';
-const vacio=()=>{ const o=exportar(); return !Object.keys(o.paneles).length&&!o.rasgos.length&&!o.caminos.length; };
+const vacio=()=>{ const o=exportar(); return !Object.keys(o.paneles).length&&!o.rasgos.length&&!o.caminos.length&&!o.terreno.length; };
 function importarTexto(t){
   t=String(t).trim().replace(/^[\s\S]*?NV\.MUNDO_DATOS\s*=\s*/,'').replace(/;\s*$/,'');
   cargar(JSON.parse(t));
@@ -358,4 +379,5 @@ const margenAncho=()=>{
 NVe.mundo={FORMATO,aplicar,margenAncho,margenAlto,editar,cargar,exportar,texto,comoScript,importarTexto,vacio,descargar,
   guardarBorrador,cargarBorrador,borrarBorrador,deltaAltura,defDe,clavesDefinidas,alCambiar,estadisticas,
   validar:o=>{ validar(o); return true; },version:()=>version,
-  caminosDatos:()=>D?D.caminos:[]};
+  caminosDatos:()=>D?D.caminos:[],
+  terrenoDatos:()=>D?D.terreno:[]};

@@ -159,8 +159,8 @@
     const M0=E.modos[E.modo]; if(M0&&M0.cerrar) M0.cerrar();
     if(E.modo==='objetos'){ elegir(null); E.hover=null; }
     E.modo=m; pie='';
-    const p=$e('dios'); if(p) p.classList.toggle('camMode',m==='caminos');
-    for(const [id,k] of [['diosModoObj','objetos'],['diosModoCam','caminos']]){ const b=$e(id); if(b) b.classList.toggle('on',m===k); }
+    const p=$e('dios'); if(p) { p.classList.toggle('camMode',m==='caminos'); p.classList.toggle('terMode',m==='terreno'); }
+    for(const [id,k] of [['diosModoObj','objetos'],['diosModoCam','caminos'],['diosModoTer','terreno']]){ const b=$e(id); if(b) b.classList.toggle('on',m===k); }
     const M=E.modos[m]; if(M&&M.abrir) M.abrir();
     refrescar(); programarCuadro();
   };
@@ -302,6 +302,7 @@
     const b=id=>$e(id);
     b('diosModoObj').addEventListener('click',()=>E.cambiarModo('objetos'));
     b('diosModoCam').addEventListener('click',()=>E.cambiarModo('caminos'));
+    b('diosModoTer').addEventListener('click',()=>E.cambiarModo('terreno'));
     for(const k in E.modos) if(E.modos[k].iniciar) E.modos[k].iniciar();
     b('diosDeshacer').addEventListener('click',deshacer);
     b('diosRehacer').addEventListener('click',rehacerUno);

@@ -1,4 +1,4 @@
-/* Nativa Online — TERRENO Y VEGETACIÓN POR SECTORES (laboratorio, NO integrado al juego).
+/* Nativa Online — TERRENO Y VEGETACIÓN POR SECTORES (aprobado por Marcos; integrado al juego y al Modo Dios).
 
    Esto no es un segundo motor de pasto. Es una CAPA DE CONFIGURACIÓN TERRITORIAL: guarda sectores
    rectangulares en metros del mundo y, para cada celda, decide qué características aplican. El pasto
@@ -173,9 +173,13 @@ function peso(s,wx,wy){
 }
 function alcance(s){ return s.trans.ancho*(s.trans.tipo==='organica'?1.6:s.trans.tipo==='irregular'?1.2:1)+1.5; }
 /* los sectores que tocan un metro (o su vecindad) */
+function activos(){
+  if(!M.vista) return M.sectores;
+  return M.sectores.filter(s=>s.id!==M.vista.id).concat([M.vista]);
+}
 function candidatos(mx,my){
   let l=null;
-  for(const s of M.sectores){ const m=alcance(s);
+  for(const s of activos()){ const m=alcance(s);
     if(mx+1<s.x-m||mx>s.x+s.w+m||my+1<s.y-m||my>s.y+s.h+m) continue;
     (l||(l=[])).push(s); }
   return l;
@@ -436,7 +440,7 @@ T.dibujarMetro=function(mx,my,o){
     let alza=0;
     for(let k=0;k<CPM;k++){
       const wx=mx+(k+0.5)/CPM, wy=my+(sy+0.5)/RPM, P=perfilEn(wx,wy,cand);
-      if(P.geo&&!k) alza=Math.round(P.h*HPM*1.6);
+      if(P.geo&&!k&&o.alzar!==false) alza=Math.round(P.h*HPM*1.6);
       if(P.h!==undefined&&k===0&&sy===0) { /* solo para que el cálculo se haga una vez */ }
       let lz=o.luz; if(P.h!==undefined){ const V=P.visual; lz*=clamp(1-P.dh*3.2*(0.25+1.5*V.sombra),0.55,1.5)*(1+P.h*V.profundidad*0.6); }
       if(P.terreno!=='pradera'&&celdaSuelo(P,wx,wy,o.cx0===undefined?mx*CPM+k:o.cx0+k,my*RPM+sy,lz,t)) put0(o.base+k,rb-alza,_g,_c);
@@ -478,6 +482,20 @@ T.perfilEn=(wx,wy)=>perfilEn(wx,wy,candidatos(Math.floor(wx),Math.floor(wy)));
 T.peso=peso; T.altura=altura; T.cobDe=cobDe; T.trzDe=trzDe; T.lenMul=lenMul; T.celdaSuelo=(P,wx,wy,cx,cy,lz,t)=>celdaSuelo(P,wx,wy,cx,cy,lz,t)?[_g,_c]:null;
 T.floresDelMetro=(mx,my)=>{ const o=[]; floresDelMetro(mx,my,candidatos(mx,my),o); return o; };
 T.copia=copia; T.esNeutro=esNeutro;
+
+/* ---- lo que usa el juego ---- */
+/* los datos del mundo → los sectores (los guarda NV.mundo; acá sólo se dibujan) */
+T.sincronizar=function(arr){ M.sectores.length=0; M.hist.length=0;
+  for(const d of (arr||[])){ const n=normalizar(d); n.id=d.id; n.historial=d.historial||[]; M.sectores.push(n); }
+  _id=1+M.sectores.reduce((m,s)=>Math.max(m,+(String(s.id).replace(/\D/g,''))||0),0); M.v++; };
+/* vista previa del Modo Dios: un sector provisional (o uno real movido o cambiado) que no se guarda */
+T.vista=function(d){ if(!d){ if(M.vista){ M.vista=null; M.v++; } return; } const n=normalizar(d); n.id=d.id||'__vista'; M.vista=n; M.v++; };
+T.hay=()=>M.sectores.length>0||!!M.vista;
+T.toca=(mx,my)=>!!candidatos(mx,my);
+T.version=()=>M.v;
+T.sectorEn=function(wx,wy){ let r=null; for(const s of activos()) if(s.id!=='__vista'&&wx>=s.x&&wx<s.x+s.w&&wy>=s.y&&wy<s.y+s.h) r=s; return r; };
+T.aDatos=s=>{ const c=copia(s); return c; };
 NV.terreno=T;
-/* A propósito NO se da de alta en NV.motores: sigue siendo laboratorio hasta que Marcos lo apruebe. */
+/* lo que el mundo ya trae al abrir el juego */
+if(NV.mundo&&NV.mundo.terrenoDatos) T.sincronizar(NV.mundo.terrenoDatos());
 })();

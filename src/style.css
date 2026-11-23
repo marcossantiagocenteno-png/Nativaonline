@@ -89,6 +89,18 @@ button.on{border-color:var(--oro);color:var(--oro)}
 #diosCaminos .camFam{display:block;width:100%;text-align:left;margin-top:2px}
 #diosCaminos .fila{margin-top:2px}
 #diosCaminos .camVar{font-size:9px;padding-left:1px;padding-right:1px}
+#diosTerreno{display:none;max-height:52vh;overflow-y:auto}
+#dios.terMode #diosPaleta{display:none}
+#dios.terMode #diosTerreno{display:block}
+#diosTerreno .grupo{color:var(--dim);font-size:8px;margin:5px 0 1px;letter-spacing:.6px;text-transform:uppercase}
+#diosTerreno select{width:100%;margin-top:2px;background:#000;color:var(--ink);border:1px solid var(--oroflojo);font:inherit;font-size:9px}
+#diosTerreno .tcampo{display:grid;grid-template-columns:44% 1fr;align-items:center;gap:4px;margin-top:2px;font-size:9px;color:var(--ink)}
+#diosTerreno .tcampo input[type=range]{width:100%;accent-color:var(--oro)}
+#diosTerreno .tcampo input[type=number]{width:100%;background:#000;color:var(--ink);border:1px solid var(--oroflojo);font:inherit;font-size:9px}
+#diosTerreno .tchk{display:flex;gap:8px;font-size:9px;margin-top:2px}
+#diosTerreno .tchk label{display:flex;align-items:center;gap:3px}
+#diosTerreno .fila{margin-top:2px}
+#diosTerreno .fila button{font-size:9px;padding-left:2px;padding-right:2px}
 #camAncho{flex:2;text-align:center;color:var(--oro);font-size:9px;letter-spacing:1px;align-self:center;overflow:hidden;white-space:nowrap}
 
 /* lo que se dice al explorar */

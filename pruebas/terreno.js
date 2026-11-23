@@ -1,7 +1,6 @@
 // Laboratorio de terreno y vegetación: el pasto real, ajustado por sectores. Nada del juego cambia.
 const fs=require('fs'), cargar=require('./cargar.js');
-const motor=fs.readFileSync('/home/claude/nativaonline/preview/terreno-motor.js','utf8');
-const m=cargar(`${motor}
+const m=cargar(`
 const cap=(f)=>{ const o=[]; const p0=put; put=(c,r,ch,col)=>o.push(c+','+r+','+ch+','+col); try{ f(); } finally{ put=p0; } return o; };
 NV.terreno.puente.get=()=>put; NV.terreno.puente.set=f=>{ put=f; };
 module.exports={NV,T:NV.terreno,
@@ -80,9 +79,10 @@ probar('copiar/pegar configuración conserva posición y tamaño del destino', T
 const est=(e)=>{ T.nuevoMundo(); T.agregar({x:0,y:0,w:300,h:300,pasto:{estado:e}}); return m.capa(100,100).join('|'); };
 const dist=new Set(Object.keys(T.ESTADOS).map(est));
 probar('los 7 estados del pasto se ven distintos', dist.size===7);
-// 14. el juego sigue sin enterarse: ningún archivo de src toca NV.terreno
-const hay=fs.readdirSync('/home/claude/nativaonline/src',{recursive:true}).filter(f=>/\.js$/.test(f)).some(f=>/NV\.terreno|terreno-motor/.test(fs.readFileSync('/home/claude/nativaonline/src/'+f,'utf8')));
-probar('el juego no referencia el laboratorio (no está integrado)', !hay);
+// 14. integrado: está en la lista de módulos y el juego dibuja con él
+const mods=fs.readFileSync('/home/claude/nativaonline/src/modulos.js','utf8');
+probar('terreno y su editor están en src/modulos.js', /juego\/terreno'/.test(mods)&&/juego\/editor-terreno'/.test(mods));
+probar('el dibujo del juego usa el motor sólo en metros con sector', /NV\.terreno\.toca\(mx,my\)/.test(fs.readFileSync('/home/claude/nativaonline/src/juego/dibujar.js','utf8')));
 
 console.log(ok.length+' bien, '+mal.length+' mal'); mal.forEach(x=>console.log('  MAL: '+x));
 process.exit(mal.length?1:0);

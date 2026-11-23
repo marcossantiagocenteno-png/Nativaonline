@@ -13,7 +13,7 @@
    Carga la base, el viento global, el PASTO REAL (sin tocarlo), el motor de terreno y la página. No arranca el juego. */
 (function(){
   var v='?v='+Date.now();
-  ['../src/motor/base.js','../src/mundo/viento.js','../src/juego/pasto.js','terreno-motor.js','terreno.js'].forEach(function(f){
+  ['../src/motor/base.js','../src/mundo/viento.js','../src/juego/pasto.js','../src/juego/terreno.js','terreno.js'].forEach(function(f){
     document.write('<script src="'+f+v+'"><\/script>');
   });
 })();

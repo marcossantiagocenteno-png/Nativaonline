@@ -192,6 +192,8 @@ const texRuido=makeNoise(mulberry(31771));
    es como estaba, la textura cambiaba de tamaño con el zoom —porque CPM cambia—
    y además quedaba estirada tres veces a lo alto, porque un metro son CPM
    columnas pero sólo RPM filas. */
+/* el motor de terreno cambia `put` un instante para ajustar lo que dibuja el pasto real: se le da el acceso acá, donde `put` es nuestro */
+if(NV.terreno){ NV.terreno.puente.get=()=>put; NV.terreno.puente.set=f=>{ put=f; }; }
 const tex2=(wx,wy,e)=>0.66*texRuido(wx/e,wy/e,1,1)
                      +0.34*texRuido(wx/(e*0.42)+37,wy/(e*0.42),1,1);
 /* La luna en el agua quieta: un disco de glifos claros, estirado a lo ancho por la
@@ -584,8 +586,12 @@ function drawGroundRow(my,rBase,haze,t){
     fijarAlza(mx,my,base);
     usaCol=true;
     pastoPreparar(mx,my,grass);
+    /* un sector de terreno (Modo Dios) toma el metro entero: dibuja el suelo, el pasto REAL ajustado y las flores.
+       Sin sectores no se mira nada y el cuadro sale idéntico. */
+    const sector=grass&&!mezclar&&!mt.manto&&NV.terreno&&NV.terreno.toca(mx,my);
+    if(sector) NV.terreno.dibujarMetro(mx,my,{base,rb0:top,luz:light,calor,dPasto,t,calidad,alzar:false,cx0:mx*CPM});
     /* las RPM franjas se recorren de norte a sur: lo de más al sur tapa */
-    for(let sy=0;sy<RPM;sy++){
+    for(let sy=0;sy<RPM&&!sector;sy++){
       const rb=top+sy;
       if(!grass){
         /* en los metros que tocan otro material se decide celda por celda */

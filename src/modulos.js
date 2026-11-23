@@ -20,6 +20,7 @@ window.NV_MODULOS=[
   'juego/interfaz',
   'juego/personajes',
   'juego/pasto',
+  'juego/terreno',           // terreno y vegetación por sectores: configura el pasto real zona por zona (lo edita el Modo Dios)
   'juego/caminos',
   'juego/arbolado',          // motor de árboles (lo coloca y lo diseña el Modo Dios)
   'juego/rocoso',            // motor de rocas y formaciones (lo coloca y lo diseña el Modo Dios)
@@ -29,6 +30,7 @@ window.NV_MODULOS=[
   'juego/particulas',
   'juego/editor',
   'juego/editor-caminos',
+  'juego/editor-terreno',    // la pestaña "terreno" del Modo Dios
   'juego/creador',           // la ventana de diseño del Modo Dios: las perillas de los motores
   'juego/jugar'
 ];
