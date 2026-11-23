@@ -364,6 +364,33 @@ function gigantes(p,L,ox,oy,rnd,n){
     p.trees.push({x,y,h:h,k:'roca',s:(rnd()*1e6)|0});
     puestas++;
   }
+  circuloMenhires(p,L,ox,oy);
+}
+/* Un claro con menhires: cuatro o cinco columnas en rueda floja, como la
+   referencia. Usa su PROPIO generador (por panel) y no toca el del panel, para
+   que agregarlo no mueva nada de lo que se sortea después. Va tras los árboles:
+   sólo se planta donde todo está libre. 'ms' termina en 3 o 4 para caer en los
+   dos modelos de menhir (gig-4 y gig-5; la lista tiene cinco). */
+function circuloMenhires(p,L,ox,oy){
+  const r=NVg.mulberry(NVg.hashStr('menhires:'+ox+','+oy));
+  if(r()<0.45) return;
+  for(let intento=0;intento<40;intento++){
+    const cx=9+((r()*(L-18))|0), cy=9+((r()*(L-18))|0), n=4+((r()*2)|0);
+    const lug=[];
+    for(let i=0;i<n;i++){
+      const a=(i/n)*6.283+r()*0.7, rad=4+r()*3.5;
+      lug.push([Math.round(cx+Math.cos(a)*rad*1.3), Math.round(cy+Math.sin(a)*rad*0.8), 4.6+r()*1.8, 5*((r()*1e5)|0)+3+(i%2)]);
+    }
+    let ok=true;
+    for(const q of lug) for(let dy=-1;dy<=1&&ok;dy++) for(let dx=-1;dx<=1;dx++)
+      if(!libre(p,L,q[0]+dx,q[1]+dy)){ ok=false; break; }
+    if(!ok) continue;
+    for(const q of lug){
+      for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++) p.occ[(q[1]+dy)*L+q[0]+dx]=1;
+      p.trees.push({x:q[0],y:q[1],h:q[2],k:'roca',s:q[3]});
+    }
+    return;
+  }
 }
 function piedrasYtroncos(p,L,ox,oy,rnd,nPiedras,nTroncos){
   for(let i=0;i<nPiedras;i++){

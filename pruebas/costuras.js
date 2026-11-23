@@ -81,7 +81,7 @@ console.log('\n=== el bosque es el mismo en cada partida ===');
    generador de árboles se cambia a propósito, se vuelve a tomar: es la única
    razón válida para tocar estas cifras. Última vez: densidad de árboles mezclada
    entre paneles, que volvió a sortear el bosque. */
-const HUELLA={"-1,-1":"1225:1cf3c966","0,-1":"1084:5f65499a","1,-1":"303:84c89f0b","-1,0":"1176:a3ffae79","0,0":"785:fe5b28af","1,0":"279:1bc0036f","-1,1":"534:59e47926","0,1":"335:763d46fe","1,1":"171:8cd839af"};
+const HUELLA={"-1,-1":"1239:e5824cae","0,-1":"1093:5dc56a2e","1,-1":"307:f96bdd49","-1,0":"1180:a2ac85d3","0,0":"785:fe5b28af","1,0":"279:1bc0036f","-1,1":"534:59e47926","0,1":"335:763d46fe","1,1":"171:8cd839af"};
 const hs=s=>{ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return (h>>>0).toString(16); };
 let distintos=[];
 for(let pj=-1;pj<=1;pj++) for(let pi=-1;pi<=1;pi++){

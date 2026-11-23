@@ -574,7 +574,7 @@ function drawGroundRow(my,rBase,haze,t){
     if(calor) light=clamp(light+calor*0.85,0,2.0);
     const w=windAt(mx,my,t); wsum+=w; wn++;
     const bend = w>1.02?2 : w>0.66?1 : 0;
-    let colG=packs(fam,light*(mt.agua||1),calor*0.75);
+    let colG=packs(fam,light*(mt.agua||1)*(mt.mata?0.62:1),calor*0.75);   // el suelo del pasto, oscuro: que las briznas resalten
     if(cerca) prepararFuego(mx,my,light0,gananciaFuego,fam,mt.agua||1);
     const base=(mx-camX)*CPM;
     const grass=!!mt.mata;
@@ -710,10 +710,11 @@ function drawGroundRow(my,rBase,haze,t){
       const n=Math.round(nPer*clamp(0.20+densMata*1.10,0.12,1.7));
       let colT=packs(mt.fam2||mt.fam,light*1.3);
       let colM=packs(mt.fam,light*0.95);
+      let colB=packs(mt.fam,light*0.55);             // la base de la brizna, en sombra
       for(let b=0;b<n;b++){
         const hb=hash3(mx*997+b,my*131+sy*37,7);
         const c0=base+((hb%(CPM*8))/8|0);
-        if(cerca){ afinar(c0-base,sy); colT=packs(mt.fam2||mt.fam,_lz*1.3); colM=packs(mt.fam,_lz*0.95); }
+        if(cerca){ afinar(c0-base,sy); colT=packs(mt.fam2||mt.fam,_lz*1.3); colM=packs(mt.fam,_lz*0.95); colB=packs(mt.fam,_lz*0.55); }
         const mAlto=(largo?0.45:0.13)+(((hb>>5)%100)/100)*(largo?0.80:0.27);
         const alto=Math.max(2,Math.round(mAlto*HPM));
         const own=((((hb>>9)%9)-4)/4)*0.95;
@@ -732,7 +733,7 @@ function drawGroundRow(my,rBase,haze,t){
           } else {
             g = tip?'*':'\u00b0';
           }
-          put(c0+dx,rb-r,g.charCodeAt(0),tip?colT:colM);
+          put(c0+dx,rb-r,g.charCodeAt(0),tip?colT:(largo&&f<0.5)?colB:colM);   // base oscura, punta clara
         }
       }
       if(det){

@@ -1157,6 +1157,12 @@ Los troncos son más gruesos (×1,7 encino, ×1,5 pino, ×1,35 álamo) y las cop
 más ralas (`umbral` y `gamma` subidos en pino y encino): el bosque viejo se lee
 por el fuste ancho, no por la copa. El árbol místico (`hueso`) es pálido de luna.
 Hay dos menhires en los gigantes (`gig-4`, `gig-5`): columnas angostas de 5 a 6 m.
+Las briznas largas tienen la base oscura (×0,55) y la punta clara (×1,3), y el
+suelo bajo el pasto va a ×0,62: lo claro son las briznas, no el piso. En el
+generador, `circuloMenhires` planta, en cerca de la mitad de los paneles, cuatro o
+cinco menhires en rueda floja; usa su propio generador por panel y va después de
+los árboles, así que no mueve nada de lo que ya estaba (`pruebas/costuras.js`
+cambió su huella solo en las rocas).
 Si algo se ve «primavera», casi siempre es un verde
 saturado de brillo medio: bajarlo, no subir otro color.
 
