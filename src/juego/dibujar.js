@@ -1059,6 +1059,59 @@ function tablaGamma(g){
 }
 let _UI=new Float32Array(256), _RU=new Float32Array(256);
 
+/* ---------- PINO Y ÁLAMO, AL ESTILO DE LA MUESTRA ----------
+   Un árbol de glifos: una sola masa oscura hecha de letras y dígitos altos
+   (`1 l i t f k b d h`), tenues, con unas pocas motas claras de piedra, y una
+   orla casi negra que lo despega del pasto. El pino es tronco angosto bajo una
+   copa en pisos de borde dentado; el álamo, una columna en llama. La silueta
+   se mide en metros del modelo (m.pisos / m.columna / m.grosor / m.ancho), así
+   que el modelo y el zoom siguen mandando. Todo el azar sale de la semilla del
+   árbol y de la celda, nunca de la pantalla, y el viento sólo corre la copa. */
+function drawArbolGlifo(tr,haze,t){
+  const sp=SPECIES[tr.sp], M=NV.MODELOS[tr.sp], m=M[tr.s%M.length], G=sp.glifos;
+  const bc=(tr.x-camX)*CPM+Math.floor(CPM/2), br=(tr.y-camY)*RPM+RPM-1;
+  const h=tr.h, H=Math.max(6,Math.round(h*HPM));
+  const viento=windAt(tr.x,tr.y,t*0.8)*sp.sway;
+  const grosorC=Math.max(1.2,m.grosor*h*CPM/2), anchoC=Math.max(2,m.ancho*h*CPM/2);
+  const desde=m.pisos?m.pisos.desde:m.columna.desde;
+  for(let k=0;k<=H;k++){
+    const y=k/H, r=br-k;
+    if(r<-4||r>=rowsN+4) continue;
+    const u=clamp((y-desde)/(0.95-desde),0,1.2);
+    let hw;
+    if(y<desde){                                       // tronco, con el pie abierto
+      hw=grosorC*(1+0.9*Math.max(0,1-y/0.07)*(1-y/0.07));
+    } else if(u>1){
+      hw=Math.max(0.6,grosorC*0.4*(1.2-u)/0.2);        // la punta
+    } else if(m.pisos){
+      const P=m.pisos, fr=(u*P.n)%1;
+      hw=anchoC*Math.pow(1-u,P.p)*(0.62+0.38*(1-fr*0.85));      // pisos que caen
+      hw=Math.max(hw,grosorC);
+    } else {
+      const Q=m.columna;
+      hw=anchoC*(Q.llama?Math.sqrt(Math.max(0.06,1-Math.pow(u*1.8-0.80,2)*0.92))
+                        :Math.sqrt(Math.max(0.06,1-u*u*0.58)));
+      hw=Math.max(hw,grosorC)*(Q.rala?0.86:1);
+    }
+    hw*=0.90+0.20*((hash3(tr.s,k,6)%100)/100);          // el borde no es una regla
+    const ci=Math.max(1,Math.round(hw));
+    const c0=bc+Math.round(m.inclina*y*h*CPM+viento*1.1*Math.pow(clamp(y,0,1),1.3));
+    const copa=y>=desde;
+    for(let c=-ci;c<=ci;c++){
+      const este=c/ci, hh=hash3(tr.s+c*17,k>>1,3);
+      const borde=Math.abs(c)>=ci;
+      const denso=(hh%100)<(copa?46:34);
+      const g=(denso?G.denso:G.ralo)[(hh>>7)%(denso?G.denso.length:G.ralo.length)];
+      let luz=(copa?0.34:0.28)+0.26*((este+1)/2);
+      if(borde) luz*=este>0?1.55:0.60;
+      const fleco=((hh>>11)%100)<(copa?13:9);
+      put(c0+c,r,g.charCodeAt(0),
+          packs(fleco?G.fleco:G.fam, (fleco?0.50+0.5*((hh>>3)%10)/10:luz)*sp.luzC*haze));
+    }
+    put(c0-ci-1,r,35,ORLA); put(c0+ci+1,r,35,ORLA);
+    if(k===H) for(let c=-ci;c<=ci;c++) put(c0+c,r-1,35,ORLA);
+  }
+}
 function drawArbol(tr,haze,t){
   const sp=SPECIES[tr.sp], M=NV.MODELOS[tr.sp];
   const m=M[tr.s%M.length];
@@ -1379,7 +1432,10 @@ function drawObjeto(tr,haze,t){
   }
   /* las tres especies del bosque tienen modelo; el místico del lago y los
      arbustos siguen por el camino viejo */
-  if(tr.k==='arbol' && NV.MODELOS[tr.sp]){ drawArbol(tr,haze,t); return; }
+  if(tr.k==='arbol' && NV.MODELOS[tr.sp]){
+    if(SPECIES[tr.sp].glifos) drawArbolGlifo(tr,haze,t); else drawArbol(tr,haze,t);
+    return;
+  }
   const sp=SPECIES[tr.sp]||SPECIES.encino;
   const isB=tr.k==='arbusto';
   const tall=Math.max(3,Math.round(tr.h*HPM));

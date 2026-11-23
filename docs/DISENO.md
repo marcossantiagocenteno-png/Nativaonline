@@ -1177,6 +1177,14 @@ hacia arriba; se mide en coordenadas de la piedra, no de la pantalla.
 **Puntitos claros** en el pasto: tres veces más que antes (9 de cada 140 franjas,
 antes 3), en dos tonos y con algunos en `*`. Fijos, sin parpadeo: la prueba de que el
 suelo queda quieto lo exige.
+**Pino y álamo, al estilo de la muestra.** Ya no son corteza marrón y follaje verde:
+son una sola masa oscura de letras y dígitos altos (`1 l i t f I j` ralos, `k b d h B R 6 4`
+densos; el álamo con `! |` y `9`), tenues, con motas claras de piedra y la orla casi
+negra que los despega del pasto (`drawArbolGlifo`). La silueta sale del mismo modelo
+de antes (`m.pisos`, `m.columna`, `m.grosor`, `m.ancho`): el pino es tronco angosto bajo
+una copa en pisos de borde dentado, el álamo una columna en llama, y el pie se abre.
+Los glifos están en `SPECIES[...].glifos`. El encino y el árbol místico siguen con el
+dibujo viejo (`drawArbol`). Todo el azar sale de la semilla del árbol y de la celda.
 Si algo se ve «primavera», casi siempre es un verde
 saturado de brillo medio: bajarlo, no subir otro color.
 

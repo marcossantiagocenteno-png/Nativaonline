@@ -168,6 +168,7 @@ const SPECIES={
           copa:[' ','.',':',';','*','A','#'], borde:[' ','.',':','^'],
           w:0.42, troncoFrac:0.46, tiers:4, sway:0.5, alto:[4.5,6.5],
           placa:['H','#','%'], veta:'|', nudo:['0','o'], luzC:1.00,
+          glifos:{ralo:['1','l','i','t','f','I','j'], denso:['k','b','d','h','B','R','6','4'], fam:'pino', fleco:'piedra'},
           famS:'pino',  gamma:0.78, umbral:0.26, grumo:2},
   encino:{n:'encino', fam:'verde',  corteza:'corteza',
           copa:[' ','.',',','o','e','8','@'], borde:[' ','.',',','`','o'],
@@ -178,6 +179,7 @@ const SPECIES={
           copa:[' ','.','"','v','o','8'], borde:[' ','.','"','v'],
           w:0.38, troncoFrac:0.40, tiers:0, sway:1.8, alto:[4.0,5.6],
           placa:['l','|','I'], veta:'-', nudo:['o','0'], luzC:1.15,
+          glifos:{ralo:['1','l','i','t','I','!','|'], denso:['h','b','d','k','R','6','9'], fam:'cortezaClara', fleco:'piedra'},
           famS:'verde',  gamma:1.10, umbral:0.30, grumo:1}
 };
 const WOOD={ tronco:['t','h','H'], rama:['y','Y'], tocon:['o','0','U'], caido:['h','H'] };
