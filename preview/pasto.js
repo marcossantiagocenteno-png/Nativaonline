@@ -173,12 +173,12 @@ function pintar(ctx,g,cw,chh,ox,oy,c0,c1){
    reflejo verde claro y un gris discreto. Las florecitas van en grupitos y escasas.
      A · muy alta, microscópica     B · extrema, pequeños trazos entrelazados
      C · extrema, más variación de tono y de luminosidad por manchas */
-const PAL=[ [[16,42,30],[24,60,42]],       // 0 verde bosque muy oscuro
-            [[44,82,44],[62,106,54]],      // 1 musgo
-            [[70,94,80],[90,114,98]],      // 2 verde grisáceo
-            [[80,90,46],[102,112,58]],      // 3 oliva apagado
-            [[104,166,104],[146,204,138]],// 4 reflejo verde claro
-            [[100,110,106],[124,132,126]] ]; // 5 gris discreto
+const PAL=[ [[14,32,34],[22,46,48]],       // 0 verde bosque azulado, muy oscuro
+            [[38,66,58],[54,88,76]],      // 1 musgo triste (verde azulado apagado)
+            [[66,86,86],[84,106,106]],    // 2 verde grisáceo frío
+            [[72,80,62],[90,98,76]],      // 3 oliva muy apagado, casi gris
+            [[96,150,138],[134,184,170]], // 4 reflejo verde azulado claro
+            [[98,108,112],[120,130,134]] ];// 5 gris discreto
 const VAR={
   A:{cover:0.93, trazo:0.07, largo:[1,2], pesos:[0.44,0.20,0.12,0.14,0.07,0.03], micro:":;'`-,.:;~", zona:0.15},
   B:{cover:0.965,trazo:0.36, largo:[1,3], pesos:[0.34,0.20,0.12,0.16,0.12,0.06], micro:":;'`-~\"!i,.:;", zona:0.25},
