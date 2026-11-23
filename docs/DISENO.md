@@ -1589,3 +1589,18 @@ Pruebas: `pruebas/terreno.js` (motor) y `pruebas/terreno-juego.js` (mundo, dibuj
 **Sectores de terreno: caché por metro (el cuello de botella real del Modo Dios con sectores).** Con tres sectores en pantalla el juego iba a ~3 FPS (330 ms por cuadro en el mundo): `perfilEn` (listas, objetos, cierres y decenas de llamadas a ruido) se llamaba por celda en cada cuadro aunque los sectores no cambian. Ahora `entradaMetro`/`pCelda` en `terreno.js` guardan por metro el perfil de cada celda, las muestras por franja, las flores y el sector dominante, y se invalidan solos si cambia la versión de los sectores (`M.v`), la cuadrícula (`CPM`/`RPM`) o se pasan de 90 000 celdas. La luz, el calor y el viento NO se guardan. También se guardan por sector `esNeutro` (antes serializaba a JSON en cada llamada) y por celda los tres factores de luz del relieve. Resultado medido en Chrome real: 2,8 → ~31 FPS. `pruebas/dorado-sectores.js` compara contra una huella grabada con el código ANTERIOR (incluye cambiar, mover y quitar un sector); `pruebas/chrome-sectores.js` mide en Chrome real.
 
 **Mover el mapa en Modo Dios (Espacio + arrastrar).** `editor.js` (`iniciarPaneo`/`moverPaneo`/`finPaneo`) desplaza la cámara en metros mediante `NV.camLibre`, que `dibujar.js` suma a lo que seguiría al personaje y recorta a los límites del mundo (devolviendo el recorte al desplazamiento, para que no se acumule más allá del borde). Mientras se arrastra, `NV.camDirecta` apaga el suavizado de la cámara y el terreno queda pegado al cursor. El personaje no se mueve y no se edita nada. Inicio vuelve al personaje; salir de Modo Dios lo limpia. El Espacio no activa botones con foco ni se come las teclas dentro de campos de texto o controles. Prueba: `pruebas/editor-mapa.js`.
+
+## Ampliar el mundo en Modo Dios (parcelas de 10 × 10 m)
+
+El mundo limpio es un solo panel de 100 × 100 m (`NV.limites()` = 0..100 en x e y). Para crecer sin
+inventar paneles enteros, el mundo se amplía de a **parcelas de 10 × 10 m**:
+
+- Operación `{t:'parcela',bx,by,on}` en `ediciones.js` (índices de parcela; x al este, y al sur; pueden ser
+  negativos). Tiene inversa (deshacer/rehacer) y viaja en el archivo como `parcelas:[[bx,by],…]` dentro de su panel.
+- La parcela vive en el panel que la contiene. Si ese panel no existía se crea **parcial** (`def.parcial`, bioma
+  pasto): sólo es tierra en sus parcelas; el resto de sus 100 × 100 m es vacío (`sueloEn` null, `solidoEn` true).
+- `limites()` toma la caja de las parcelas de los paneles parciales, no del panel entero.
+- En el editor: clic en el vacío **junto a tierra** (por un lado) marca la parcela con cruces doradas y pregunta
+  "¿Expandir?" con Sí / No (también teclas S/Enter y N/Esc). Lejos de la tierra avisa que no se puede. Clic sobre tierra
+  sigue colocando como siempre. La cámara libre deja 40 m de margen para ver el vacío.
+- Prueba: `node pruebas/ampliar.js`.

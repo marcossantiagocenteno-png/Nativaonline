@@ -192,3 +192,11 @@ button.on{border-color:var(--oro);color:var(--oro)}
   border:1px solid var(--oro);color:var(--oro);padding:3px 8px;
   font-size:10px;display:none;z-index:60}
 #toast.show{display:block}
+
+/* la pregunta de ampliar el mundo (Modo Dios): una cajita al pie, negro, blanco y oro */
+#expandir{display:none;position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:30;background:#0b0d10;border:1px solid var(--oro);padding:10px 14px;text-align:center;font-size:12px;color:var(--ink)}
+#expandir.show{display:block}
+#expandir #expTxt{margin-bottom:8px;white-space:pre-line}
+#expandir .fila{display:flex;gap:8px;justify-content:center}
+#expandir button{min-width:70px;font-size:12px;padding:4px 10px;background:#0b0d10;color:var(--ink);border:1px solid var(--oro)}
+#expandir button:hover{background:#17140b}

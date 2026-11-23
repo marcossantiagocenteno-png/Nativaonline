@@ -191,11 +191,41 @@
   E.finPaneo=finPaneo;
   E.volverAlPersonaje=function(){ NV.camLibre=null; finPaneo(); decir('La vista vuelve al personaje.'); programarCuadro(); };
 
+  /* ---------- ampliar el mundo: clic en el vacío, junto a tierra → ¿Expandir? ----------
+     El mundo crece de a una parcela de 10 × 10 m, siempre pegada a tierra que ya existe (por un lado). Un clic en el vacío
+     marca la parcela y pregunta; Sí la agrega (operación 'parcela', con deshacer), No la descarta. */
+  const PAR=10;
+  E.expansion=null;
+  const hayTierraParcela=(bx,by)=>NV.sueloEn(bx*PAR+PAR/2,by*PAR+PAR/2)!==null;
+  function cerrarExpansion(){ E.expansion=null; const b=$e('expandir'); if(b) b.classList.remove('show'); programarCuadro(); }
+  function abrirExpansion(bx,by){
+    E.expansion={bx,by};
+    const t=$e('expTxt'), b=$e('expandir');
+    if(t) t.textContent='¿Expandir?\n'+PAR+' × '+PAR+' m en ('+(bx*PAR)+', '+(by*PAR)+')';
+    if(b) b.classList.add('show'); programarCuadro();
+  }
+  function confirmarExpansion(si){
+    const X=E.expansion; if(!X){ return; }
+    cerrarExpansion();
+    if(si) hacer({t:'parcela',bx:X.bx,by:X.by,on:true},'Terreno ampliado: '+PAR+' × '+PAR+' m.'); else decir('No se amplió.');
+  }
+  E.confirmarExpansion=confirmarExpansion;
+  /* devuelve true si el clic era sobre el vacío (y ya se atendió) */
+  function intentarAmpliar(e){
+    apuntar(e); const h=E.hover; if(!h) return false;
+    if(NV.sueloEn(h.x,h.y)!==null){ if(E.expansion) cerrarExpansion(); return false; }
+    const bx=Math.floor(h.x/PAR), by=Math.floor(h.y/PAR);
+    const junto=[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>hayTierraParcela(bx+a,by+b));
+    if(!junto){ if(E.expansion) cerrarExpansion(); decir('Sólo se puede ampliar junto a terreno que ya existe.'); return true; }
+    abrirExpansion(bx,by); return true;
+  }
+
   /* ---------- el ratón ---------- */
   function alBajar(e){
     if(!E.activo) return;
     e.preventDefault();
     if(E.espacio&&e.button===0){ iniciarPaneo(e); return; }
+    if(e.button===0&&!e.ctrlKey&&intentarAmpliar(e)) return;
     if(E.modo!=='objetos'){ E.modos[E.modo].bajar(e); return; }
     apuntar(e);
     const h=E.hover; if(!h) return;
@@ -237,7 +267,7 @@
     if(typeof detenerRuta==='function') detenerRuta();
     const p=$e('dios'); if(p) p.classList.add('show');
     $e('cv').style.cursor='crosshair';
-    decir('<b>Modo Dios</b>\nElegí algo de la paleta y hacé clic en el terreno.\nRueda o + / − : zoom libre (hasta 200 m).\nEspacio + arrastrar: mover el mapa · Inicio: volver al personaje.');
+    decir('<b>Modo Dios</b>\nElegí algo de la paleta y hacé clic en el terreno.\nRueda o + / − : zoom libre (hasta 200 m).\nEspacio + arrastrar: mover el mapa · Inicio: volver al personaje.\nClic en el vacío junto al mapa: ampliar 10 × 10 m.');
     refrescar(); programarCuadro();
   };
   E.salir=function(){
@@ -245,7 +275,7 @@
     const Mx=E.modos[E.modo]; if(Mx&&Mx.cerrar) Mx.cerrar();
     if(NV.creador) NV.creador.cerrar();
     clearTimeout(tGuardar); NV.mundo.guardarBorrador();   // lo editado ya está en el mundo; además queda guardado
-    NV.camLibre=null; NV.camDirecta=false; E.espacio=false; E.paneo=null;
+    cerrarExpansion(); NV.camLibre=null; NV.camDirecta=false; E.espacio=false; E.paneo=null;
     NV.zoomLibre(false); E.activo=false; E.sel=null; E.fantasma=null; E.hover=null; NV.pick(false);
     const p=$e('dios'); if(p) p.classList.remove('show');
     $e('cv').style.cursor='';
@@ -285,6 +315,12 @@
   /* resaltado de la silueta bajo el cursor, tinte de la vista previa y marcador de la casilla.
      Se llama dentro de draw_, antes de volcar al lienzo. */
   E.pintar=function(){
+    if(E.expansion){
+      /* el marco de la parcela candidata: cruces de oro cada metro y medio */
+      const X=E.expansion, x0=X.bx*PAR, y0=X.by*PAR, color=packc(ORO_VIVO[0],ORO_VIVO[1],ORO_VIVO[2]);
+      const cruz=(x,y)=>{ const c0=Math.round((x-camX)*CPM), r0=Math.floor((y-camY)*RPM); ordR=65535; layer=3; alzaR=0; pickId=0; for(const [dx,dy] of [[0,0],[-1,0],[1,0],[0,-1],[0,1]]) put(c0+dx,r0+dy,43,color); layer=0; };
+      for(let i=0;i<=PAR;i++){ const t=i*PAR/PAR; cruz(x0+t,y0); cruz(x0+t,y0+PAR); cruz(x0,y0+t); cruz(x0+PAR,y0+t); }
+    }
     if(E.modo!=='objetos'){ const M=E.modos[E.modo]; if(M&&M.pintar) M.pintar(); return; }
     const h=E.hover, n=cols*rowsN;
     if(h&&h.obj){
@@ -321,6 +357,7 @@
       if(k==='g'&&e.shiftKey&&!e.ctrlKey&&!e.metaKey){ e.preventDefault(); E.activo?E.salir():E.entrar(); return; }
       if(!E.activo) return;
       const campo=/^(INPUT|SELECT|TEXTAREA)$/.test((e.target&&e.target.tagName)||'');
+      if(E.expansion&&!campo){ if(k==='s'||k==='enter'){ e.preventDefault(); confirmarExpansion(true); return; } if(k==='n'||k==='escape'){ e.preventDefault(); confirmarExpansion(false); return; } }
       if((e.code==='Space'||k===' ')&&!campo){ e.preventDefault(); if(!E.espacio){ E.espacio=true; cursorMapa(); } return; }
       if(k==='home'&&!campo){ e.preventDefault(); E.volverAlPersonaje(); return; }
       if(E.modo!=='objetos'){ const M=E.modos[E.modo]; if(M.tecla&&M.tecla(e,k)){ e.preventDefault(); return; } }
@@ -336,6 +373,8 @@
     addEventListener('pointerup',finPaneo); addEventListener('pointercancel',finPaneo);
     addEventListener('blur',()=>{ E.espacio=false; finPaneo(); });
     const b=id=>$e(id);
+    if(b('expSi')) b('expSi').addEventListener('click',()=>confirmarExpansion(true));
+    if(b('expNo')) b('expNo').addEventListener('click',()=>confirmarExpansion(false));
     b('diosModoObj').addEventListener('click',()=>E.cambiarModo('objetos'));
     b('diosModoCam').addEventListener('click',()=>E.cambiarModo('caminos'));
     b('diosModoTer').addEventListener('click',()=>E.cambiarModo('terreno'));
