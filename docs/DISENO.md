@@ -1269,8 +1269,10 @@ Las caras son opcionales: `generar` (datos deterministas), `dibujar` (pinta en e
 `ambiente(x,y,t)` (consulta) y `editor` (parámetros y herramientas que ofrece al Modo Dios).
 `estado` es `integrado`, `en-dibujar` (aún vive dentro de `dibujar.js`) o `pendiente`.
 Cada motor trae su `preview` y su `prueba`, para poder probarlo solo. Hoy están dados de alta
-`luz` y `viento`. Pasto, agua, árboles, caminos, empedrado, vegetación y rocas se extraen
-**uno por uno**, con el test dorado como red, y cada uno se registra al salir.
+`luz`, `viento` y `pasto` (este último extraído de `dibujar.js` a `src/juego/pasto.js`, con sus
+parámetros —cobertura, trazo, zona— en `NV.pasto.cfg`, y su prueba propia `pruebas/pasto.js`). Agua, árboles,
+caminos, empedrado, vegetación y rocas se extraen **uno por uno** igual, con el test dorado como red, y cada uno
+se registra al salir.
 
 ### El formato del archivo (formato 1)
 
@@ -1289,5 +1291,5 @@ Cambiar el formato exige subir `FORMATO` y escribir su migración en `MIGRACIONE
 
 ### Qué falta (y no se hace aún)
 
-El editor mismo; mover los archivos de `src/` a su carpeta final; extraer pasto/agua/árboles de
+El editor mismo; mover los archivos de `src/` a su carpeta final; extraer agua/árboles de
 `dibujar.js`; que los rasgos de río afecten la altura del agua; una pantalla para exportar.

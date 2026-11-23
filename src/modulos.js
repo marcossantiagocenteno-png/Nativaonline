@@ -18,7 +18,7 @@ window.NV_MODULOS=[
   'motor/sprites',
   'juego/interfaz',
   'juego/personajes',
-  'juego/dibujar',
+  'juego/pasto','juego/dibujar',
   'juego/particulas',
   'juego/jugar'
 ];
