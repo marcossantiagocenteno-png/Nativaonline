@@ -49,6 +49,7 @@ function draw_(){
   fbG.fill(0); fbL.fill(0); fbO.fill(0);
   _ft.clear(); _ftX0=camX-3; _ftN=colsM+10;
   const t=frame*0.11;
+  prepararLuna(colsM,rowsM);
   const lastRow=Math.min(LIM.y1-1,camY+rowsM+22);
   /* Con altura, un metro del norte puede caer más abajo en pantalla (la vista sube con
      el jugador) y uno del sur más arriba (una loma lo levanta). Sólo se dibujan los
@@ -234,6 +235,27 @@ const texRuido=makeNoise(mulberry(31771));
    columnas pero sólo RPM filas. */
 const tex2=(wx,wy,e)=>0.66*texRuido(wx/e,wy/e,1,1)
                      +0.34*texRuido(wx/(e*0.42)+37,wy/(e*0.42),1,1);
+/* La luna en el agua quieta: un disco de glifos claros, estirado a lo ancho por la
+   perspectiva y cortado en franjas, que se ve donde haya agua en el lugar de la
+   pantalla que le toca (la luna sale por el este, sube y se va por el oeste). Se
+   ancla a la cámara: reflejo y espectador se mueven juntos. Sólo de noche, con la
+   luna sobre el horizonte, algo de fase y el cielo sin nubes. */
+let _luna=null;
+function prepararLuna(colsM,rowsM){
+  _luna=null;
+  /* no se usa nocheEstrellas(): una luna llena sube la luz de la noche y las
+     estrellas se apagan, pero su propio reflejo tiene que verse más, no menos */
+  const CI=NV.cielo, LL=CI&&CI.lunas;
+  if(!LL||!CI.deNoche) return;
+  const noche=1-Math.max(0,Math.min(1,(CI.clima?CI.clima.nubes:0)*1.4));
+  if(noche<0.15) return;
+  let mejor=null, pt=0;
+  for(const k in LL){ const L=LL[k], v=L.ilum*L.altura; if(L.altura>0.05&&L.ilum>0.12&&v>pt){ pt=v; mejor=L; } }
+  if(!mejor) return;
+  const cx=NV.camXf===undefined?camX:NV.camXf, cy=NV.camYf===undefined?camY:NV.camYf;
+  _luna={x:cx+colsM*(0.5-0.38*Math.sin(mejor.hora)), y:cy+rowsM*(0.62-0.22*mejor.altura),
+         f:Math.min(1,0.50+pt*1.2)*noche, rx:2.0, ry:0.95};
+}
 const _ola={g:0,fam:'agua',lz:1};
 function celdaOla(est,wx,wy,t){
   const A=NV.OLAS[est]||NV.OLAS.rio;
@@ -287,6 +309,13 @@ function celdaOla(est,wx,wy,t){
         const tit=0.55+0.45*NV.sen(t*0.8+hq*0.9);
         g=(hq&1)?58:46; fam='nieve'; lz=(0.40+0.75*tit)*(hq<8?1.3:1);
       }
+    }
+  }
+  if(_luna && rp<=0.6 && !rompe){
+    const ux=(wx-_luna.x)/_luna.rx, uy=(wy-_luna.y)/_luna.ry, d2=ux*ux+uy*uy*0.55;
+    if(d2<1 && NV.sen(wy*9+t*0.7)>-0.6){
+      const q=(1-d2)*_luna.f, hq=hash3((wx*13)|0,(wy*9)|0,97)%100;
+      if(hq<30+70*q){ g=q>0.6?(hq%3?56:35):q>0.3?111:58; fam='nieve'; lz=0.5+0.9*q; }
     }
   }
   if(A.rocio && subida>0.80 && (hash3((wx*13)|0,(wy*13)|0,7)%100)<16){

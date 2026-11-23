@@ -786,8 +786,13 @@ celdas. El mar ya no se levanta con la marea alta: solo `mar-olas` con mal tiemp
 los objetos se cortan y se corren mucho menos (umbral 0,93 y 0,6 celdas, antes 0,78 y
 1,4). **Estrellas:** de noche el agua quieta refleja el cielo, con puntitos `. :` pálidos
 fijos en el mundo y un titilar lento; `NV.nocheEstrellas()` (en `cielo.js`) da cuántas se
-ven y las nubes las tapan. Falta, de la muestra, la luna reflejada y la línea fina de
-espuma solo en la orilla.
+ven y las nubes las tapan. **Luna en el agua:** de noche, con la luna sobre el horizonte
+y el cielo sin nubes, el agua quieta lleva un disco de glifos claros (`: o 8 #`) de unos
+4 × 2 m, cortado en franjas que se mueven despacio. Se ancla a la CÁMARA, no al mundo: la
+x sale del ángulo horario de la luna (sale por el este, cruza y se pone por el oeste) y la
+y de su altura. Elige la luna con más `ilum × altura` y tiene un piso de fuerza, porque
+la luz de una luna llena apaga las estrellas pero no su propio reflejo. Falta, de la
+muestra, la línea fina de espuma solo en la orilla (hoy sigue la banda de `espumar`).
 
 ### La textura del suelo
 

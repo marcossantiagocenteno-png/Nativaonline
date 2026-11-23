@@ -44,7 +44,7 @@ for(let i=0;i<g.length;i++){
   if(!g[i]) continue;
   const ch=String.fromCharCode(g[i]), v=C[i], r=(v>>16)&255, gg=(v>>8)&255, b=v&255;
   if('thH'.indexOf(ch)>=0 && r>gg && gg>b) tronco++;
-  if('oe8@'.indexOf(ch)>=0 && gg>r) copa++;
+  if('oe8@pqgdb6'.indexOf(ch)>=0 && gg>r) copa++;     // el encino ahora es de glifos: p q g d b 6
 }
 console.log('  troncos:', tronco, '· follaje:', copa);
 probar('se dibujan troncos', tronco>30);

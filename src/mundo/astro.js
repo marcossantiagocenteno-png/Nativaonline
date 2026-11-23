@@ -117,7 +117,7 @@ function estadoLuna(l,t){
   const nodo = ((l.nodo0 - t/l.nodal)%1+1)%1;
   const ecl = eclipse(l,t,fase);
   return {
-    nombre:l.nombre, fase, ilum, altura, eclipse:ecl,
+    nombre:l.nombre, fase, ilum, altura, hora:hLuna, eclipse:ecl,
     sobreHorizonte: altura>0,
     grados: Math.asin(Math.max(-1,Math.min(1,altura)))*180/Math.PI,
     nombreFase: FASES[Math.floor(((fase+1/16)%1)*8)],
