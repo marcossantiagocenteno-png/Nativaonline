@@ -13,6 +13,7 @@ window.NV_MODULOS=[
   'mundo/ediciones','mundo/objetos',         // aplica las ediciones del mundo sobre cada panel generado
   'luz-de-lunas/luz',
   'mundo/viento',
+  'motor/entorno',           // lo que comparten árboles, rocas y los que vengan: viento, luz, sombras, contorno
   'motor/lienzo',
   'arte/myrella',
   'motor/sprites',
@@ -20,6 +21,7 @@ window.NV_MODULOS=[
   'juego/personajes',
   'juego/pasto',
   'juego/caminos',
+  'juego/arbolado',          // motor de árboles (laboratorio: el juego todavía no lo llama)
   'juego/dibujar',
   'juego/particulas',
   'juego/editor',

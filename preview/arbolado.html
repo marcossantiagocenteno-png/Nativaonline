@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, max-age=0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laboratorio de árboles</title>
+</head>
+<body>
+<noscript>El laboratorio necesita JavaScript.</noscript>
+<script>
+/* Igual que index.html y caminos.html: nada adentro salvo un cargador que pide cada archivo con la hora actual.
+   Carga la base, el registro, la luz y el viento REALES (sin tocarlos), el entorno compartido, el pasto del juego
+   y el motor de árboles. No arranca el juego: el viento y la luz del laboratorio son los de NV.entorno.simulado. */
+(function(){
+  var v='?v='+Date.now();
+  ['../src/motor/base.js','../src/motor/registro.js','../src/luz-de-lunas/luz.js','../src/mundo/viento.js',
+   '../src/motor/entorno.js','../src/juego/pasto.js','../src/juego/arbolado.js','arbolado.js'].forEach(function(f){
+    document.write('<script src="'+f+v+'"><\/script>');
+  });
+})();
+</script>
+</body>
+</html>

@@ -1428,3 +1428,22 @@ pone la red al día con los datos del mundo y sólo rehace lo que cambió.
 **Costo medido:** ~0,4 µs por casilla consultada en el laboratorio. En el juego simulado, ocho caminos largos a la vista suman ~35 ms por
 cuadro sobre ~30 ms del suelo sin ellos (en Node, no en un navegador): el pendiente de guardar el suelo ya pintado sigue abierto y es
 el que lo bajaría. `deMetro` ya descarta los metros lejos del eje con la grilla de 4 m de cada camino.
+
+## Entorno compartido y motor de árboles (23/11, laboratorio)
+
+**`NV.entorno` (`src/motor/entorno.js`)** es la única capa por la que un motor recibe viento, luz, sombra proyectada y
+contorno. No reemplaza a `viento.js` ni a `luz.js`: los lee. Un motor se declara con
+`NV.entorno.conectar(id,{viento:[tipos],luz,sombra,contorno})`.
+- `viento(tipo,x,y,t)` → `{mov,osc,I,f}` (memoizado por cuadro). `luz()` → `{amb,r,g,b,dx,dy,porMetro,L,firma}`, `L` = vector al sol.
+- `sobreCara(ne,ns,nu,luz)` ilumina una normal; `huella(cuerpos,luz,opt)` da la sombra en el suelo de elipsoides, con
+  desplazamiento por altura (`despl`) para que siga al viento; `contorno.silueta(G,w,h)` marca la orla de 1 celda por fuera.
+- **Proveedor simulado**: `NV.entorno.usar(NV.entorno.simulado({viento:{valor,ciclo},luz:{...}}))` — así cada motor se prueba solo.
+  `usar(null)` vuelve al real. `ajustarLuz/ajustarViento` son los parámetros para el Modo Dios (motor `entorno`, cara `editor`).
+- Las direcciones de sombra del juego no se tocaron (árboles y rocas al este, personaje al oeste).
+
+**`NV.arbolado` (`src/juego/arbolado.js`)**: pino, encino, álamo y árbol seco × pequeño/mediano/grande, tres variantes por familia,
+deterministas por semilla. Copas = masas elipsoidales con z-buffer, normales, autosombra, grumos y bordes deshilachados; troncos,
+ramas y raíces como tramos con radio. Sólo usa glifos del diccionario. El viento sólo corre celdas (tronco, rama, hoja), la sombra
+sale de las mismas masas ya corridas, y el contorno (glifo 35, `ORLA`) se calcula sobre la silueta ya movida. Estado `pendiente`,
+sin cara `objetos`: **no está en el juego ni en la paleta del Modo Dios**. Integrarlo (fase 4) toca `drawTree`, `calcularSombras` y el
+catálogo de objetos y requiere autorización. Laboratorio: `preview/arbolado.html`. Pruebas: `pruebas/entorno.js`, `pruebas/arbolado.js`.
