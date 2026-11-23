@@ -447,7 +447,7 @@ function calcularSombras(p,L){
     for(let sx=0;sx<span;sx++) for(let d=0;d<=largo;d++){
       const x=Math.round(t.x+sx+S.dx*d), y=Math.round(t.y+S.dy*d);
       if(x<0||y<0||x>=L||y>=L) break;
-      const str=0.32+0.58*(d/largo);
+      const str=0.16+0.66*(d/largo);       // sombra larga y honda, como la de la referencia
       for(let j=-ancho;j<=ancho;j++){
         const yy=y+j; if(yy<0||yy>=L) continue;
         const v=j===0?str:str+0.22, i=yy*L+x;

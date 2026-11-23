@@ -526,7 +526,7 @@ suelo.
 
 | material | glifos | nota |
 |---|---|---|
-| piedra, cuatro texturas | granito `o 0 8 % #` · arenisca `- : o 8 %` · pulido `: o 0 8` · basalto `c o % # H` | en sombra cada una tiene su rampa propia |
+| piedra, cuatro texturas | granito `o a 0 e 8 9 & # @` · arenisca `- : o 8 %` · pulido `: o 0 8` · basalto `c o a % 8 # H B` | en sombra cada una tiene su rampa propia |
 | estrato | `=` y `~`, con filo `°` arriba y socavón `_` abajo | exclusivo: la arenisca perdió el `=` del grano para no tapárselo |
 | grieta | `\| !` casi negro | |
 | roca madre | `. : ^ A M` más `# %` y vetas `/ \` | estratos horizontales y dos tonos de piedra en manchas |
@@ -1148,7 +1148,12 @@ menta**; así el pasto claro resalta contra la sombra en vez de que todo sea ver
 medio. Cortezas, tierra y hojarasca se desaturan hacia gris pardo; la piedra se
 enfría hacia gris azulado. El suelo tiene más contraste (`lp` va de 0,58 a 1,38:
 charcos de sombra y claros) y las puntas de las briznas llevan más luz que la
-mata (×1,3 contra ×0,95). Si algo se ve «primavera», casi siempre es un verde
+mata (×1,3 contra ×0,95). La arena es gris azulado de luna y el hongo gigante pálido y frío: eran lo único
+beige que quedaba. La piedra mezcla dígitos y letras (`a e 9 & @`) en el medio de
+la rampa, como la piedra de la referencia; el extremo denso sigue siendo
+exclusivo (regla 3). Las sombras de árboles y rocas son más largas y hondas
+(`0,16 + 0,66·d` en `calcularSombras`, antes `0,32 + 0,58·d`).
+Si algo se ve «primavera», casi siempre es un verde
 saturado de brillo medio: bajarlo, no subir otro color.
 
 ### Viento

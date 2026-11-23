@@ -259,12 +259,12 @@ const TEX={
   /* Cinco escalones, no cuatro, y la cara clara arranca en un glifo liviano:
      con cuatro glifos todos densos la cara iluminada salía como un panel macizo
      sin grano. El manchón necesita rango tonal para verse. */
-  granito:  {claro:['o','0','8','%','#'], oscuro:['.',':','o','c','%'], fam:'piedra', grano:1},
+  granito:  {claro:['o','a','0','e','8','9','&','#','@'], oscuro:['.',':','o','c','e','a','%'], fam:'piedra', grano:1},
   /* La arenisca pierde el '=' del grano: ése queda reservado al estrato. Con el
      mismo glifo en los dos, la repisa se perdía adentro de la textura. */
   arenisca: {claro:['-',':','o','8','%'], oscuro:['.','.',':','-','o'], fam:'roca2',  grano:3},
   pulido:   {claro:[':','o','0','0','8'], oscuro:['.','.',':','o','o'], fam:'piedra', grano:3},
-  basalto:  {claro:['c','o','%','#','H'], oscuro:['.',':','c','o','%'], fam:'piedra', grano:1}
+  basalto:  {claro:['c','o','a','%','8','#','H','B'], oscuro:['.',':','c','o','e','%'], fam:'piedra', grano:1}
 };
 const LIQUEN={glifos:['°','°','*','*'], fam:'musgo'};
 /* Los quince modelos de piedra. Las chicas, medias y grandes y las gigantes del

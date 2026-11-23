@@ -25,8 +25,8 @@ const FAM={
   musgo:  ['#0d2a22','#16443a','#25695a','#3c9078'],
   hoja:   ['#2c2313','#463619','#664e25','#896a33'],
   agua:   ['#1d3c4a','#2f6478','#4a93a8','#6fbdcf'],
-  arena:  ['#5a5140','#7d7158','#a39a7a','#c6bda2'],
-  hongo:  ['#5a4a3a','#7d6a52','#a08c6e','#c4b093'],
+  arena:  ['#2a2f33','#454d52','#6b767c','#95a3a8'],   // arena de luna: gris azulado, no beige
+  hongo:  ['#1b2224','#2f3a3d','#4a5a5d','#74878a'],   // hongo de bosque viejo: pálido y frío
   pino:        ['#08171a','#0e2a2a','#173f3c','#2a6458'],
   alamo:       ['#16332a','#245044','#3a7a62','#68b392'],
   cortezaClara:['#3a3f42','#596064','#838b8e','#adb5b7'],
