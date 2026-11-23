@@ -186,6 +186,11 @@ const COSTE={ d:0.55, g:0.95, G:1.45, k:1.05, s:1.15, N:1.5, D:1.3, a:1.9, A:2.8
    somera < corriente. Son costes de andar, no de distancia.
    El barro cuesta casi como el agua: es lo que se hunde. El canto de mar
    cuesta más que el guijarral de río porque la piedra es más grande y rueda. */
+/* La cuesta también se paga: subir cuesta, bajar casi no. Es la altura en metros por cada
+   metro andado (una loma fuerte da unos 0,25), multiplicada por esto; 2,5 hace que una loma
+   de 2 m cueste como cinco pasos de más, y rodear por un paso bajo gane si queda cerca. */
+const COSTE_SUBIDA=2.5, COSTE_BAJADA=0.6;
+const alzaDe=(x,y)=>NV.alturaEn(x+0.5,y+0.5);
 let ruta=null, destino=null;
 
 function buscarCamino(ax,ay,bx,by,tope){
@@ -205,7 +210,8 @@ function buscarCamino(ax,ay,bx,by,tope){
       const x=n.x+dx, y=n.y+dy, k=clave(x,y);
       const suelo=NV.sueloEn(x,y);
       if(!suelo || NV.solidoEn(x,y)) continue;
-      const g=n.g+(COSTE[suelo]||1);
+      const dh=alzaDe(x,y)-alzaDe(n.x,n.y);
+      const g=n.g+(COSTE[suelo]||1)+(dh>0?dh*COSTE_SUBIDA:-dh*COSTE_BAJADA);
       if(costeDe.has(k) && costeDe.get(k)<=g) continue;
       costeDe.set(k,g); padre.set(k,n);
       abierto.push({x,y,g,f:g+Math.abs(bx-x)+Math.abs(by-y)});

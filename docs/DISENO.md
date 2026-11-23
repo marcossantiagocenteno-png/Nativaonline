@@ -1186,6 +1186,13 @@ paso entre el pasto alto.
 Medido sobre tres travesías largas del claro: el 35% del recorrido termina yendo
 por el sendero, sin que nadie se lo indique.
 
+**La cuesta también cuesta** (`COSTE_SUBIDA` 2,5, `COSTE_BAJADA` 0,6, por metro de
+altura ganada o perdida en un paso). Subir pesa y bajar casi no: una loma de 2 m
+equivale a unos cinco pasos de más, así que un paso bajo cercano le gana a trepar, y
+uno lejano no. Es sólo la **ruta**: la velocidad del paso y la colisión no cambian.
+Con 4 el sendero dejaba de ser conveniente (el sendero generado no conoce las lomas y
+sube por ellas); con 2,5 sigue pasando lo de antes (30 % por sendero). `pruebas/cuesta.js`.
+
 ## 9 bis. El reloj y el guardado
 
 **El mundo tiene su propio reloj y corre sin nadie.** La fecha también: cada 100
