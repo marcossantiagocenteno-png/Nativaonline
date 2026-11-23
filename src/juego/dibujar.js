@@ -503,16 +503,34 @@ function fijarAlza(mx,my,base){
     if(c>=0&&c<cols) colAlza[c]=_a0[k];
   }
 }
+/* La cara de una pared: roca en estratos. Las bandas van a ALTURA ABSOLUTA (z, en metros):
+   atadas a la fila se correrían de una columna a la otra y la pared saldría rayada al
+   revés. Hay dos tonos de piedra que se alternan en manchones. */
+function caraDeRoca(c,r,wx,z,haze){
+  if(fbO[r*cols+c]>ordR) return;
+  const banda=patch(wx*0.7, z*2.6, 3, 0.30);
+  const lz=clamp((0.58+banda*0.95)*0.85*haze,0.25,1.2);
+  const fam=patch(wx*0.25, z*0.25, 2, 0.09)>0.5?'roca2':'piedra';
+  const dens=clamp(0.25+lz*0.45+(hash3(c,r,41)%100)/100*0.35,0,1);
+  const g=pick(MAT.M.ramp,dens);
+  const i=r*cols+c;
+  fbG[i]=g.charCodeAt(0); fbC[i]=packs(fam,lz); fbL[i]=0; fbO[i]=ordR;
+}
 /* Si el terreno baja hacia el sur queda un hueco entre este metro y el siguiente:
    es la cara de la pendiente, y se rellena con el mismo suelo estirado hacia abajo.
    Donde el de al sur sube, simplemente lo tapa. */
-function rellenarFrente(base,rBase){
+/* desde cuántos metros de desnivel por metro de fondo la cara es de roca y no suelo estirado:
+   es el mismo número que vuelve sólido el metro (MESETA.pared), así lo que se ve como pared
+   no se pisa y lo que se pisa no se ve como pared. */
+function rellenarFrente(base,rBase,mx,haze){
   for(let k=0;k<CPM;k++){
     const c=base+k; if(c<0||c>=cols) continue;
     const g=_a0[k]-_a1[k]; if(g<=0) continue;
     const fondo=rBase-_a0[k]+liftR;                 // la última fila de este metro, en pantalla
+    const roca=g>=NV.ALTURA.meseta.pared*HPM;
     for(let j=1;j<=g;j++){
       const r=fondo+j; if(r<0||r>=rowsN) continue;
+      if(roca){ caraDeRoca(c,r,mx+(k+0.5)/CPM,(_a0[k]-j)/HPM,haze); continue; }
       const rs=fondo-((j-1)%RPM); if(rs<0||rs>=rowsN) continue;
       const si=rs*cols+c, di=r*cols+c;
       if(fbO[di]>ordR) continue;
@@ -726,7 +744,7 @@ function drawGroundRow(my,rBase,haze,t){
       if((hash3(mx,my*RPM+sy,29)%140)<3) put(base+((hash3(mx,my+sy,31))%CPM),rb-((sy*5)%3),46,packc(205,230,215));
     }
     usaCol=false;
-    rellenarFrente(base,rBase);
+    rellenarFrente(base,rBase,mx,haze);
 
   }
   if(wn) wind=wsum/wn;

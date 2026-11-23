@@ -752,13 +752,29 @@ luz direccional, así que el reflejo no depende de dónde esté el sol; los valo
 de brillo (0,34/0,44/0,62 y los desfases 4/9/18) son estimados a ojo, no medidos
 contra nada.
 
-#### Dónde van los acantilados — sigue abierto
+#### Dónde van los acantilados: las mesetas
 
-Se revisó y **no se tocó el mundo**. Ningún generador coloca muros: `bioEste` y
-`bioEsquina` hacen una costa recta norte-sur con una franja `V`. Poner acantilados
-exige una de las dos cosas de arriba (un cabo con flanco al sur, o una playa
-transitable al pie), y las dos cambian la forma de la costa, el paso del jugador
-y las pruebas de paneles. Es decisión de mundo, de Marcos.
+Con altura real (ver "La altura", más abajo) el problema de arriba se resolvió **sin
+cambiar la costa**: los acantilados son los bordes de **mesetas**, tierra alta de unos 5 m
+repartida por el mundo, y se ven porque la cámara mira al norte y el borde sur de una meseta
+mira hacia ella. Un borde de meseta baja hacia el sur como **pared** (`duro`, 1,2 m de ancho:
+se dibuja de roca y no se pisa) o como **rampa** (`suave`, 24 m: se dibuja de suelo y se
+sube andando), según un ruido que cambia a lo largo del borde (`MESETA` en `paneles.js`).
+
+- Una meseta es donde un ruido de unos 45 m pasa de `corte` (0,63): alrededor del 8 % del
+  mundo es meseta alta. El claro del centro (a menos de 60 m del punto de partida) no tiene.
+- **Qué es pared lo decide un solo número**, `MESETA.pared` = 0,6 m de desnivel por metro:
+  el metro es sólido (`NV.paredEn`, incluido en `NV.solidoEn`) y la cara se dibuja de roca
+  (`caraDeRoca`). Lo que se ve como pared no se pisa y lo que se pisa no se ve como pared.
+  La rampa más empinada que se camina llega a 0,6; por eso `suave` es 24 y no 9.
+- **La cara es la roca madre** (`M`, glifos `. : ^ A M`) en **estratos a altura absoluta**
+  (no se corren de columna a columna) y dos tonos de piedra en manchones.
+- Medido: desde 68 % de los puntos de meseta se baja caminando. El resto son **mesetas
+  aisladas**, rodeadas de pared por todos lados: quedan de escenografía. No es un error, pero
+  si molesta se arregla forzando una rampa por meseta.
+- La caída al mar de la costa este (`V`, el vacío) sigue como estaba: es un vacío, no un
+  acantilado con altura.
+- `pruebas/acantilados.js`.
 
 ### La textura del suelo
 
@@ -849,8 +865,7 @@ personaje y marcador de destino por un `alzaR` fijo, medido donde está parado.
 
 **Qué NO hace todavía (etapa 2):** no cambia dónde se camina, ni la velocidad, ni la
 colisión: Myrella sube y baja la loma pero el paso es el mismo, y la sombra de un
-árbol no sigue la pendiente. Tampoco hay acantilados: harían falta alturas de 3 m o más
-con paredes, y eso cambia la costa (ver más arriba, "sigue abierto"). Las pruebas que
+árbol no sigue la pendiente. Los acantilados son los bordes de las mesetas (ver más arriba). Las pruebas que
 miden otra cosa sobre un suelo inventado fijan `NV.alturaEn=()=>0`; la altura tiene la
 suya (`pruebas/altura.js`).
 

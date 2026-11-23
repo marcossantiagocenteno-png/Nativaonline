@@ -151,7 +151,12 @@ NVp.relieveEn=relieveEn; NVp.luzRelieve=luzRelieve; NVp.RELIEVE=RELIEVE;
    aplana hacia el agua: a menos de 2 m de una orilla vale cero y a más de 14 m vale
    entera, para que playas y riberas sigan planas y el nivel del agua no se parta.
    Etapa 1: sólo se DIBUJA. Dónde se camina y dónde van las cosas no cambia. */
-const ALTURA={amp:5, base:0.04, ribera0:2, ribera1:14, max:5*(0.5+0.04)};
+/* Mesetas: tierra alta de bordes marcados. Una meseta es donde un ruido de onda larga
+   (unos 45 m) pasa de `corte`; el borde sube `alto` metros en un tramo que es corto (una
+   pared: `duro`) donde otro ruido es bajo, y largo (una rampa por donde se sube: `suave`)
+   donde es alto. La parte de en medio del mundo, el claro donde se empieza, no tiene. */
+const MESETA={alto:5, corte:0.63, escala:0.022, duro:1.2, suave:24, pared:0.6};
+const ALTURA={amp:5, base:0.04, ribera0:2, ribera1:14, max:5*(0.5+0.04)+MESETA.alto, meseta:MESETA};
 const _dAgua=new Map();
 function distAgua(mx,my){
   const k=(mx+2000)*8192+(my+2000), c=_dAgua.get(k); if(c!==undefined) return c;
@@ -170,19 +175,43 @@ function alturaPunto(mx,my){          // en la retícula de metros enteros
   const k=(mx+2000)*8192+(my+2000), c=_hPunto.get(k); if(c!==undefined) return c;
   const v=alturaCalc(mx,my); _hPunto.set(k,v); return v;
 }
+const ruidoMeseta=NVp.makeNoise(NVp.mulberry((NVp.CONFIG&&NVp.CONFIG.seed?NVp.hashStr(NVp.CONFIG.seed+':meseta'):5521)));
+const ruidoRampa =NVp.makeNoise(NVp.mulberry((NVp.CONFIG&&NVp.CONFIG.seed?NVp.hashStr(NVp.CONFIG.seed+':rampa'):7919)));
+const suave01=t=>t<=0?0:t>=1?1:t*t*(3-2*t);
+function mesetaEn(mx,my){            // metros de meseta, sin el efecto del agua
+  const d=Math.max(Math.abs(mx-50),Math.abs(my-50));          // el claro del centro queda libre
+  const libre=suave01((d-60)/25); if(libre<=0) return 0;
+  const n=ruidoMeseta(mx,my,2,MESETA.escala);
+  const ancho=MESETA.duro+(MESETA.suave-MESETA.duro)*suave01((ruidoRampa(mx,my,1,0.03)-0.40)/0.20);
+  /* el ancho del borde en metros se pasa a unidades de ruido con la pendiente típica (~0,0075/m) */
+  return MESETA.alto*libre*suave01((n-MESETA.corte)/(ancho*0.0075));
+}
 function alturaCalc(mx,my){
-  const rb=relieveEn(mx,my)+ALTURA.base; if(rb<=0) return 0;
-  const t=Math.max(0,Math.min(1,(distAgua(mx,my)-ALTURA.ribera0)/(ALTURA.ribera1-ALTURA.ribera0)));
-  return rb*ALTURA.amp*(t*t*(3-2*t));
+  const rb=relieveEn(mx,my)+ALTURA.base;
+  const alta=rb>0?rb*ALTURA.amp:0, mes=mesetaEn(mx,my);
+  if(alta<=0&&mes<=0) return 0;
+  const t=suave01((distAgua(mx,my)-ALTURA.ribera0)/(ALTURA.ribera1-ALTURA.ribera0));
+  return (alta+mes)*t;
 }
 function alturaEn(wx,wy){             // interpolada: sin escalones entre metros
   const x0=Math.floor(wx), y0=Math.floor(wy), u=wx-x0, v=wy-y0;
   const a=alturaPunto(x0,y0), b=alturaPunto(x0+1,y0), c=alturaPunto(x0,y0+1), d=alturaPunto(x0+1,y0+1);
   return (a*(1-u)+b*u)*(1-v)+(c*(1-u)+d*u)*v;
 }
-NVp.alturaEn=alturaEn; NVp.ALTURA=ALTURA;
+NVp.alturaEn=alturaEn; NVp.ALTURA=ALTURA; NVp.mesetaEn=mesetaEn;
+/* Una pared es un metro de pendiente tan fuerte que no se sube: por más de `pared` metros
+   respecto de algún vecino. Cuenta como sólido (no se pisa, el camino la rodea). */
+const _pared=new Map();
+function paredEn(x,y){
+  const k=(x+2000)*8192+(y+2000), c=_pared.get(k); if(c!==undefined) return c;
+  const h=alturaEn(x+0.5,y+0.5); let v=false;
+  for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]])
+    if(Math.abs(alturaEn(x+dx+0.5,y+dy+0.5)-h)>MESETA.pared){ v=true; break; }
+  _pared.set(k,v); return v;
+}
+NVp.paredEn=paredEn;
 
-NVp.sueloEn=sueloEn; NVp.solidoEn=solidoEn; NVp.sombraEn=sombraEn;
+NVp.sueloEn=sueloEn; NVp.solidoEn=(x,y)=>solidoEn(x,y)||paredEn(x,y); NVp.sombraEn=sombraEn;
 NVp.fuegoEn=fuegoEn; NVp.flujoEn=flujoEn; NVp.calorEn=calorEn; NVp.calorCerca=calorCerca;
 NVp.objetosEn=objetosEn; NVp.olvidarObjetos=olvidarObjetos;
 NVp.recalcularSombras=recalcularSombras; NVp.cachePaneles=cache;

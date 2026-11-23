@@ -21,14 +21,17 @@ console.log('=== el campo de altura ===');
 let mn=9,mx=0,salto=0,n=0,planoAgua=0,aguaN=0;
 for(let x=-95;x<195;x+=2.3) for(let y=-95;y<195;y+=2.9){
   const h=alturaReal(x,y); mn=Math.min(mn,h); mx=Math.max(mx,h); n++;
-  salto=Math.max(salto,Math.abs(alturaReal(x+0.25,y)-h),Math.abs(alturaReal(x,y+0.25)-h));
+  /* las paredes de las mesetas sí saltan (es lo que son): se miden aparte */
+  const fx=Math.floor(x), fy=Math.floor(y);
+  let cerca=false; for(let i=-2;i<=2&&!cerca;i++) for(let j=-2;j<=2;j++) if(NV.paredEn(fx+i,fy+j)){ cerca=true; break; }
+  if(!cerca) salto=Math.max(salto,Math.abs(alturaReal(x+0.25,y)-h),Math.abs(alturaReal(x,y+0.25)-h));
   const t=sueloReal(Math.floor(x),Math.floor(y));
   if(t&&NV.MAT[t]&&NV.MAT[t].ola){ aguaN++; if(h<1e-9) planoAgua++; }
 }
 console.log(`  ${n} puntos · altura de ${mn.toFixed(2)} a ${mx.toFixed(2)} m · salto mayor en 25 cm: ${salto.toFixed(3)} m · agua: ${planoAgua} de ${aguaN} planos`);
 probar('la altura nunca es negativa', mn>=0);
 probar('hay lomas que se notan (más de 1 m) y no pasan del tope declarado', mx>1&&mx<=NV.ALTURA.max+1e-9);
-probar('sin escalones: en 25 cm la altura no salta más de 8 cm', salto<0.08);
+probar('sin escalones fuera de las paredes: en 25 cm la altura no salta más de 19 cm (la pendiente que se pisa llega a 0,6 m/m: 15 cm en 25 cm, más el margen de la malla)', salto<0.19);
 probar('el agua está siempre al nivel cero', aguaN>50&&planoAgua===aguaN);
 probar('la altura es la misma en cada llamada (no depende del azar ni del reloj)', alturaReal(33.3,71.7)===alturaReal(33.3,71.7));
 
