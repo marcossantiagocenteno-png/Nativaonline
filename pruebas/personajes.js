@@ -39,7 +39,7 @@ const NV=m.NV;
 m.cargarArte();
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
 const DIA=30*86400e3/430, base=Date.UTC(2026,4,1,0,0,0);
-const hora=i=>{ NV.actualizarCielo(base+DIA*i/8); };
+const hora=()=>{};      // ya no hay hora: la luz es una sola
 
 console.log('=== un personaje se crea y camina ===');
 {
@@ -75,22 +75,6 @@ console.log('\n=== la luz: nunca se apaga del todo ===');
   probar('la noche la tiñe de azul y no de naranja', noche.b>noche.r);
 }
 
-console.log('\n=== las lunas alumbran ===');
-{
-  let masClara=0, masOscura=9, lunaClara=0, lunaOscura=0;
-  for(let i=0;i<40;i++){
-    NV.actualizarCielo(base+DIA*(i*7.3));
-    if(!NV.cielo.deNoche) continue;
-    const a=NV.luz.amb, l=NV.cielo.brilloLunar;
-    if(a>masClara){ masClara=a; lunaClara=l; }
-    if(a<masOscura){ masOscura=a; lunaOscura=l; }
-  }
-  console.log('  noche más clara: ambiente '+masClara.toFixed(2)+' con lunas en '+lunaClara.toFixed(2));
-  console.log('  noche más oscura: ambiente '+masOscura.toFixed(2)+' con lunas en '+lunaOscura.toFixed(2));
-  probar('una noche de lunas altas es más clara que una sin ellas', masClara>masOscura*1.15);
-  probar('y es la luna la que la aclara', lunaClara>lunaOscura);
-}
-
 console.log('\n=== la hoguera lo alumbra de naranja ===');
 {
   hora(0);
@@ -98,17 +82,11 @@ console.log('\n=== la hoguera lo alumbra de naranja ===');
   const cerca=NV.luzPersonaje({x:54,y:54},54,54,0);
   console.log('  lejos del fuego r'+lejos.r.toFixed(2)+' b'+lejos.b.toFixed(2)
               +' · al lado r'+cerca.r.toFixed(2)+' b'+cerca.b.toFixed(2));
-  probar('al lado de la hoguera recibe mucha más luz', cerca.r>lejos.r*2);
-  probar('y esa luz es naranja, no blanca', cerca.r>cerca.b*1.8);
+  /* umbrales 1,4 y 1,15 y no 2 y 1,8: con la luz de lunas fija (más clara que la noche cerrada de antes)
+     la hoguera se suma a más luz de fondo y su naranja se nota menos en proporción */
+  probar('al lado de la hoguera recibe más luz', cerca.r>lejos.r*1.4);
+  probar('y esa luz es más naranja que blanca', cerca.r>cerca.b*1.15);
   probar('lejos del fuego no le llega nada', lejos.calor===0);
-}
-
-console.log('\n=== el resplandor propio se nota de noche y no de día ===');
-{
-  hora(0); const n=0.04+0.16*(1-Math.min(1,NV.luz.amb));
-  hora(4); const d=0.04+0.16*(1-Math.min(1,NV.luz.amb));
-  console.log('  de noche '+n.toFixed(3)+' · de día '+d.toFixed(3));
-  probar('de noche irradia más que de día', n>d*1.8);
 }
 
 console.log('\n=== la mecánica vale para cualquiera, no sólo para el jugador ===');

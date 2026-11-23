@@ -106,15 +106,9 @@ function draw_(){
     for(const [dx,dy] of [[0,0],[-2,0],[2,0],[0,-1],[0,1]]) put(c0+dx,r0+dy,43,col);
     layer=0; alzaR=0;
   }
-  liftR=0; alzaR=0; usaCol=false; ordR=65535;       // lluvia y niebla van sobre la pantalla
-  dibujarLluvia(Date.now()/1000);
-  dibujarNiebla(t);
+  liftR=0; alzaR=0; usaCol=false; ordR=65535;
   flush();
-  const c=NV.cielo;
-  $('st1').textContent=c.nombre+(c.deNoche&&c.brilloLunar>0.55?' · lunas altas':'');
-  $('st3').textContent=c.estacion+' · día '+c.diaMes+' del mes '+c.mes;
-  /* las dos cosas en una línea: antes la segunda pisaba a la primera y el
-     rumbo no se veía nunca */
+  /* el viento y el rumbo, en una línea */
   $('st2').textContent='viento '+(wind<0.5?'calmo':wind<0.95?'suave':'racheado')
           +' · mirando al '+facing;
   const dt=performance.now()-t0;
@@ -122,40 +116,6 @@ function draw_(){
   if(lastMs>34&&calidad>0.42) calidad=Math.max(0.42,calidad-0.08);
   else if(lastMs<15&&calidad<1) calidad=Math.min(1,calidad+0.04);
   if(dt>46&&animMs<520){ animMs=Math.min(520,Math.round(animMs*1.4)); restartAnim(); }
-}
-
-/* Niebla: una pasada final que lava el color y come el detalle.
-   Se calcula una vez por metro y se aplica a todo su bloque de casillas. */
-function dibujarNiebla(t){
-  if(!NV.nieblaEn) return;
-  const L=NV.luz;
-  const fr=168*L.r+24, fg=178*L.g+26, fb=190*L.b+30;
-  const colsM=Math.ceil(cols/CPM), rowsM=Math.ceil(rowsN/RPM);
-  let densa=0;
-  for(let my=camY;my<camY+rowsM;my++){
-    for(let mx=camX;mx<camX+colsM+1;mx++){
-      const d=NV.nieblaEn(mx,my,t);
-      if(d<0.04) continue;
-      if(Math.abs(mx-me.x)<3&&Math.abs(my-me.y)<3) densa=Math.max(densa,d);
-      /* La niebla es una nube a ras del suelo: lava el color de lo que hay
-         abajo pero NO borra ningún glifo, y las copas quedan por encima. */
-      const k=Math.min(0.72,d*0.80);
-      const c0=(mx-camX)*CPM, r0=(my-camY)*RPM;
-      for(let r=0;r<RPM;r++){
-        const fila=r0+r; if(fila<0||fila>=rowsN) continue;
-        for(let c=0;c<CPM;c++){
-          const col=c0+c; if(col<0||col>=cols) continue;
-          const i=fila*cols+col;
-          if(!fbG[i] || fbL[i]>1) continue;          // nada que teñir, o es copa
-          const v=fbC[i];
-          fbC[i]=packc(((v>>16)&255)+(fr-((v>>16)&255))*k,
-                       ((v>>8)&255)+(fg-((v>>8)&255))*k,
-                       (v&255)+(fb-(v&255))*k);
-        }
-      }
-    }
-  }
-  if(NV.cielo) NV.cielo.nieblaAqui=densa;
 }
 
 /* El fuego no es constante: late. */
@@ -185,37 +145,6 @@ function afinar(k,sy){
   _col=packs(_fFam,_lz*_fAg,_cal*0.75);
 }
 
-/* Lluvia: cada gota tiene su columna, su velocidad y su desvío. Cae de verdad,
-   se tuerce con la ráfaga y revienta contra el suelo. Tres intensidades. */
-function dibujarLluvia(t){
-  const cl=NV.cielo&&NV.cielo.clima;
-  if(!cl||!cl.intensidad) return;
-  layer=3;
-  const I=cl.intensidad;
-  const dens=[0,0.006,0.020,0.034][I]*calidad;
-  const n=Math.round(cols*rowsN*dens);
-  const largo=[0,2,3,5][I];
-  const vel=[0,26,46,72][I];
-  const sesgo=[0,0.5,1,2][I]*(0.6+(NV.vientoFactor||1)*0.5);
-  const L=NV.luz;
-  const claro=packc(120*L.r+70, 150*L.g+70, 175*L.b+75);
-  const medio=packc(70*L.r+34, 92*L.g+40, 112*L.b+48);
-  const salpica=packc(150*L.r+60, 170*L.g+66, 180*L.b+70);
-  for(let i=0;i<n;i++){
-    const h=hash3(i,3,11);
-    const c0=h%cols;
-    const prop=0.75+((h>>5)%50)/100;                 // cada gota cae a su ritmo
-    const alto=rowsN+largo+6;
-    const r0=Math.round((((h>>9)%alto)+t*vel*prop)%alto)-largo;
-    const dx=Math.round(sesgo*prop);
-    for(let k=0;k<largo;k++)
-      put(c0-k*dx, r0-k, dx>1?92:124, k?medio:claro);
-    if(r0>=0&&r0<rowsN&&((h>>3)%100)<34)             // el golpe contra el suelo
-      put(c0+1, r0, 45, salpica);
-  }
-  layer=0;
-}
-
 /* ---------- EL AGUA ----------
    Ver la sección del agua en el diccionario: todo sale de un campo de olas, y
    de ahí la altura elige el glifo, la pendiente hacia el este decide dónde pega
@@ -237,24 +166,14 @@ const tex2=(wx,wy,e)=>0.66*texRuido(wx/e,wy/e,1,1)
                      +0.34*texRuido(wx/(e*0.42)+37,wy/(e*0.42),1,1);
 /* La luna en el agua quieta: un disco de glifos claros, estirado a lo ancho por la
    perspectiva y cortado en franjas, que se ve donde haya agua en el lugar de la
-   pantalla que le toca (la luna sale por el este, sube y se va por el oeste). Se
-   ancla a la cámara: reflejo y espectador se mueven juntos. Sólo de noche, con la
-   luna sobre el horizonte, algo de fase y el cielo sin nubes. */
+   pantalla que le toca. Es una sola luna, fija en la pantalla (reflejo y espectador
+   se mueven juntos); su sitio y su fuerza salen de luz-de-lunas/luz.js. */
 let _luna=null;
 function prepararLuna(colsM,rowsM){
-  _luna=null;
-  /* no se usa nocheEstrellas(): una luna llena sube la luz de la noche y las
-     estrellas se apagan, pero su propio reflejo tiene que verse más, no menos */
-  const CI=NV.cielo, LL=CI&&CI.lunas;
-  if(!LL||!CI.deNoche) return;
-  const noche=1-Math.max(0,Math.min(1,(CI.clima?CI.clima.nubes:0)*1.4));
-  if(noche<0.15) return;
-  let mejor=null, pt=0;
-  for(const k in LL){ const L=LL[k], v=L.ilum*L.altura; if(L.altura>0.05&&L.ilum>0.12&&v>pt){ pt=v; mejor=L; } }
-  if(!mejor) return;
+  const Lz=NV.LUZ_LUNAS&&NV.LUZ_LUNAS.luna;
+  if(!Lz){ _luna=null; return; }
   const cx=NV.camXf===undefined?camX:NV.camXf, cy=NV.camYf===undefined?camY:NV.camYf;
-  _luna={x:cx+colsM*(0.5-0.38*Math.sin(mejor.hora)), y:cy+rowsM*(0.62-0.22*mejor.altura),
-         f:Math.min(1,0.50+pt*1.2)*noche, rx:2.0, ry:0.95};
+  _luna={x:cx+colsM*Lz.x, y:cy+rowsM*Lz.y, f:Lz.fuerza, rx:Lz.rx, ry:Lz.ry};
 }
 const _ola={g:0,fam:'agua',lz:1};
 function celdaOla(est,wx,wy,t){
@@ -302,7 +221,7 @@ function celdaOla(est,wx,wy,t){
      más tenues que arriba y alargadas hacia abajo. Fijas en el mundo (no en la
      pantalla) y con un titilar lento; las nubes y el mal tiempo las tapan. */
   if(rp<=0.6 && !rompe){
-    const noche=NV.nocheEstrellas?NV.nocheEstrellas():0;
+    const noche=NV.LUZ_LUNAS?NV.LUZ_LUNAS.estrellas:0;
     if(noche>0.05){
       const hq=hash3((wx*9)|0,(wy*7)|0,83)%1000;
       if(hq<26*noche){
@@ -324,15 +243,8 @@ function celdaOla(est,wx,wy,t){
   _ola.g=g; _ola.fam=fam; _ola.lz=lz;
   return _ola;
 }
-/* El mar cambia de estado con el tiempo que hace: en calma, con olas o con
-   tormenta. No hay que elegirlo a mano en ningún lado. */
-function estadoDelMar(){
-  const cl=NV.cielo&&NV.cielo.clima;
-  if(!cl) return 'mar-calma';
-  if(cl.tormenta||cl.intensidad>=2) return 'mar-tormenta';
-  /* con la marea alta ya no se arma oleaje: el mar sólo se revuelve con el tiempo */
-  return cl.intensidad>=1?'mar-olas':'mar-calma';
-}
+/* El mar siempre está en calma: ya no hay tiempo que lo revuelva. */
+function estadoDelMar(){ return 'mar-calma'; }
 
 /* ---------- EL BORDE ENTRE DOS MATERIALES ----------
    El motor decide el material por METRO: sueloEn devuelve una letra por metro y
@@ -1677,5 +1589,5 @@ function figuraRespaldo(p,haze){
 }
 
 
-NV.titilar=titilar; NV.dibujarNiebla=dibujarNiebla;
+NV.titilar=titilar;
 NV.draw=draw; NV.draw_=draw_;

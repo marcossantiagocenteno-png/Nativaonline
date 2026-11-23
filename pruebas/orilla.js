@@ -27,7 +27,6 @@ const m=cargar(`module.exports={
 const NV=m.NV;
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
 m.tictac();
-NV.actualizarCielo(Date.UTC(2026,4,1,0,0,0));
 const sueloReal=NV.sueloEn, objetosReal=NV.objetosEn;
 NV.alturaEn=()=>0;     // estas pruebas miden otra cosa sobre un suelo plano: la altura tiene su propia prueba (altura.js)
 const sinFuego=()=>{ NV.fuegoEn=()=>0; NV.calorCerca=()=>false; NV.calorEn=()=>0; };
@@ -107,7 +106,7 @@ console.log('\n=== los reflejos ===');
 /* La niebla del cuadro lava todo lo que está en las capas 0 y 1, y el reflejo es
    de la capa 1: igual que lava el agua de al lado, lo que es correcto, pero
    tapa lo que se quiere medir. Se apaga solo para esta sección. */
-NV.nieblaEn=()=>0;
+
 function reflejos(conAgua){
   /* arena y no pasto: las briznas también son de la capa 2 y cambian de un cuadro al otro
      según haya agua o tierra al sur, y no son lo que se mide aquí */
@@ -158,7 +157,6 @@ function reflejos(conAgua){
 }
 
 {
-  NV.actualizarCielo(Date.UTC(2026,4,1,0,0,0)+4*30*86400e3/430/8);       // pleno día
   const dia=reflejos(true);
   const lum=c=>(((c>>16)&255)+((c>>8)&255)+(c&255))/3;
   const prom=a=>a.reduce((s,x)=>s+lum(x[2]),0)/a.length;

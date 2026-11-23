@@ -280,29 +280,10 @@ function abrirCuadro(cual){
 }
 function cerrarCuadro(){ $('cuadro').classList.remove('show'); }
 
-let ultSol=-9, ultTormenta=false;
 function tictac(){
-  const c=NV.actualizarCielo(Date.now());
-  const m=$('relojM');
-  if(m) m.style.left=(c.fase*100).toFixed(2)+'%';
-  const sol=$('relojS');
-  if(sol){ sol.style.left=(c.fase*100).toFixed(2)+'%'; sol.textContent=c.deNoche?'(':'*'; }
-  if(world && Math.abs(c.fase-ultSol)>0.004){      // cada ~30 s reales
-    ultSol=c.fase;
-    NV.recalcularSombras();
-  }
-  /* Con tormenta el dibujo se acelera: un relámpago dura menos de un décimo
-     de segundo y con el ritmo normal se perdería la mitad de los fogonazos. */
-  const tor=!!(c.clima&&c.clima.tormenta);
-  if(tor!==ultTormenta){
-    ultTormenta=tor;
-    animMs = tor ? Math.min(70, animMsBase) : animMsBase;
-    restartAnim();
-  }
   if(guardadoPendiente) guardar(true);            // nada se pierde por el freno
   const p=NV.panelDe(me.x,me.y);
   if(p&&p!==world){ world=p; $('wname').textContent=p.nombre; NV.olvidarObjetos(); }
-  return c;
 }
 function restartAnim(){
   if(animTimer) clearInterval(animTimer);
@@ -378,7 +359,7 @@ function drawMap(){
   }
   el.innerHTML=out;
   const cab=$('mapCab');
-  if(cab) cab.innerHTML = (NV.resumenCielo?NV.resumenCielo():'')+
+  if(cab) cab.innerHTML =
     '<div class="mcoord">'+P.nombre+' &middot; '+P.coord+'</div>';
 }
 

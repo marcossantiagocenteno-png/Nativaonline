@@ -16,7 +16,7 @@ const css=fs.readFileSync('src/'+'style.css','utf8');
 const marcado=fs.readFileSync('src/juego/interfaz.js','utf8');
 /* Las piezas que se colocan solas en la pantalla necesitan regla propia; el
    resto hereda del encabezado, del pie o del cuadro. */
-const PROPIOS=['stage','cv','compass','reloj','relojM','relojS','bubble','map','mapTx',
+const PROPIOS=['stage','cv','compass','bubble','map','mapTx',
                'bInfo','info','cuadro','fallo','toast','sello',
                /* los paneles de las esquinas, desde que el lienzo va a los bordes */
                'hudTL','hudBL','wname','ayuda'];

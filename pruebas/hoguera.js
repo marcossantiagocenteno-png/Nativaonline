@@ -1,37 +1,10 @@
-// Niebla y hoguera: que existan, que cambien con la hora y que no cuesten caro.
+// Hoguera: que exista y que no cueste caro. (La niebla por hora se fue con el sistema de astros.)
 const cargar=require('./cargar.js');
 const NV=cargar();
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
 const w=NV.panel(0,0);
-NV.actualizarCielo(Date.now());
 
-console.log('=== niebla por hora del día (suma sobre el tercio oeste) ===');
-const base=Math.floor(NV.tiempoAstro(Date.now()));
-const med=h=>{let s=0,n=0;for(let y=0;y<100;y+=4)for(let x=0;x<34;x+=4){s+=NV.nieblaEn(x,y,base+h);n++;}return s/n;};
-const horas=[0.04,0.17,0.29,0.5,0.71,0.85,0.97];
-horas.forEach(h=>console.log('  '+String(Math.round(h*24)).padStart(2,'0')+':00 →',med(h).toFixed(3)));
-probar('de madrugada hay más niebla que al mediodía', med(0.04)>med(0.5)*1.6);
-/* Ya no se apaga como un interruptor: de día adelgaza pero sigue estando.
-   Lo que la hace aparecer y desaparecer en un lugar son los bancos que pasan. */
-probar('al mediodía adelgaza sin irse del todo', med(0.5)>0.02 && med(0.5)<med(0.04)*0.75);
-
-console.log('\n=== la niebla carga al oeste ===');
-const franja=x0=>{let s=0,n=0;for(let y=0;y<100;y+=4)for(let x=x0;x<x0+20;x+=4){s+=NV.nieblaEn(x,y,base+0.05);n++;}return s/n;};
-console.log('  oeste', franja(0).toFixed(3), '· centro', franja(40).toFixed(3), '· este', franja(78).toFixed(3));
-probar('hay más niebla al oeste que al este', franja(0)>franja(78)*1.5);
-
-console.log('\n=== la niebla se mueve ===');
-/* Se mide sobre una grilla y no en una casilla sola: el ruido tiene mesetas, y
-   como el día del planeta depende de la fecha real, una sola muestra a veces cae
-   justo en una y la prueba fallaba sin que la niebla estuviera quieta. */
-let mov=0,nm=0;
-for(let y=8;y<96;y+=11) for(let x=4;x<34;x+=7){
-  mov+=Math.abs(NV.nieblaEn(x,y,base+0.05)-NV.nieblaEn(x,y,base+0.06)); nm++;
-}
-console.log('  cambio medio en una casilla, 15 minutos después:', (mov/nm).toFixed(3));
-probar('el banco de niebla se desplaza', mov/nm>0.02);
-
-console.log('\n=== hoguera ===');
+console.log('=== hoguera ===');
 const h=w.trees.filter(t=>t.k==='hoguera');
 const sp=w.inicio;
 console.log('  hoguera en', JSON.stringify(w.hoguera), '· partida en', JSON.stringify(sp),

@@ -8,16 +8,14 @@ const NVi = window.NV;
 
 /* Sello de versión, puesto por sellar.sh al publicar. Se ve en el pie: así
    Marcos y yo sabemos al instante si está mirando la última versión. */
-NVi.VERSION='22/11 21:41';
+NVi.VERSION='22/11 21:57';
 
 NVi.MARCADO = `<div id="stage">
   <canvas id="cv"></canvas>
-  <div id="reloj"><span id="relojM"></span><span id="relojS"></span></div>
   <div id="compass">N<br><span>&#9650;</span></div>
 
   <div id="hudTL" class="hud">
     <div id="wname">Claro del norte</div>
-    <div id="st1">&mdash;</div>
     <div id="st2"></div>
     <div class="fila"><button id="bAnim" class="on" title="Viento">~</button><button id="bMap" title="Mapa">mapa</button></div>
   </div>
@@ -25,7 +23,6 @@ NVi.MARCADO = `<div id="stage">
   <div id="map"><div id="mapCab"></div><pre id="mapTx"></pre></div>
 
   <div id="hudBL" class="hud">
-    <div id="st3"></div>
     <div id="ayuda">Flechas o WASD &middot; E para mirar &middot; tocar para ir</div>
     <div id="sello"></div>
   </div>

@@ -13,15 +13,19 @@ const NV=m.NV; const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
 m.tictac();
 NV.particulas=true;
 const sueloReal=NV.sueloEn, objReal=NV.objetosEn, alturaReal=NV.alturaEn;
-const DIA=Date.UTC(2026,4,1,21,0,0), NOCHE=Date.UTC(2026,4,1,15,0,0);   // el reloj del mundo no es el de la pared: a las 21 UTC es mediodía
+const DIA=0;      // ya no hay hora: la luz es una sola y las estaciones no existen
 const relojReal=Date.now; let AHORA=1000000;
 Date.now=()=>AHORA;
-NV.fuegoEn=()=>0; NV.calorCerca=()=>false; NV.calorEn=()=>0; NV.nieblaEn=()=>0; NV.alturaEn=()=>0;
+/* el dibujo baja su calidad si un cuadro tarda y con la máquina ocupada las dos tomas salían con distinta cantidad
+   de briznas: el reloj de rendimiento se congela y la calidad queda en su máximo */
+performance.now=()=>0;
+NV.fuegoEn=()=>0; NV.calorCerca=()=>false; NV.calorEn=()=>0; NV.alturaEn=()=>0;
 
 /* una escena: suelo parejo y los objetos que se pidan; devuelve las casillas que SÓLO existen
    porque hay partículas (el mismo cuadro con y sin ellas, restado) */
+let LUCIERNAGAS=0;       // sólo la sección de luciérnagas las enciende
 function particulas(suelo,objetos,ahora,hora,estacion,viento){
-  NV.actualizarCielo(hora); if(estacion) NV.cielo.estacion=estacion;
+  NV.LUZ_LUNAS.luciernagas=LUCIERNAGAS;
   NV.vientoFactor=viento===undefined?1:viento;
   NV.sueloEn=()=>suelo; NV.objetosEn=()=>objetos;
   AHORA=ahora;
@@ -56,13 +60,12 @@ probar('sin hoguera no hay chispas', particulas('d',[],1000000,DIA).dif.length==
 console.log('\n=== hojas ===');
 const arboles=[0,1,2,3,4,5].map(i=>({x:34+i*2,y:60+(i%2),h:6,k:'arbol',sp:'encino',s:1000+i}));
 const cuenta=(est,viento)=>{ let n=0; for(let t=0;t<8;t++) n+=particulas('g',arboles,1000000+t*700,DIA,est,viento).dif.length; return n; };
-const otoño=cuenta('otoño'), primavera=cuenta('primavera'), invierno=cuenta('invierno');
-console.log(`  casillas de hoja en ocho instantes: otoño ${otoño} · primavera ${primavera} · invierno ${invierno}`);
-probar('en otoño caen muchas más hojas que en primavera (≥ 3 veces)', otoño>=primavera*3&&otoño>20);
-probar('en otoño las hojas son del color de la hoja seca (más rojo que azul)', particulas('g',arboles,1000000,DIA,'otoño').dif.every(d=>rojo(d.col)>=azul(d.col)));
-probar('sin árboles no hay hojas', particulas('g',[],1000000,DIA,'otoño').dif.length===0);
+const hojas=cuenta();
+console.log(`  casillas de hoja en ocho instantes: ${hojas}`);
+probar('los encinos y álamos sueltan hoja', hojas>0);
+probar('sin árboles no hay hojas', particulas('g',[],1000000,DIA).dif.length===0);
 const pinos=arboles.map(a=>({...a,sp:'pino'}));
-probar('los pinos no sueltan hoja', particulas('g',pinos,1000000,DIA,'otoño').dif.length===0);
+probar('los pinos no sueltan hoja', particulas('g',pinos,1000000,DIA).dif.length===0);
 
 console.log('\n=== polvo ===');
 const polvo=v=>{ let n=0; for(let t=0;t<8;t++) n+=particulas('D',[],1000000+t*900,DIA,'verano',v).dif.length; return n; };
@@ -74,11 +77,10 @@ let enPasto=0; for(let t=0;t<8;t++) enPasto+=particulas('g',[],1000000+t*900,DIA
 probar('sobre el pasto no se levanta polvo', enPasto===0);
 
 console.log('\n=== luciérnagas ===');
-const luciernagas=(hora,suelo)=>{ let n=0; for(let t=0;t<8;t++) n+=particulas(suelo,[],1000000+t*900,hora,'verano',0.3).dif.length; return n; };
-const deNoche=luciernagas(NOCHE,'g'), deDia=luciernagas(DIA,'g'), enArena=luciernagas(NOCHE,'D');
-console.log(`  casillas en ocho instantes: noche sobre pasto ${deNoche} · día ${deDia} · noche sobre arena ${enArena}`);
-probar('de noche, sobre pasto, hay luciérnagas', deNoche>10);
-probar('de día no hay luciérnagas', deDia===0);
+const luciernagas=(suelo)=>{ LUCIERNAGAS=1; let n=0; for(let t=0;t<8;t++) n+=particulas(suelo,[],1000000+t*900,DIA,'verano',0.3).dif.length; return n; };
+const deNoche=luciernagas('g'), enArena=luciernagas('D'); LUCIERNAGAS=0;
+console.log(`  casillas en ocho instantes: sobre pasto ${deNoche} · sobre arena ${enArena}`);
+probar('sobre pasto hay luciérnagas (el mundo vive siempre de noche)', deNoche>10);
 probar('en la arena no hay luciérnagas', enArena===0);
 
 NV.sueloEn=sueloReal; NV.objetosEn=objReal; NV.alturaEn=alturaReal; Date.now=relojReal;

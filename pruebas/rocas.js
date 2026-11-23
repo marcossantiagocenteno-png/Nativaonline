@@ -9,7 +9,6 @@ const m=cargar(`module.exports={
 };`);
 const NV=m.NV;
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
-NV.actualizarCielo(Date.UTC(2026,4,1,12,0,0));
 m.tictac();
 const G=s=>String.fromCharCode(s);
 const ALTO={pequena:0.55,media:1.20,grande:2.50,gigante:6.00};

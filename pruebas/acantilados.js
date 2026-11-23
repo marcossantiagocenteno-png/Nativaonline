@@ -9,8 +9,7 @@ const m=cargar(`module.exports={
   estado:()=>({fbG,fbC,fbL,cols,rowsN,CPM,RPM,HPM,camX,camY})
 };`);
 const NV=m.NV; const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
-m.tictac(); NV.actualizarCielo(Date.UTC(2026,4,1,12,0,0));
-NV.fuegoEn=()=>0; NV.calorCerca=()=>false; NV.calorEn=()=>0; NV.nieblaEn=()=>0;
+m.tictac();NV.fuegoEn=()=>0; NV.calorCerca=()=>false; NV.calorEn=()=>0;
 const alturaReal=NV.alturaEn, sueloReal=NV.sueloEn, objReal=NV.objetosEn, solidoReal=NV.solidoEn;
 const MES=NV.ALTURA.meseta;
 

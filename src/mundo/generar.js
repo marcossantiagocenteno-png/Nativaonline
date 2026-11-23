@@ -469,7 +469,7 @@ function generarPanel(pi,pj,def,L){
 
 /* Sombras del panel. El sol las mueve; de noche no hay. */
 function calcularSombras(p,L){
-  const S=NVg.cielo?NVg.cielo.sombra:{dx:-1,dy:0,porMetro:1.7};
+  const S=NVg.LUZ_LUNAS?NVg.LUZ_LUNAS.sombra:{dx:1,dy:0.30,porMetro:1.7};
   p.shade.fill(1);
   if(S.porMetro<=0.02){
     for(const t of p.trees){ const i=t.y*L+t.x; p.shade[i]=Math.min(p.shade[i],0.5); }

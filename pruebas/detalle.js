@@ -12,9 +12,8 @@ const m=cargar(`module.exports={
   estado:()=>({fbG,fbC,fbL,cols,rowsN,CPM,RPM,camX,camY})
 };`);
 const NV=m.NV, ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
-const DIA=Date.UTC(2026,4,1,0,0,0)+4*30*86400e3/430/8, NOCHE=Date.UTC(2026,4,1,0,0,0);
-m.tictac(); NV.actualizarCielo(DIA);
-NV.fuegoEn=()=>0; NV.calorCerca=()=>false; NV.calorEn=()=>0; NV.nieblaEn=()=>0;
+m.tictac();
+NV.fuegoEn=()=>0; NV.calorCerca=()=>false; NV.calorEn=()=>0;
 NV.objetosEn=()=>[];
 NV.alturaEn=()=>0;     // estas pruebas miden otra cosa sobre un suelo plano: la altura tiene su propia prueba (altura.js)
 /* el pasto es sólo I con flores blancas: del detalle suelto queda la flor ('+'); los guijarros y la
@@ -100,17 +99,10 @@ probar('ninguno cae en el agua ni en el metro pegado a la orilla', enAgua===0&&p
 const arena=cuadro(()=>'s',120,90);
 probar('la arena no lleva detalle de pasto', arena.det.flor.length===0);
 
-console.log('\n=== queda quieto y se apaga de noche ===');
+console.log('\n=== queda quieto ===');
 const g1=cuadro(()=>'g',120,90), g2=cuadro(()=>'g',120,90);
 const clave=l=>l.map(d=>d.c+':'+d.r).join('|');
 probar('mismo cuadro, mismos detalles (no parpadea)', clave(g1.det.flor)===clave(g2.det.flor));
-const dia=g1.det.flor.reduce((a,d)=>a+lum(d.col),0)/g1.det.flor.length;
-NV.actualizarCielo(NOCHE);
-const n1=cuadro(()=>'g',120,90);
-const noche=n1.det.flor.reduce((a,d)=>a+lum(d.col),0)/Math.max(1,n1.det.flor.length);
-console.log('  luminosidad de una flor: de día '+dia.toFixed(0)+' · de noche '+noche.toFixed(0));
-probar('de noche las flores se ven más oscuras que de día', n1.det.flor.length>10&&noche<dia*0.6);
-NV.actualizarCielo(DIA);
 
 console.log('\n=== lo que cuesta ===');
 /* Se mide el MEJOR de 14 cuadros, primero todos con detalle y luego todos sin él

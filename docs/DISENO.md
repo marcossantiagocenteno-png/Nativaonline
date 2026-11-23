@@ -69,196 +69,33 @@ El jugador tiene un glosario que se llena solo con lo que va deduciendo.
 
 ---
 
-## 5. Tiempo, cielo y estaciones
+## 5. La luz de lunas
 
-**Un año de juego = un mes nuestro.** De ahí sale todo lo demás:
+**Se borró todo el sistema de astros** (decisión de Marcos, 22/11): no hay día ni noche,
+sol, lunas que se muevan, fases, eclipses, estaciones, calendario, mareas, lluvia,
+tormentas, relámpagos ni niebla por hora, y tampoco la ventana de astros ni el reloj de
+la pantalla. Los archivos `astro.js`, `cielo.js`, `mareas.js`, `clima.js` y `astros.js`
+dejaron de existir. La razón: de noche el juego se tapaba en negro y ya no se veía
+nada que jugar.
 
-| unidad de juego | tiempo real |
-|---|---|
-| 1 año | 30 días |
-| 1 estación | 7 días y medio |
-| 1 día | 2 horas |
-| 1 noche | unos 45 minutos |
+**Toda la luz del juego está en `src/luz-de-lunas/luz.js`** (carpeta con guiones y sin
+espacios para que el enlace del cargador no se rompa). Es una sola tabla, `LUZ_LUNAS`:
+cantidad de luz y tono (penumbra fría y verdosa), dirección y largo de las sombras
+(largas, hacia el este), la luna fija que se refleja en el agua quieta, cuántas
+estrellas se reflejan y si hay luciérnagas. Se cambia la tabla y cambia el juego; nada
+más decide la luz. Todo el dibujo lee `NV.luz` (ya multiplicada por la cantidad) y las
+sombras de los paneles leen `NV.LUZ_LUNAS.sombra`. `NV.cieloEnPalabras()` devuelve una
+sola frase.
 
-El calendario corre solo, aunque no haya nadie conectado.
+**Lo que queda del clima es el viento** (`src/mundo/viento.js`): ráfagas que entran por
+el este y viajan al oeste. Lo demás —lluvia, niebla, mal tiempo— no existe, y el mar
+está siempre en calma. Las hojas caen como en primavera; las luciérnagas salen siempre
+sobre el pasto.
 
-**Cosmología: dos lunas y un sol.** Calculada en `src/mundo/astro.js`, presentada
-en `src/mundo/cielo.js`. Los números viven en `NV.ASTRO` y se pueden ajustar sin
-tocar el cálculo.
-
-El planeta tarda **430 días** en dar la vuelta a su estrella, y ese año entero
-dura **un mes nuestro**. De ahí sale todo lo demás, sin capas intermedias: **la
-fecha avanza con el sol, no con el reloj de afuera**. El calendario es,
-directamente, el día del planeta.
-
-| | duración real |
-|---|---|
-| Año: 430 días | 30 días nuestros, un mes |
-| Mes: 43 días (diez por año) | 3 días nuestros |
-| Estación: 107,5 días | 7 días y medio |
-| Día del planeta | 100 minutos |
-| Ciclo de fases de Calavera | 2 h 18 min |
-| Ciclo de fases de Madre | 9 h 35 min |
-
-El sol sale por el este, llega a 58° al mediodía y se pone por el oeste. La sombra
-apunta al lado contrario y se acorta al mediodía: al oeste a la mañana, al norte al
-mediodía, al este a la tarde. De noche no hay sombra proyectada.
-
-**Calavera** mide 8.000 km y orbita a 150.000 km: en el cielo se ve **seis veces más
-grande que nuestra Luna**, y por eso alumbra tanto. Período sideral 1,366 días,
-sinódico 1,37035. Inclinación 8°, precesión nodal 180 días.
-
-**Madre** mide 3.600 km a 390.000 km: aparenta lo mismo que nuestra Luna y alumbra
-poco. Sideral 5,65 días, sinódico 5,725. Inclinación 12°, precesión nodal 360 días.
-
-La luz de la noche **nunca es fija**: depende de la fase de cada luna, de su altura
-sobre el horizonte y de su tamaño aparente. Hay noches de oscuridad completa, sin
-ninguna luna arriba, y noches en que se ve casi todo. Con poca luz la vista se
-cierra a unos metros.
-
-**Eclipses.** No basta con que una luna esté nueva o llena: tiene que pasar cerca de
-uno de sus nodos, los dos puntos donde su órbita cruza el plano del planeta. Los
-nodos retroceden —180 días Calavera, 360 Madre—, así que las temporadas de eclipse
-se corren a lo largo del año. Se distinguen totales, anulares, parciales y
-penumbrales según la geometría.
-
-Cuando Calavera eclipsa, el mundo entero se tiñe de **rojo**; cuando lo hace Madre,
-de un **blanco pálido y frío**. En un eclipse doble gana el de mayor magnitud, por
-regla fija, nunca al azar. El origen de esos colores es deliberadamente desconocido
-y el juego no lo explica.
-
-**Problema abierto: los eclipses son demasiado frecuentes.** Con los números
-actuales, Calavera produce unos 108 eclipses de sol y 286 de luna por año: trece
-episodios por día real. Madre, unos 39 al año. No es un error de cálculo, es
-consecuencia de la geometría: una luna de 3° de ancho que orbita cada 1,37 días,
-con solo 8° de inclinación, se cruza con la estrella todo el tiempo. Si los
-eclipses tienen que ser un presagio y no una rutina, la palanca es la **inclinación
-orbital**: con 25° o 30°, Calavera bajaría a unos diez al año. Pendiente de decidir.
-
-**Supuestos tomados**, por no estar definidos, ambos configurables en `NV.ASTRO`:
-Calavera está nueva en el origen del tiempo (día 1), Madre está nueva el día 387
-del año, y los nodos de ambas arrancan en longitud 0.
-
-**Mareas.** `src/mundo/mareas.js`. No se suman números: se suman direcciones. Cada
-cuerpo tira en dos sentidos opuestos a la vez, así que dos alineados se refuerzan y
-dos en ángulo recto se anulan. Cinco clases —muerta, ordinaria, viva, reforzada,
-excepcional— repartidas a lo largo del año, y una oscilación de dos pleamares por
-día del planeta. Los pesos de la ficha original —205 para Calavera— quedaron
-descartados por cataclísmicos; se conserva el orden, con Calavera mandando, la
-estrella pesando un tercio y Madre acompañando.
-
-**Clima.** `src/mundo/clima.js`. Nada de sorteos sueltos: todo sale del tiempo
-astronómico, de modo que dos sesiones en el mismo instante ven el mismo cielo. La
-estación fija una humedad de base, la marea la empuja, la humedad hace nubes y las
-nubes hacen lluvia, siempre de a poco. Medido sobre un año: llueve el 24% del
-tiempo en otoño y nada en verano; las tormentas ocupan el 0,09%. La marea alta deja
-más humedad que la baja, pero no la decide sola.
-
-**Tres intensidades de lluvia**, y la grande no la dispara la luna.
-
-| | se ve | viento |
-|---|---|---|
-| Llovizna | hilos ralos y cortos | normal |
-| Lluvia cerrada | cortina tupida, la distancia se pierde | casi el doble |
-| Tormenta | cortina inclinada, relámpagos | más del triple |
-
-Cada gota tiene su columna, su velocidad y su desvío: cae de verdad, se tuerce con
-la ráfaga y revienta contra el suelo con una marca.
-
-La **tormenta exige que coincidan tres cosas**: lluvia cerrada, marea viva o más y
-aire cargado. La luna manda por detrás, a través de la marea, nunca de forma
-directa: medido sobre un año, con Calavera llena hay tormenta solo el 3,6% de las
-veces. Así el que mira el cielo puede anticiparla —ve la marea trepando y el aire
-pesado— sin que sea una regla mecánica.
-
-Los **relámpagos** son un golpe de luz blanca en el mundo entero que dura menos de
-una décima de segundo: alumbra todo y vuelve enseguida. Mientras hay tormenta el
-dibujo se acelera a 70 milisegundos por cuadro, porque si no la mitad de los
-fogonazos caerían entre cuadro y cuadro y no se verían. En plena noche cerrada el
-fogonazo muestra el bosque completo por un instante.
-
-Las nubes apagan la luz y le quitan color. La lluvia, además, **cierra la vista**:
-la cortina tapa la distancia aunque sea mediodía.
-
-**El cielo vive dentro del mapa**, no en una ventana aparte: se abre con el botón
-*mapa* o la tecla `M` y se refresca solo. Arriba, las dos lunas dibujadas y la hora
-en palabras; abajo, la estación, la fecha, el tiempo y la marea.
-
-Cada luna se **dibuja**: un disco oscuro y encima la parte iluminada, recortada por
-una elipse que se aplasta según la fase. En cuarto la elipse vale cero y queda
-media luna exacta; en llena ocupa el disco entero, y el lado iluminado cambia de
-este a oeste al pasar la llena.
-
-**El borde dice cuál es cuál**, y sigue el color de su eclipse: ámbar para
-Calavera, pálido para Madre. Así el dibujo comunica la fase y el borde la
-identidad, sin repetir información. Cuando una está eclipsando, su borde late.
-
-**El tiempo también se ve sin abrir nada:** una franja arriba de la escena es el
-día entero del planeta, con los tramos de noche oscuros y el amanecer y el ocaso
-en naranja, y un sol o una luna recorriéndola.
-
-**Niebla.** `src/mundo/clima.js`. Un campo que ocupa la grilla, se arrastra hacia
-el oeste a unos seis metros por minuto real y reacciona a la humedad. Carga sobre
-el tercio oeste del claro.
-
-**No se prende y se apaga**: de madrugada espesa y de día adelgaza, pero nunca se
-va del todo. Lo que la hace aparecer y desaparecer en un lugar son los bancos que
-pasan, no un interruptor horario.
-
-Al dibujarse se comporta como una nube a ras del suelo: **lava el color de lo que
-hay abajo pero no borra ningún glifo**, así que las piedritas y las briznas siguen
-ahí, grises. Y **no toca las copas de los árboles**, que quedan por encima de ella.
-
-Es la misma maquinaria que va a usar el fuego cuando se propague.
-
-**La hoguera.** Un objeto en el claro, a cinco metros del punto de partida. Los
-leños se dibujan cruzados y la llama se levanta con glifos que cambian cuadro a
-cuadro, más angosta y más clara hacia la punta, con chispas que suben. Late con
-tres ondas superpuestas, así que no parpadea al azar: respira.
-
-Su luz alcanza dieciséis metros a la redonda y **se suma a la del cielo**: de día casi no
-se nota, de noche cerrada es lo único que ves. No solo aclara, entibia: lo que
-alcanza se corre hacia el ámbar. No se puede caminar sobre ella.
-
-**La luz del fuego es continua, y le llega a todo.** El campo de calor vive en
-una grilla de un valor por metro (`fuegoEn`), y dibujado tal cual la luz sale en
-anillos cuadrados: con dieciocho casillas por metro, cada salto de metro movía el
-rojo unos veinticinco niveles de golpe. Por eso hay dos formas de leerlo y no hay
-que confundirlas:
-
-- `fuegoEn(gx,gy)` es el dato: un valor por metro. Es lo que escribirá el fuego
-  cuando se propague.
-- `calorEn(wx,wy)` es lo que se dibuja: interpola entre los centros de los metros
-  vecinos. En el centro de un metro da exactamente lo mismo que `fuegoEn`.
-  `calorCerca(gx,gy)` es el descarte barato: solo los metros con una hoguera a la
-  vista pagan la interpolación.
-
-El **suelo** la calcula casilla por casilla (`prepararFuego` y `afinar` en
-`dibujar.js`: nueve valores por metro, interpolación bilineal por casilla). Lo
-que se **levanta del suelo** —árboles, rocas, muros— recibe el calor medido donde
-pisa, y se lo da `put` a cada glifo que escribe mientras `NV.tinteFuego` está
-activo. Cae con la altura: una hoguera a ras del suelo alumbra el pie de un
-tronco, no la copa. A `TINTE_ALT` (1,8 m) vale la mitad y sigue cayendo con el
-cuadrado. La hoguera no se tiñe a sí misma, y el personaje (ver más abajo) usa
-el mismo `calorEn`, así que tampoco ve saltos al caminar.
-
-Lo que **no** hace todavía: la luz no tiene dirección (un tronco se tiñe parejo a
-ambos lados, no más del lado que mira al fuego), nada le hace sombra al fuego, y
-hay una sola hoguera en el mundo. El tinte de los objetos es solo aditivo; el
-suelo, además, sube de escalón de brillo. Cerca del fuego el color ya satura —el
-brillo tiene techo (`TECHO`, 1,18) y el aditivo también (1,2)—, así que el
-desnivel se ve en el tramo de transición, más allá de unos nueve metros.
-
-**Pendiente:** el mundo todavía no tiene costas, así que la marea se calcula pero
-no hay agua que suba.
-
-La hora se comunica en palabras —*amanece*, *mediodía*, *cae la tarde*, *noche
-cerrada*— nunca en números, igual que todo lo demás.
-
-Las estaciones cambian el aspecto del bosque, los recursos disponibles y los
-problemas que aparecen.
-
----
+**Cómo se probó.** Las pruebas del sistema viejo se borraron (`astro`, `eclipses`,
+`tormenta`, `mareas-clima`; la hoguera de `niebla-fuego` pasó a `hoguera.js`). Las demás
+dejaron de fijar la hora. Si se vuelve a un sistema de luz con hora, esta sección es el
+lugar donde hay que escribirlo otra vez.
 
 ## 6. El sandbox
 
@@ -713,9 +550,8 @@ Sólo alta da una tela corrugada. Y el reflejo es lo que más vende el agua: sin
 una sinusoide de densidad sin brillo.
 
 Nueve estados: agua tranquila, orilla de lago, somera, río, río profundo, mar en
-calma, mar con olas, mar con tormenta y la rompiente. **El mar cambia de estado
-con el tiempo que hace** —según la intensidad de la lluvia y la amplitud de la
-marea—, así que no hay que elegirlo a mano en ningún lado.
+calma, mar con olas, mar con tormenta y la rompiente. El mar está siempre en
+`mar-calma`: sin lluvia ni marea no hay nada que lo revuelva.
 
 El agua se resuelve **celda por celda**, no por metro: es lo que le da la onda
 continua. Para que eso no cueste el cuadro, el motor lleva una tabla de 1.024
@@ -791,17 +627,13 @@ está calmada: negra, rala, con rayitas horizontales sueltas, y solo se arruga u
 Cada estado del agua lleva `reposo` (0 a 1) en `OLAS`: achata la ola (menos contraste de
 glifo y de luz) y la hace más lenta (el tiempo se escala por `reposo`). Con `reposo` de
 0,6 o menos el agua además se oscurece (×0,72) y deja vacío entre el 36 y el 52 % de las
-celdas. El mar ya no se levanta con la marea alta: solo `mar-olas` con mal tiempo
-(`intensidad` 1) o `mar-tormenta`; el resto del tiempo es `mar-calma`. Los reflejos de
+celdas. El mar siempre es `mar-calma`. Los reflejos de
 los objetos se cortan y se corren mucho menos (umbral 0,93 y 0,6 celdas, antes 0,78 y
-1,4). **Estrellas:** de noche el agua quieta refleja el cielo, con puntitos `. :` pálidos
-fijos en el mundo y un titilar lento; `NV.nocheEstrellas()` (en `cielo.js`) da cuántas se
-ven y las nubes las tapan. **Luna en el agua:** de noche, con la luna sobre el horizonte
-y el cielo sin nubes, el agua quieta lleva un disco de glifos claros (`: o 8 #`) de unos
-4 × 2 m, cortado en franjas que se mueven despacio. Se ancla a la CÁMARA, no al mundo: la
-x sale del ángulo horario de la luna (sale por el este, cruza y se pone por el oeste) y la
-y de su altura. Elige la luna con más `ilum × altura` y tiene un piso de fuerza, porque
-la luz de una luna llena apaga las estrellas pero no su propio reflejo. Falta, de la
+1,4). **Estrellas:** el agua quieta refleja siempre el cielo, con puntitos `. :` pálidos
+fijos en el mundo y un titilar lento; cuántas salen lo dice `LUZ_LUNAS.estrellas`.
+**Luna en el agua:** el agua quieta lleva un disco de glifos claros (`: o 8 #`) de unos
+4 × 2 m, cortado en franjas que se mueven despacio. Se ancla a la CÁMARA, no al mundo,
+en el sitio y con la fuerza que da `LUZ_LUNAS.luna` (ya no sale ni se pone). Falta, de la
 muestra, la línea fina de espuma solo en la orilla (hoy sigue la banda de `espumar`).
 
 ### La textura del suelo
@@ -1008,7 +840,7 @@ vuelta en U, uno solo.
 
 Tres cosas se suman, y ninguna estaba:
 
-**La del cielo, con piso.** Nunca baja de 0,16: de noche el personaje se ve
+**La de la luz de lunas, con piso.** Nunca baja de 0,16: el personaje se ve
 oscurecido, no desaparecido. Sin piso, a 0,07 de luz ambiente la figura era un
 agujero negro.
 
@@ -1023,10 +855,6 @@ que caminando no salta al cruzar de un metro a otro— y se suma luz anaranjada,
 tope. El calor crudo llega a 2,4 al lado de la hoguera; sumado tal cual
 multiplicaría la luz por más de uno y medio. Medido: de noche, al lado de la
 hoguera el rojo pasa de 0,21 a 0,83, y queda casi el doble que el azul.
-
-**Y las lunas ya alumbraban**, en el ambiente del cielo: medido, la noche más
-clara tiene 0,52 de ambiente con las lunas altas y la más oscura 0,14 sin
-ellas.
 
 **El resplandor propio suma, no multiplica**, y es más fuerte cuanto más oscuro
 está: 0,156 de noche contra 0,058 de día. Un seis por ciento de casi nada sigue
@@ -1127,8 +955,8 @@ Dos reglas de forma, y la primera pesa más que todo lo demás.
 encabezado, contenido y pie; un juego ocupa la pantalla entera y flota sus
 paneles encima, pegados a las esquinas. Mientras el lienzo estuvo metido entre
 dos barras, esto se leyó como un sitio por más que el color fuera el correcto.
-Arriba a la izquierda, dónde estás y cómo está el día; arriba a la derecha, el
-mapa; abajo a la izquierda, la estación y la fecha; abajo a la derecha, el botón
+Arriba a la izquierda, dónde estás y el viento; arriba a la derecha, el
+mapa; abajo a la izquierda, la ayuda; abajo a la derecha, el botón
 de información.
 
 **Nada redondo, nada suelto.** Esquinas cuadradas, filetes de un píxel, letra de
@@ -1244,10 +1072,10 @@ medidor; se leen por lo que hacen.
 
 | qué | cuándo sale | de dónde | cómo se mueve |
 |---|---|---|---|
-| **hojas** | encinos y álamos (los pinos no); sobre todo en otoño, poco el resto del año, menos con lluvia | de la copa de cada árbol en la vista | caen, el viento las lleva hacia el este y se mecen |
+| **hojas** | encinos y álamos (los pinos no); siempre como en primavera (poco) | de la copa de cada árbol en la vista | caen, el viento las lleva hacia el este y se mecen |
 | **polvo** | sólo con viento racheado, sobre arena y tierra | celdas de 4 m del mundo | rasante, rápido, en rachas |
 | **chispas** | de cada hoguera, siempre | del fuego | suben hasta unos 3,5 m, se van de lado y pasan de blanco-naranja a rojo apagado |
-| **luciérnagas** | de noche, sin lluvia, sobre pasto y orillas | celdas de 5 m | vagan despacio y se encienden y apagan |
+| **luciérnagas** | siempre (el mundo vive de noche), sobre pasto y orillas | celdas de 5 m | vagan despacio y se encienden y apagan |
 
 - **No guardan estado.** Cada partícula es una función del reloj: dado el instante y la semilla
   de su ranura (un árbol, una celda, una hoguera) se sabe dónde está y cuánto le queda de
@@ -1319,12 +1147,9 @@ sube por ellas); con 2,5 sigue pasando lo de antes (30 % por sendero). `pruebas/
 
 ## 9 bis. El reloj y el guardado
 
-**El mundo tiene su propio reloj y corre sin nadie.** La fecha también: cada 100
-minutos reales amanece y el calendario pasa de página. La hora no arranca al entrar:
-sale del tiempo real, el mismo que tiene cualquier teléfono. Dos personas que
-entran en el mismo instante, en cualquier parte, ven la misma hora, la misma fase
-de las lunas, la misma marea y el mismo clima. Y si nadie entra en una semana, al
-volver el bosque está siete días más viejo.
+**El mundo ya no tiene reloj astronómico** (ver la sección 5): no hay hora, fecha, fases
+ni clima compartido; el juego se ve siempre igual. Lo que sigue corriendo son las
+animaciones (viento, agua, fuego).
 
 El bosque tampoco se sortea: se genera de una semilla, así que es idéntico siempre.
 
@@ -1371,14 +1196,10 @@ lo demás no se mueva. Siguen los arbustos, los troncos caídos y las piedras. C
 `global.__arboles=true` antes de cargar (`pruebas/cargar.js` lo aplica justo después de
 `base.js`); `pruebas/sinarboles.js` comprueba que no quede ninguno y que nada más se mueva.
 
-## Luz fija y pasto único (pausa del sistema de luz)
+## Pasto único
 
-- **Luz fija.** `NV.CONFIG.luzFija` (verdadero en el juego) congela la luz: al final de
-  `actualizarCielo` la luz, la dirección y el largo de las sombras salen de `LUZ_FIJA`
-  (penumbra fría y verdosa, sombras largas hacia el este), sin importar la hora del
-  mundo, el clima, los eclipses ni los relámpagos. Todo eso se sigue calculando; solo
-  se ignora. Poner `luzFija:false` devuelve el sistema entero. Las pruebas cargan con
-  la luz viva (`global.__luzFija` en `pruebas/cargar.js`, apagado por defecto).
+- **La luz ya no es una pausa sino la única luz** (ver la sección 5): el interruptor
+  `NV.CONFIG.luzFija` y `LUZ_FIJA` de `cielo.js` desaparecieron con el sistema de astros.
 - **Un solo pasto, hecho sólo de `|`, `/` y `\`.** Los materiales `g`, `G`, `h` y `n` se
   dibujan con la misma definición. Cada brizna es una columna de esos tres glifos (la
   inclinación decide cuál, y el viento la mece), de 0,16 a 0,66 m (pasto corto), en uno de tres tonos de

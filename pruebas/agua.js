@@ -8,7 +8,6 @@ const m=cargar(`module.exports={
 };`);
 const NV=m.NV;
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
-NV.actualizarCielo(Date.UTC(2026,4,1,12,0,0));
 m.tictac();
 
 console.log('=== cada agua tiene su estado de ola ===');
@@ -22,16 +21,8 @@ for(const k of aguas){
 console.log('  materiales de agua: '+aguas.join(' ')+(faltan.length?' · sin ola: '+faltan.join(' '):' · todos con ola'));
 probar('ningún agua quedó sin su estado de ola', faltan.length===0);
 
-console.log('\n=== el mar cambia con el tiempo que hace ===');
-const vistos=new Set();
-for(const [int,tor,am] of [[0,false,0.3],[1,false,0.5],[0,false,0.8],[3,true,0.9]]){
-  NV.cielo.clima={intensidad:int,tormenta:tor,marea:{amplitud:am}};
-  const e=m.estadoDelMar();
-  vistos.add(e);
-  console.log('  intensidad '+int+(tor?' con tormenta':'')+', marea '+am+' → '+e);
-}
-probar('el mar tiene más de un estado según el clima', vistos.size>=3);
-NV.cielo.clima={intensidad:0,tormenta:false,marea:{amplitud:0.5}};
+console.log('\n=== el mar siempre está en calma ===');
+probar('el mar no tiene más estado que la calma (ya no hay tiempo que lo revuelva)', m.estadoDelMar()==='mar-calma');
 
 console.log('\n=== la ola tiene cresta, valle y reflejo ===');
 for(const est of ['tranquila','rio','mar-olas','mar-tormenta','rompiente']){
@@ -71,9 +62,7 @@ console.log('\n=== coste del cuadro con el mar en pantalla ===');
 /* el panel del acantilado es el peor caso: el mar ocupa media pantalla */
 m.irA(135,50); m.tictac(); m.draw_();
 let peor=0;
-for(const [nom,clima] of [['en calma',{intensidad:0,tormenta:false,marea:{amplitud:0.3}}],
-                          ['con tormenta',{intensidad:3,tormenta:true,marea:{amplitud:0.9}}]]){
-  NV.cielo.clima=clima;
+for(const nom of ['en calma']){
   const t0=Date.now(); for(let i=0;i<12;i++) m.draw_();
   const ms=(Date.now()-t0)/12;
   peor=Math.max(peor,ms);

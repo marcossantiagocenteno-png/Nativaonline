@@ -10,7 +10,6 @@ const m=cargar(`module.exports={
 };`);
 const NV=m.NV;
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
-NV.actualizarCielo(Date.UTC(2026,4,1,12,0,0));     // mediodía fijo: sin azar de hora
 m.tictac();
 
 const ALTO={pino:5.6,encino:4.0,alamo:5.2};

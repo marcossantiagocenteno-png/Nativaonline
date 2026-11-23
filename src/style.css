@@ -38,7 +38,7 @@ html,body{margin:0;height:100%;background:var(--negro);color:var(--ink);overflow
 #hudTL{left:4px;top:11px}
 #hudBL{left:4px;bottom:4px}
 #wname{color:var(--ink);font-size:11px;letter-spacing:.8px}
-#st1,#st2,#st3,#ayuda{color:var(--dim);font-size:9px;white-space:nowrap;
+#st2,#ayuda{color:var(--dim);font-size:9px;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis}
 #sello{color:#5a533f;font-size:8px}
 .fila{display:flex;gap:3px;margin-top:3px}
@@ -51,16 +51,6 @@ button.on{border-color:var(--oro);color:var(--oro)}
 #compass{position:absolute;right:4px;bottom:46px;font-size:8px;color:var(--dim);
   text-align:center;line-height:1;letter-spacing:1px;pointer-events:none;opacity:.6;z-index:30}
 #compass span{font-size:10px}
-
-/* la franja del día, al filo de arriba */
-#reloj{position:absolute;left:0;right:0;top:0;height:5px;z-index:29;opacity:.85;
-  background:linear-gradient(90deg,#0a0a0a 0%,#0a0a0a 22%,#8a5a1e 26%,#b9b09a 34%,
-    #e6e0d2 50%,#b9b09a 68%,#8a4a1e 76%,#0a0a0a 80%,#0a0a0a 100%)}
-#relojM{position:absolute;top:-2px;width:2px;height:9px;background:#fff;
-  box-shadow:0 0 5px #fff;transition:left .4s linear}
-#relojS{position:absolute;top:-4px;margin-left:-5px;width:11px;height:11px;
-  line-height:11px;text-align:center;font-size:9px;color:#fff;
-  text-shadow:0 0 4px #000;transition:left .4s linear;pointer-events:none}
 
 /* lo que se dice al explorar */
 #bubble{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);

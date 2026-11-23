@@ -85,7 +85,7 @@ function layout(){
   }
   if(!colAlza||colAlza.length!==cols) colAlza=new Int16Array(cols);
   animMsBase = cols*rowsN>90000?340:cols*rowsN>45000?240:160;
-  if(animMs!==animMsBase && !(NV.cielo&&NV.cielo.clima&&NV.cielo.clima.tormenta)){
+  if(animMs!==animMsBase){
     animMs=animMsBase; restartAnim();
   }
 }
@@ -179,9 +179,8 @@ function flush(){
   if(canRun){ ctx.textAlign='center'; ctx.letterSpacing='0px'; }
   ctx.restore();
   const amb=clamp(NV.luz.amb,0,1.1);
-  const vis=((NV.cielo&&NV.cielo.visibilidad)||1)*(1-((NV.cielo&&NV.cielo.nieblaAqui)||0)*0.55);
-  const vista=(0.10+0.26*amb)*vis;                    // de noche se ve mucho menos lejos
-  const cierre=Math.min(0.97, 0.95-0.37*amb+(1-vis)*0.35);
+  const vista=0.10+0.26*amb;
+  const cierre=Math.min(0.97, 0.95-0.37*amb);
   const g=ctx.createRadialGradient(Wp/2,Hp/2,Math.min(Wp,Hp)*vista,Wp/2,Hp/2,Math.max(Wp,Hp)*0.80);
   g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,'+cierre.toFixed(2)+')');
   ctx.fillStyle=g; ctx.fillRect(0,0,Wp,Hp);

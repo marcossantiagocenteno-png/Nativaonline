@@ -26,8 +26,8 @@ const _fade=u=>Math.sin(Math.PI*u);            // 0 al nacer, 1 en la mitad, 0 a
 const HOJA_ESTACION={primavera:0.18, verano:0.10, 'otoño':1.0, invierno:0.12};
 
 function hojas(ts,objetos,L){
-  const est=NV.cielo&&NV.cielo.estacion||'primavera';
-  const f=(HOJA_ESTACION[est]||0.15)*calidad*(1-0.7*((NV.cielo&&NV.cielo.clima&&NV.cielo.clima.intensidad)||0)/3);
+  const est='primavera';                                         // ya no hay estaciones
+  const f=(HOJA_ESTACION[est]||0.15)*calidad;
   if(f<=0.02) return;
   const fam=est==='otoño'||est==='invierno'?'hoja':'verde';
   const deriva=0.45+wind*1.3;                                   // m/s hacia el este
@@ -90,8 +90,9 @@ function chispas(ts,objetos){
 
 /* luciérnagas: sólo de noche y sin lluvia; vagan en lo suyo y se encienden a ratos */
 function luciernagas(ts,colsM,rowsM,L){
-  const oscuro=1-Math.min(1,L.amb/0.45); if(oscuro<=0.05) return;
-  const cl=NV.cielo&&NV.cielo.clima; if(cl&&cl.intensidad) return;
+  /* el mundo vive siempre de noche (luz de lunas): las luciérnagas salen siempre */
+  if(!NV.LUZ_LUNAS||!NV.LUZ_LUNAS.luciernagas) return;
+  const oscuro=1;
   const CELDA=5, x0=Math.floor(camX/CELDA)-1, x1=Math.ceil((camX+colsM)/CELDA)+1;
   const y0=Math.floor(camY/CELDA)-1, y1=Math.ceil((camY+rowsM)/CELDA)+1;
   for(let cy=y0;cy<=y1;cy++) for(let cx=x0;cx<=x1;cx++){
