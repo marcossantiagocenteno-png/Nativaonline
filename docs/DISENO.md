@@ -80,9 +80,11 @@ nada que jugar.
 
 **Toda la luz del juego está en `src/luz-de-lunas/luz.js`** (carpeta con guiones y sin
 espacios para que el enlace del cargador no se rompa). Es una sola tabla, `LUZ_LUNAS`:
-cantidad de luz y tono (penumbra fría y verdosa), dirección y largo de las sombras
-(largas, hacia el este), la luna fija que se refleja en el agua quieta, cuántas
-estrellas se reflejan y si hay luciérnagas. Se cambia la tabla y cambia el juego; nada
+cantidad de luz y tono, dirección y largo de las sombras, el brillo fijo que se
+refleja en el agua quieta, cuántas estrellas se reflejan y si hay luciérnagas. **Desde
+el 22/11 la luz es de día** (pedido de Marcos): toda la luz, tono apenas cálido, sombras
+cortas hacia el este, sin estrellas ni luciérnagas. Los valores de la luz de noche
+anterior quedan anotados en el comentario de cabecera de `luz.js`. Se cambia la tabla y cambia el juego; nada
 más decide la luz. Todo el dibujo lee `NV.luz` (ya multiplicada por la cantidad) y las
 sombras de los paneles leen `NV.LUZ_LUNAS.sombra`. `NV.cieloEnPalabras()` devuelve una
 sola frase.

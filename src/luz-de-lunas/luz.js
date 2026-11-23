@@ -1,8 +1,9 @@
 /* Nativa Online — LUZ DE LUNAS.
-   Esta carpeta es toda la luz del juego. No hay día ni noche, ni sol, ni astros,
+   Esta carpeta es toda la luz del juego. No hay ciclo de día y noche, ni astros,
    ni eclipses, ni estaciones, ni mareas, ni lluvia: el mundo vive siempre bajo la
-   misma luz de lunas, fría y verdosa, con sombras largas hacia el este. Lo que
-   antes calculaban astro.js, cielo.js y mareas.js ya no existe.
+   misma luz. Ahora esa luz es de DÍA: clara, cálida, con el sol alto y sombras
+   cortas. (La de antes, de noche: amb 0.72, r 0.72, g 1.00, b 0.88, sombra
+   {dx:1, dy:0.30, porMetro:1.7}, estrellas 1, luciérnagas 1.)
 
    Para cambiar cómo se ve el juego se toca SOLO esta tabla. Nada más del código
    decide la luz: todo lo demás lee NV.luz (color y cantidad) y NV.LUZ_LUNAS.sombra
@@ -11,14 +12,14 @@
 const NVl = window.NV;
 
 const LUZ_LUNAS = {
-  amb: 0.72,                       // cuánta luz hay
-  r: 0.72, g: 1.00, b: 0.88,       // el tono: verde frío, sin llegar a turquesa
-  sombra: {dx: 1, dy: 0.30, porMetro: 1.7},     // hacia el este, larga y baja
-  /* la luna que se refleja en el agua quieta, fija en la pantalla (fracciones de
+  amb: 1.00,                       // cuánta luz hay: toda
+  r: 1.00, g: 0.98, b: 0.86,       // el tono: sol limpio, apenas cálido
+  sombra: {dx: 1, dy: 0.45, porMetro: 0.8},     // sol alto: sombra corta, hacia el este
+  /* el brillo del sol sobre el agua quieta, fijo en la pantalla (fracciones de
      lo que se ve): a la derecha y arriba del centro */
-  luna: {x: 0.62, y: 0.40, fuerza: 0.85, rx: 2.0, ry: 0.95},
-  estrellas: 1,                    // cuántas estrellas se ven reflejadas (0 a 1)
-  luciernagas: 1                   // 1 las deja salir sobre el pasto, 0 las apaga
+  luna: {x: 0.62, y: 0.40, fuerza: 0.70, rx: 2.4, ry: 1.05},
+  estrellas: 0,                    // de día no hay estrellas en el agua (0 a 1)
+  luciernagas: 0                   // 1 las deja salir sobre el pasto, 0 las apaga
 };
 
 NVl.LUZ_LUNAS = LUZ_LUNAS;
@@ -28,5 +29,5 @@ NVl.luz = {amb: LUZ_LUNAS.amb,
 
 /* El cielo, en palabras y sin un solo número. */
 NVl.cieloEnPalabras = function(){
-  return 'Las lunas lo bañan todo de una luz fría y quieta.';
+  return 'El sol alto lo baña todo de una luz clara y tibia.';
 };

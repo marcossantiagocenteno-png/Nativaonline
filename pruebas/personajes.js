@@ -70,9 +70,9 @@ console.log('\n=== la luz: nunca se apaga del todo ===');
   const noche=NV.luzPersonaje({x:20,y:20},20,20,0);
   console.log('  en la hora más oscura del día recibe '+peor.toFixed(2)+' de luz');
   console.log('  de noche: r'+noche.r.toFixed(2)+' g'+noche.g.toFixed(2)+' b'+noche.b.toFixed(2)
-              +' (azulada, que es la luz de las lunas)');
-  probar('de noche se ve, oscurecida pero se ve', peor>0.18);
-  probar('la noche la tiñe de azul y no de naranja', noche.b>noche.r);
+              +' (luz de día: clara y apenas cálida)');
+  probar('con esta luz se ve bien', peor>0.18);
+  probar('la luz de día no la tiñe de azul', noche.b<=noche.r);
 }
 
 console.log('\n=== la hoguera lo alumbra de naranja ===');
@@ -82,10 +82,10 @@ console.log('\n=== la hoguera lo alumbra de naranja ===');
   const cerca=NV.luzPersonaje({x:54,y:54},54,54,0);
   console.log('  lejos del fuego r'+lejos.r.toFixed(2)+' b'+lejos.b.toFixed(2)
               +' · al lado r'+cerca.r.toFixed(2)+' b'+cerca.b.toFixed(2));
-  /* umbrales 1,4 y 1,15 y no 2 y 1,8: con la luz de lunas fija (más clara que la noche cerrada de antes)
-     la hoguera se suma a más luz de fondo y su naranja se nota menos en proporción */
-  probar('al lado de la hoguera recibe más luz', cerca.r>lejos.r*1.4);
-  probar('y esa luz es más naranja que blanca', cerca.r>cerca.b*1.15);
+  /* umbrales 1,1 y 1,05: a pleno día la hoguera se suma a mucha luz de fondo y
+     apenas se nota en proporción; sigue sumando y sigue siendo naranja */
+  probar('al lado de la hoguera recibe más luz', cerca.r>lejos.r*1.1);
+  probar('y esa luz es más naranja que blanca', cerca.r>cerca.b*1.05);
   probar('lejos del fuego no le llega nada', lejos.calor===0);
 }
 
