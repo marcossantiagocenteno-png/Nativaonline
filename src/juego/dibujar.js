@@ -1068,48 +1068,66 @@ let _UI=new Float32Array(256), _RU=new Float32Array(256);
    que el modelo y el zoom siguen mandando. Todo el azar sale de la semilla del
    árbol y de la celda, nunca de la pantalla, y el viento sólo corre la copa. */
 function drawArbolGlifo(tr,haze,t){
-  const sp=SPECIES[tr.sp], M=NV.MODELOS[tr.sp], m=M[tr.s%M.length], G=sp.glifos;
+  const sp=SPECIES[tr.sp], M=NV.MODELOS[tr.sp];
+  const m=M?M[tr.s%M.length]:sp.modelo, G=sp.glifos, luzC=sp.luzC||1;
   const bc=(tr.x-camX)*CPM+Math.floor(CPM/2), br=(tr.y-camY)*RPM+RPM-1;
   const h=tr.h, H=Math.max(6,Math.round(h*HPM));
   const viento=windAt(tr.x,tr.y,t*0.8)*sp.sway;
   const grosorC=Math.max(1.2,m.grosor*h*CPM/2), anchoC=Math.max(2,m.ancho*h*CPM/2);
-  const desde=m.pisos?m.pisos.desde:m.columna.desde;
+  const desde=m.pisos?m.pisos.desde:m.columna?m.columna.desde:m.horqueta;
+  const yT=m.lider||m.horqueta;
   for(let k=0;k<=H;k++){
     const y=k/H, r=br-k;
     if(r<-4||r>=rowsN+4) continue;
     const u=clamp((y-desde)/(0.95-desde),0,1.2);
-    let hw;
-    if(y<desde){                                       // tronco, con el pie abierto
-      hw=grosorC*(1+0.9*Math.max(0,1-y/0.07)*(1-y/0.07));
-    } else if(u>1){
-      hw=Math.max(0.6,grosorC*0.4*(1.2-u)/0.2);        // la punta
-    } else if(m.pisos){
-      const P=m.pisos, fr=(u*P.n)%1;
-      hw=anchoC*Math.pow(1-u,P.p)*(0.62+0.38*(1-fr*0.85));      // pisos que caen
-      hw=Math.max(hw,grosorC);
+    let lo,hi;                                            // extremos de la fila, en celdas
+    if(m.manchas&&y>=desde){                              // copa de varios lóbulos
+      lo=1e9; hi=-1e9;
+      for(const Mn of m.manchas){
+        const dy=(y-Mn[1])/(Mn[2]*0.82);
+        if(dy<-1||dy>1) continue;
+        const half=Mn[2]*h*CPM*Math.sqrt(1-dy*dy);
+        lo=Math.min(lo,Mn[0]*h*CPM-half); hi=Math.max(hi,Mn[0]*h*CPM+half);
+      }
+      if(y<=yT){ lo=Math.min(lo,-grosorC); hi=Math.max(hi,grosorC); }
+      if(lo>hi) continue;
     } else {
-      const Q=m.columna;
-      hw=anchoC*(Q.llama?Math.sqrt(Math.max(0.06,1-Math.pow(u*1.8-0.80,2)*0.92))
-                        :Math.sqrt(Math.max(0.06,1-u*u*0.58)));
-      hw=Math.max(hw,grosorC)*(Q.rala?0.86:1);
+      let hw;
+      if(y<desde){                                        // tronco, con el pie abierto
+        hw=grosorC*(1+0.9*Math.max(0,1-y/0.07)*(1-y/0.07));
+      } else if(u>1){
+        hw=Math.max(0.6,grosorC*0.4*(1.2-u)/0.2);         // la punta
+      } else if(m.pisos){
+        const P=m.pisos, fr=(u*P.n)%1;
+        hw=anchoC*Math.pow(1-u,P.p)*(0.62+0.38*(1-fr*0.85));   // pisos que caen
+        hw=Math.max(hw,grosorC);
+      } else {
+        const Q=m.columna;
+        hw=anchoC*(Q.llama?Math.sqrt(Math.max(0.06,1-Math.pow(u*1.8-0.80,2)*0.92))
+                          :Math.sqrt(Math.max(0.06,1-u*u*0.58)));
+        hw=Math.max(hw,grosorC)*(Q.rala?0.86:1);
+      }
+      lo=-hw; hi=hw;
     }
-    hw*=0.90+0.20*((hash3(tr.s,k,6)%100)/100);          // el borde no es una regla
-    const ci=Math.max(1,Math.round(hw));
+    const rag=0.90+0.20*((hash3(tr.s,k,6)%100)/100);        // el borde no es una regla
+    const mid=(lo+hi)/2, hw2=Math.max(1,(hi-lo)/2*rag);
+    const cL=Math.round(mid-hw2), cR=Math.round(mid+hw2);
     const c0=bc+Math.round(m.inclina*y*h*CPM+viento*1.1*Math.pow(clamp(y,0,1),1.3));
     const copa=y>=desde;
-    for(let c=-ci;c<=ci;c++){
-      const este=c/ci, hh=hash3(tr.s+c*17,k>>1,3);
-      const borde=Math.abs(c)>=ci;
+    for(let c=cL;c<=cR;c++){
+      const este=(c-mid)/hw2, hh=hash3(tr.s+c*17,k>>1,3);
+      if(m.manchas&&copa&&(hh>>14)%100<9) continue;       // huecos de cielo entre lóbulos
+      const borde=c===cL||c===cR;
       const denso=(hh%100)<(copa?46:34);
       const g=(denso?G.denso:G.ralo)[(hh>>7)%(denso?G.denso.length:G.ralo.length)];
-      let luz=(copa?0.34:0.28)+0.26*((este+1)/2);
+      let luz=(copa?0.34:0.28)+0.26*clamp((este+1)/2,0,1);
       if(borde) luz*=este>0?1.55:0.60;
       const fleco=((hh>>11)%100)<(copa?13:9);
       put(c0+c,r,g.charCodeAt(0),
-          packs(fleco?G.fleco:G.fam, (fleco?0.50+0.5*((hh>>3)%10)/10:luz)*sp.luzC*haze));
+          packs(fleco?G.fleco:G.fam, (fleco?0.50+0.5*((hh>>3)%10)/10:luz)*luzC*haze));
     }
-    put(c0-ci-1,r,35,ORLA); put(c0+ci+1,r,35,ORLA);
-    if(k===H) for(let c=-ci;c<=ci;c++) put(c0+c,r-1,35,ORLA);
+    put(c0+cL-1,r,35,ORLA); put(c0+cR+1,r,35,ORLA);
+    if(k===H) for(let c=cL;c<=cR;c++) put(c0+c,r-1,35,ORLA);
   }
 }
 function drawArbol(tr,haze,t){
@@ -1432,10 +1450,8 @@ function drawObjeto(tr,haze,t){
   }
   /* las tres especies del bosque tienen modelo; el místico del lago y los
      arbustos siguen por el camino viejo */
-  if(tr.k==='arbol' && NV.MODELOS[tr.sp]){
-    if(SPECIES[tr.sp].glifos) drawArbolGlifo(tr,haze,t); else drawArbol(tr,haze,t);
-    return;
-  }
+  if(tr.k==='arbol' && SPECIES[tr.sp] && SPECIES[tr.sp].glifos){ drawArbolGlifo(tr,haze,t); return; }
+  if(tr.k==='arbol' && NV.MODELOS[tr.sp]){ drawArbol(tr,haze,t); return; }
   const sp=SPECIES[tr.sp]||SPECIES.encino;
   const isB=tr.k==='arbusto';
   const tall=Math.max(3,Math.round(tr.h*HPM));

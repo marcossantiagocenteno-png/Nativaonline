@@ -1183,8 +1183,11 @@ densos; el álamo con `! |` y `9`), tenues, con motas claras de piedra y la orla
 negra que los despega del pasto (`drawArbolGlifo`). La silueta sale del mismo modelo
 de antes (`m.pisos`, `m.columna`, `m.grosor`, `m.ancho`): el pino es tronco angosto bajo
 una copa en pisos de borde dentado, el álamo una columna en llama, y el pie se abre.
-Los glifos están en `SPECIES[...].glifos`. El encino y el árbol místico siguen con el
-dibujo viejo (`drawArbol`). Todo el azar sale de la semilla del árbol y de la celda.
+Los glifos están en `SPECIES[...].glifos`. También el encino (copa de lóbulos, con
+huecos de cielo, motas verde menta) y el árbol místico (masa pálida, modelo propio
+en `SPECIES.mistico.modelo`) se dibujan así: `drawArbol` quedó sin uso para estas
+cuatro especies y los arbustos siguen por el camino viejo. Todo el azar sale de la
+semilla del árbol y de la celda.
 Si algo se ve «primavera», casi siempre es un verde
 saturado de brillo medio: bajarlo, no subir otro color.
 
