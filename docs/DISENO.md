@@ -1293,3 +1293,35 @@ Cambiar el formato exige subir `FORMATO` y escribir su migración en `MIGRACIONE
 
 El editor mismo; mover los archivos de `src/` a su carpeta final; extraer agua/árboles de
 `dibujar.js`; que los rasgos de río afecten la altura del agua; una pantalla para exportar.
+
+## Fluidez del movimiento (22/11)
+
+El recorrido se sentía a tirones por cuatro causas que se sumaban; medidas en `pruebas/fluidez.js`
+(reloj virtual, mismo ciclo que el juego) y comprobadas en Chrome real:
+
+1. **La cámara perseguía la casilla de destino**, que cambia de a un metro por paso, y no el punto donde
+   se dibuja al personaje. El escenario avanzaba en pulsos, uno por paso. Ahora sigue al personaje tal
+   como se ve. Rugosidad del avance caminando en recta: 66 % → 0 %.
+2. **El suavizado de la cámara era "30 % por cuadro"**, o sea dependía de cuántos cuadros hubiera. Ahora se
+   mide en tiempo (`CAM_TAU`, 0,07 s; `ALZ_TAU` para la altura).
+3. **Los pasos los daba un `setInterval`**, que llega tarde cuando los cuadros saturan el hilo: en Chrome
+   real el personaje daba 9 pasos en 3,5 s en vez de 19. Ahora los da el lazo de cuadros en su instante
+   exacto (`marcapasos`, `avanzarPasos`) y cada paso empieza donde terminó el anterior (`move(dx,dy,tIdeal)`);
+   un giro a mitad de paso sale de donde se ve al personaje, sin salto.
+4. **El ambiente (viento, agua, fuego, follaje) saltaba cada 160–340 ms** y entre un salto y otro quedaba
+   congelado. Ahora su reloj (`NV.tAmb`, `NV.tViento`) corre en tiempo real y continuo (`relojAmbiente`),
+   con la misma velocidad de antes (0,11 por cada latido base).
+
+Además hay **un solo lazo de cuadros** (`programarCuadro`/`cuadro`): antes el lazo del movimiento y el de la
+animación podían dibujar en el mismo cuadro, que costaba el doble. Y se quitó el tope de 26 ms entre
+cuadros, que dejaba la pantalla en ~30 por segundo aunque el monitor diera 60.
+
+**Lo que NO cambia:** casillas de a un metro, ritmo de 186 ms por paso, controles y mecánicas. Por eso un
+camino en diagonal sigue siendo una escalera (el personaje sólo anda por ejes): la cámara la suaviza pero no
+la vuelve recta; eso pediría movimiento diagonal real, que es una decisión de mecánica.
+
+**Lo que queda, medido:** en Chrome sin aceleración, un cuadro cuesta ~150 ms y el 82 % es pintar texto
+(≈45 000 llamadas a `fillText` por cuadro, una por cada tramo de un mismo color; el pasto varía de color
+casi celda por celda). El cálculo del cuadro es el resto (~27 ms). Bajar ese costo de verdad exige
+guardar el suelo ya pintado y moverlo, en vez de repintarlo entero cada cuadro: un cambio de arquitectura
+que se decide aparte.

@@ -41,8 +41,10 @@ const partes=ORDEN.map(f=>fs.readFileSync(R+f,'utf8'));
 const src=[partes[0],'window.NV.CONFIG.arboles=!!global.__arboles;',...partes.slice(1)].join('\n;\n');
 /* Las partículas dependen del reloj, y casi todas las pruebas comparan cuadros: arrancan apagadas.
    La que las mide (particulas.js) las enciende con NV.particulas=true. */
-module.exports=function(extra){
+module.exports=function(extra,reemplazos){
   const mod={exports:{}};
-  new Function('module','exports',src+'\n;window.NV.particulas=false;\n'+(extra||'module.exports=window.NV;'))(mod,mod.exports);
+  /* reemplazos: [[texto,nuevo],..] sólo para pruebas que necesitan variar una constante (p. ej. el ritmo del paso) */
+  let fuente=src; for(const [a,b] of (reemplazos||[])){ if(fuente.indexOf(a)<0) throw new Error('reemplazo no encontrado: '+a); fuente=fuente.split(a).join(b); }
+  new Function('module','exports',fuente+'\n;window.NV.particulas=false;\n'+(extra||'module.exports=window.NV;'))(mod,mod.exports);
   return mod.exports;
 };

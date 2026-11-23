@@ -15,7 +15,7 @@ const m=cargar(`module.exports={
   ponerYo:(x,y)=>{ me.x=x; me.y=y; NV.camXf=undefined; NV.camYf=undefined; },
   estado:()=>({fbG,fbC,fbL,cols,rowsN,CPM,RPM,HPM,camX,camY})
 };`);
-const NV=m.NV;
+const NV=m.NV; performance.now=()=>0;      // el reloj del ambiente corre con el tiempo real: congelado, dos cuadros iguales salen iguales
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
 const DIA=30*86400e3/430, base=Date.UTC(2026,4,1,0,0,0);
 const hora=()=>{};      // ya no hay hora: la luz es una sola

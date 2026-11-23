@@ -4,7 +4,7 @@ const cargar=require('./cargar.js');
 const T=new Map(); let id=0;
 global.setInterval=f=>{ T.set(++id,f); return id; };
 global.clearInterval=i=>T.delete(i);
-const latir=n=>{ for(let k=0;k<n;k++) for(const f of [...T.values()]) f(); };
+const latir=n=>{ for(let k=0;k<n;k++){ for(const f of [...T.values()]) f(); NV.pasoForzado(); } };
 
 const m=cargar('module.exports={NV:window.NV, irHacia, buscarCamino, empezarACaminar, me:()=>me, tictac};');
 const NV=m.NV, ok=[], mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);

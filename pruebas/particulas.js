@@ -5,7 +5,7 @@ const cargar=require('./cargar.js');
 const m=cargar(`module.exports={
   NV:window.NV, draw_, tictac,
   ponerYo:(x,y)=>{ me.x=x; me.y=y; NV.camXf=undefined; NV.camYf=undefined; NV.camAlz=undefined; },
-  cuadro:v=>{ if(v!==undefined) frame=v; return frame; },
+  cuadro:v=>{ if(v!==undefined){ frame=v; NV.tAmb=v*0.11; } return frame; },
   quitar:()=>{ const o=dibujarParticulas; dibujarParticulas=()=>{}; return ()=>{ dibujarParticulas=o; }; },
   estado:()=>({fbG,fbC,fbL,cols,rowsN,CPM,RPM,HPM,camX,camY})
 };`);

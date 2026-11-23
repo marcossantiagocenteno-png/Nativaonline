@@ -8,7 +8,7 @@ const NVi = window.NV;
 
 /* Sello de versión, puesto por sellar.sh al publicar. Se ve en el pie: así
    Marcos y yo sabemos al instante si está mirando la última versión. */
-NVi.VERSION='22/11 23:05';
+NVi.VERSION='22/11 23:28';
 
 NVi.MARCADO = `<div id="stage">
   <canvas id="cv"></canvas>

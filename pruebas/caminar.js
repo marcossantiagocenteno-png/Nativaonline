@@ -3,7 +3,7 @@ const cargar=require('./cargar.js');          // este archivo pisa los temporiza
 const T=new Map(); let id=0;
 global.setInterval=f=>{ T.set(++id,f); return id; };
 global.clearInterval=i=>T.delete(i);
-const latir=n=>{ for(let k=0;k<n;k++) for(const f of [...T.values()]) f(); };
+const latir=n=>{ for(let k=0;k<n;k++){ for(const f of [...T.values()]) f(); NV_.pasoForzado(); } };
 
 const m=cargar('module.exports={NV:window.NV, empezarACaminar, dejarDeCaminar, draw_, tictac, me:()=>me, fbG:()=>fbG, fbC:()=>fbC, move, rumbo:()=>facing};');
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);

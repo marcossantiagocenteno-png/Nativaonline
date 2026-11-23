@@ -2,6 +2,21 @@
    Reglas en docs/DISENO.md. Sin dependencias ni compilación:
    los módulos se cargan en orden y comparten el objeto global NV. */
 
+/* El reloj del ambiente (viento, agua, fuego, follaje) corre en TIEMPO REAL y es continuo: se
+   adelanta lo que pasó entre un cuadro y el anterior. Antes saltaba de golpe cada 160 a 340 ms
+   (cuando sonaba el latido de la animación) y entre un salto y otro el pasto se quedaba congelado.
+   La velocidad es la de antes: 0,11 por cada latido base. tViento va en segundos. */
+let _relojPrev=null;
+function relojAmbiente(){
+  const ahora=performance.now();
+  const dt=_relojPrev===null?0:Math.min(0.6,Math.max(0,(ahora-_relojPrev)/1000));
+  _relojPrev=ahora;
+  if(dt>0||NV.tViento!==undefined) NV.tViento=(NV.tViento||0)+dt;
+  NV.tAmb=(NV.tAmb||0)+dt*0.11/(animMsBase/1000);
+  return dt;
+}
+const CAM_TAU=0.07, ALZ_TAU=0.26;     // segundos: lo que tarda la cámara en cerrar el 63 % de la distancia
+
 /* metros de más que se dibujan hacia el norte este cuadro (ver draw_) */
 let _extN=0;
 function extNorte(){ return _extN; }
@@ -24,12 +39,18 @@ function draw_(){
   const t0=performance.now();
   const colsM=Math.ceil(cols/CPM), rowsM=Math.ceil(rowsN/RPM);
   const LIM=NV.limites();
-  /* La cámara persigue al jugador sin saltos: guarda su posición con decimales
-     y el dibujo se corre los píxeles que falten. */
-  const destX=clamp(me.x-colsM/2+0.5, LIM.x0, Math.max(LIM.x0,LIM.x1-colsM));
-  const destY=clamp(me.y-rowsM/2+0.5, LIM.y0, Math.max(LIM.y0,LIM.y1-rowsM));
+  /* La cámara persigue al jugador sin saltos. Dos cosas que antes la hacían tirar:
+       · seguía la CASILLA de destino (que cambia de a un metro por paso) y no el punto donde
+         se dibuja el personaje, así que el escenario avanzaba en pulsos, uno por paso;
+       · suavizaba "un 30 % por cuadro", que depende de cuántos cuadros haya por segundo.
+     Ahora sigue al personaje tal como se ve, con un suavizado medido en TIEMPO. */
+  const dtS=relojAmbiente();                            // segundos reales desde el cuadro anterior
+  const dtC=dtS>0?dtS:1/30;
+  const pp=NV.posDibujo?NV.posDibujo(Date.now()):me;
+  const destX=clamp(pp.x-colsM/2+0.5, LIM.x0, Math.max(LIM.x0,LIM.x1-colsM));
+  const destY=clamp(pp.y-rowsM/2+0.5, LIM.y0, Math.max(LIM.y0,LIM.y1-rowsM));
   if(NV.camXf===undefined){ NV.camXf=destX; NV.camYf=destY; }
-  const sigue=0.30;
+  const sigue=1-Math.exp(-dtC/CAM_TAU);
   NV.camXf += (destX-NV.camXf)*sigue;
   NV.camYf += (destY-NV.camYf)*sigue;
   if(Math.abs(destX-NV.camXf)<0.01) NV.camXf=destX;
@@ -37,18 +58,17 @@ function draw_(){
   camX=Math.floor(NV.camXf); camY=Math.floor(NV.camYf);
   NV.desplaceX=-(NV.camXf-camX)*CPM*cw;
   /* La vista sube con el jugador: sin esto, al trepar una loma se iría hacia el borde
-     de arriba de la pantalla. Se amortigua para que subir no sacuda la cámara. */
-  const pp=NV.posDibujo?NV.posDibujo(Date.now()):me;
+     de arriba de la pantalla. Se amortigua (también en tiempo) para que subir no sacuda la cámara. */
   const alzaJ=NV.alturaEn(pp.x+0.5,pp.y+0.5)*HPM;
   if(NV.camAlz===undefined) NV.camAlz=alzaJ;
-  NV.camAlz+=(alzaJ-NV.camAlz)*0.12;
+  NV.camAlz+=(alzaJ-NV.camAlz)*(1-Math.exp(-dtC/ALZ_TAU));
   if(Math.abs(alzaJ-NV.camAlz)<0.05) NV.camAlz=alzaJ;
   const liftF=Math.floor(NV.camAlz);
   NV.desplaceY=-(NV.camYf-camY)*RPM*chh+(NV.camAlz-liftF)*chh;
   NV.camQuieta = NV.camXf===destX && NV.camYf===destY;
   fbG.fill(0); fbL.fill(0); fbO.fill(0);
   _ft.clear(); _ftX0=camX-3; _ftN=colsM+10;
-  const t=frame*0.11;
+  const t=NV.tAmb||0;
   NV.vientoCentro(camX+colsM/2);                       // la corriente de viento se mide desde el centro de la pantalla
   prepararLuna(colsM,rowsM);
   const lastRow=Math.min(LIM.y1-1,camY+rowsM+22);
@@ -1483,7 +1503,7 @@ function drawPlayer(haze){
   p.ultimoPaso=NV.ultimoPaso||0; p.pasoMs=NV.pasoMs||186;
   p.andado=NV.andado||0; p.mirando=facing;
   const Wc=Math.max(3,Math.round(0.55*CPM));
-  const puesta=NV.dibujarPersonaje(p,haze,frame*0.11,lienzoDe(Wc));
+  const puesta=NV.dibujarPersonaje(p,haze,NV.tAmb||0,lienzoDe(Wc));
   if(!puesta) figuraRespaldo(p,haze);
 }
 

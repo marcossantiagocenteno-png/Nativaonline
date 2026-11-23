@@ -61,7 +61,7 @@ function rumboDe(dx,dy){
   return esVertical ? (sy<0?'norte':'sur') : (sx>0?'este':'oeste');
 }
 
-function move(dx,dy){
+function move(dx,dy,tIdeal){
   facing=rumboDe(dx,dy);
   const nx=me.x+dx,ny=me.y+dy;
   const gq=NV.sueloEn(nx,ny);
@@ -78,9 +78,15 @@ function move(dx,dy){
      metro, pero no se puede DIBUJAR saltando un metro entero: a este zoom son
      dieciocho columnas de golpe, y lo que se ve es que desaparece y reaparece
      más allá. Guardando de dónde viene, el dibujo lo interpola. */
-  NV.desdeX=me.x; NV.desdeY=me.y;
+  const ahora=Date.now();
+  /* El paso nuevo sale de donde SE VE el personaje, no de la casilla a la que iba: si se cambia de
+     dirección a mitad de paso no pega un salto. Y si el lazo de cuadros lo dispara en su instante
+     exacto (tIdeal), empieza justo donde terminó el anterior: el avance es continuo, sin paradas. */
+  const vis=NV.posDibujo(ahora);
+  NV.desdeX=vis.x; NV.desdeY=vis.y;
   me.x=nx; me.y=ny;
-  NV.andado=(NV.andado||0)+1; NV.ultimoPaso=Date.now(); NV.pasoMs=PASO_MS;
+  NV.andado=(NV.andado||0)+1; NV.pasoMs=PASO_MS;
+  NV.ultimoPaso=(tIdeal&&tIdeal<=ahora&&ahora-tIdeal<PASO_MS)?tIdeal:ahora;
   hide(); animarSuave(); drawMap(); guardar();
 }
 function look(){
@@ -100,30 +106,28 @@ function look(){
 function bubble(h){ const b=$('bubble'); b.innerHTML=h.indexOf('<b>')===0?h:esc(h); b.classList.add('show');
   clearTimeout(bubble._t); bubble._t=setTimeout(hide,5200); }
 function hide(){ $('bubble').classList.remove('show'); }
-function requestDraw(){
+/* ---------- el lazo de cuadros ----------
+   UN solo lugar pide cuadros. Cada cuadro: da los pasos que tocan (en su instante exacto), acerca el
+   zoom, dibuja una vez, y pide el siguiente si algo se sigue moviendo. Antes había dos lazos que
+   podían dibujar en el mismo cuadro (el del movimiento y el de la animación): ese cuadro costaba el
+   doble y se notaba como un tirón. Sin tope de cuadros propio: dibuja a lo que dé el monitor. */
+function requestDraw(){ programarCuadro(); }
+function programarCuadro(){
   if(pend) return;
   pend=true;
-  requestAnimationFrame(()=>{ pend=false; draw(); });
+  requestAnimationFrame(cuadro);
 }
-
-/* ---------- movimiento suave ----------
-   Mientras la cámara persigue al jugador o el zoom se está acercando a su
-   destino, se redibuja seguido. Cuando los dos llegan, el lazo se apaga solo y
-   el juego vuelve a su latido lento. */
-let lazo=null, ultCuadro=0;
-function animarSuave(){
-  if(lazo!==null) return;
-  const paso=t=>{
-    const zoomando=NV.acercarZoom();
-    if(t-ultCuadro>26){ ultCuadro=t; draw(); }
-    /* mientras el personaje está entre dos casillas hay que seguir dibujando,
-       aunque la cámara ya haya llegado */
-    const enPaso=Date.now()-(NV.ultimoPaso||0) < (NV.pasoMs||PASO_MS)+40;
-    if(zoomando || !NV.camQuieta || enPaso) lazo=requestAnimationFrame(paso);
-    else { lazo=null; draw(); }
-  };
-  lazo=requestAnimationFrame(paso);
+function cuadro(){
+  pend=false;
+  avanzarPasos(Date.now());
+  const zoomando=NV.acercarZoom();
+  draw();
+  /* mientras el personaje está entre dos casillas, o la cámara no llegó, o hay pasos por dar,
+     se sigue dibujando; cuando todo se aquieta, el lazo se apaga y queda el latido lento */
+  const enPaso=Date.now()-(NV.ultimoPaso||0) < (NV.pasoMs||PASO_MS)+40;
+  if(zoomando || !NV.camQuieta || enPaso || marcapasos) programarCuadro();
 }
+const animarSuave=programarCuadro;
 /* ---------- guardado ----------
    Vive en el navegador de quien juega: vuelve donde dejó, en ese dispositivo.
    Puede faltar o fallar, así que todo va envuelto y el juego sigue igual. */
@@ -158,19 +162,34 @@ function olvidarGuardado(){ try{ localStorage.removeItem(CLAVE); }catch(e){} }
    velocidad de carrera. A esa velocidad las piernas nunca alcanzan al cuerpo y
    el personaje parece patinar. */
 const PASO_MS=186;
-let rumbo=null, pasoTimer=null;
+let rumbo=null, marcapasos=null;
+/* El ritmo de los pasos lo marca el lazo de cuadros, no un temporizador: un setInterval llega
+   tarde o junto con el siguiente, y el personaje se frena o salta. El marcapasos guarda el instante
+   EXACTO en que toca cada paso y se lo pasa a move(), que lo encadena con el anterior. */
+function iniciarMarcapasos(fn){ marcapasos={fn, prox:Date.now()+PASO_MS}; }
+function pararMarcapasos(){ marcapasos=null; }
+function avanzarPasos(ahora){
+  let n=0;
+  while(marcapasos && ahora>=marcapasos.prox && n<2){
+    const instante=marcapasos.prox, fn=marcapasos.fn;
+    marcapasos.prox+=PASO_MS; n++;
+    fn(instante);
+  }
+  /* si se atrasó mucho (pestaña dormida, cuadro larguísimo) no da una ráfaga de pasos de golpe */
+  if(marcapasos && ahora-marcapasos.prox>PASO_MS) marcapasos.prox=ahora;
+}
+NV.pasoForzado=()=>{ if(marcapasos){ marcapasos.prox=0; avanzarPasos(Date.now()); } };   // para las pruebas
 function empezarACaminar(dx,dy){
   detenerRuta();                       // el mando manual manda sobre el toque
   rumbo={dx,dy};
   move(dx,dy);
-  if(pasoTimer) clearInterval(pasoTimer);
-  pasoTimer=setInterval(()=>{ if(rumbo) move(rumbo.dx,rumbo.dy); }, PASO_MS);
+  iniciarMarcapasos(t=>{ if(rumbo) move(rumbo.dx,rumbo.dy,t); });
 }
 function dejarDeCaminar(dx,dy){
   if(!rumbo) return;
   if(dx!==undefined && (rumbo.dx!==dx||rumbo.dy!==dy)) return;  // soltó otra tecla
   rumbo=null;
-  if(pasoTimer){ clearInterval(pasoTimer); pasoTimer=null; }
+  pararMarcapasos();
 }
 
 /* ---------- ir a donde se toca ----------
@@ -241,23 +260,22 @@ function irHacia(gx,gy){
   const camino=buscarCamino(me.x,me.y,gx,gy);
   if(!camino){ bubble('No encuentro cómo llegar hasta ahí.'); return; }
   ruta=camino; destino={x:gx,y:gy}; NV.destino=destino;
-  if(pasoTimer) clearInterval(pasoTimer);
-  pasoTimer=setInterval(seguirRuta, PASO_MS);
+  iniciarMarcapasos(seguirRuta);
   seguirRuta();
 }
-function seguirRuta(){
+function seguirRuta(tIdeal){
   if(!ruta||!ruta.length){ detenerRuta(); return; }
-  const p=ruta[0];
+  const p=ruta.shift();                 // se saca antes de mover: move() pide un cuadro y el cuadro puede dar el paso siguiente
   const dx=Math.sign(p.x-me.x), dy=Math.sign(p.y-me.y);
   const antes=me.x+','+me.y;
-  move(dx,dy);
+  move(dx,dy,tIdeal);
+  if(!ruta) return;
   if(me.x+','+me.y===antes){ detenerRuta(); return; }   // algo cambió: parar
-  ruta.shift();
   if(!ruta.length) detenerRuta();
 }
 function detenerRuta(){
   ruta=null; destino=null; NV.destino=null;
-  if(pasoTimer){ clearInterval(pasoTimer); pasoTimer=null; }
+  pararMarcapasos();
 }
 
 /* ---------- cuadros de información ---------- */
@@ -288,7 +306,7 @@ function tictac(){
 function restartAnim(){
   if(animTimer) clearInterval(animTimer);
   animTimer=null; if(!animOn) return;
-  animTimer=setInterval(()=>{ if(!document.hidden){ frame++; NV.tViento=(NV.tViento||0)+animMs/1000; tictac(); requestDraw(); } },animMs);
+  animTimer=setInterval(()=>{ if(!document.hidden){ frame++; tictac(); requestDraw(); } },animMs);
 }
 
 /* ---------- nube (solo lectura) ---------- */

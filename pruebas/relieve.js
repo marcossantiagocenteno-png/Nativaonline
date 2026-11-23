@@ -12,7 +12,7 @@ const m=cargar(`module.exports={
       const r=o(mt,wx,wy,cx,cyb,l,c,t); f(wx,wy,!!mt.ola,l); return r; }; },
   estado:()=>({fbG,fbC,fbL,cols,rowsN,CPM,RPM,camX,camY})
 };`);
-const NV=m.NV;
+const NV=m.NV; performance.now=()=>0;      // el reloj del ambiente corre con el tiempo real: congelado, dos cuadros iguales salen iguales
 const ok=[],mal=[]; const probar=(t,c)=>(c?ok:mal).push(t);
 m.tictac();NV.fuegoEn=()=>0; NV.calorCerca=()=>false; NV.calorEn=()=>0;
 NV.objetosEn=()=>[];
