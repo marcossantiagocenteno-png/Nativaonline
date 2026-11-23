@@ -49,7 +49,7 @@ for(const est of ['tranquila','rio','mar-olas','mar-tormenta','rompiente']){
   const dist=Object.entries(cuenta).sort((a,b)=>b[1]-a[1])
     .map(([g,c])=>g+':'+Math.round(100*c/n)+'%').join(' ');
   console.log('  '+est.padEnd(14)+dist+'  · rompe en '+Math.round(100*brillos/n)+'%');
-  probar('el '+est+' usa más de dos glifos', Object.keys(cuenta).length>2);
+  probar('el '+est+' usa más de dos glifos', Object.keys(cuenta).length>2);   // con el vacío de la muestra, el agua quieta también cuenta el espacio
   probar('el '+est+' no es todo espuma', brillos/n<0.75);
 }
 

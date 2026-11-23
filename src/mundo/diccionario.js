@@ -107,27 +107,29 @@ const MAT={                                   // capa SUELO, en uso
    espuma  : desde qué altura de cresta rompe (9 = no rompe nunca)
    brillo  : cuánto reflejo deja; el agua quieta espeja, la revuelta no
    quiebre : cuánto desordena el ruido el frente de la ola
+   reposo  : de 0 a 1, cuánto se mueve la superficie (contraste y ritmo de las olas);
+             el agua de la muestra está quieta casi siempre y sólo se arruga un poco
    rocio   : el viento arranca agua de la cresta y la tira por arriba */
 const OLAS={
- 'tranquila':{fam:'agua', famH:'honda', hondo:0.30, espuma:9, brillo:1.35, quiebre:0.10,
+ 'tranquila':{reposo:0.55, fam:'agua', famH:'honda', hondo:0.30, espuma:9, brillo:1.35, quiebre:0.10,
    rampa:['_','_','-','-','~'],
    olas:[{largo:5.0,dir:0.30,vel:0.22,amp:0.55},{largo:2.1,dir:1.40,vel:0.15,amp:0.30}]},
- 'tranquila-somera':{fam:'agua', famH:'agua', hondo:0.06, espuma:9, brillo:1.40, quiebre:0.20,
+ 'tranquila-somera':{reposo:0.55, fam:'agua', famH:'agua', hondo:0.06, espuma:9, brillo:1.40, quiebre:0.20,
    rampa:[' ','.','-','~','-'],
    olas:[{largo:3.0,dir:0.30,vel:0.26,amp:0.55},{largo:1.1,dir:1.40,vel:0.20,amp:0.34}]},
- 'somera':{fam:'agua', famH:'agua', hondo:0.05, espuma:0.74, brillo:0.85, quiebre:0.85,
+ 'somera':{reposo:0.5, fam:'agua', famH:'agua', hondo:0.05, espuma:0.74, brillo:0.85, quiebre:0.85,
    rampa:['.','-','~','~','='],
    olas:[{largo:0.75,dir:0.08,vel:1.35,amp:0.70},{largo:0.30,dir:-0.30,vel:1.80,amp:0.45}]},
- 'rio':{fam:'agua', famH:'agua', hondo:0.35, espuma:0.90, brillo:1.00, quiebre:0.35,
+ 'rio':{reposo:0.55, fam:'agua', famH:'agua', hondo:0.35, espuma:0.90, brillo:1.00, quiebre:0.35,
    rampa:['-','~','~','=','='],
    olas:[{largo:2.2,dir:0.04,vel:0.95,amp:0.60},{largo:0.8,dir:0.30,vel:1.25,amp:0.34}]},
- 'rio-profundo':{fam:'honda', famH:'honda', hondo:0.85, espuma:9, brillo:0.70, quiebre:0.12,
+ 'rio-profundo':{reposo:0.45, fam:'honda', famH:'honda', hondo:0.85, espuma:9, brillo:0.70, quiebre:0.12,
    rampa:['_','_','=','=','~'],
    olas:[{largo:4.0,dir:0.02,vel:0.55,amp:0.45},{largo:1.5,dir:0.40,vel:0.70,amp:0.22}]},
- 'mar-calma':{fam:'honda', famH:'honda', hondo:0.70, espuma:9, brillo:1.45, quiebre:0.08,
+ 'mar-calma':{reposo:0.45, fam:'honda', famH:'honda', hondo:0.70, espuma:9, brillo:1.45, quiebre:0.08,
    rampa:['_','_','-','-','~'],
    olas:[{largo:14.0,dir:1.55,vel:1.60,amp:0.70},{largo:3.0,dir:1.20,vel:0.70,amp:0.22}]},
- 'mar-olas':{fam:'honda', famH:'honda', hondo:0.62, espuma:0.76, brillo:1.05, quiebre:0.30,
+ 'mar-olas':{reposo:0.8, fam:'honda', famH:'honda', hondo:0.62, espuma:0.76, brillo:1.05, quiebre:0.30,
    rampa:['-','~','~','=','='],
    olas:[{largo:9.0,dir:1.57,vel:2.30,amp:1.00},{largo:3.2,dir:1.30,vel:1.30,amp:0.40},
          {largo:1.1,dir:1.80,vel:1.10,amp:0.18}]},
@@ -135,7 +137,7 @@ const OLAS={
    rampa:['~','=','=','#','#'], rocio:1,
    olas:[{largo:7.0,dir:1.57,vel:3.40,amp:1.25},{largo:2.6,dir:1.05,vel:2.40,amp:0.75},
          {largo:0.9,dir:2.10,vel:2.00,amp:0.40}]},
- 'rompiente':{fam:'espuma', famH:'espuma', hondo:0.10, espuma:0.30, brillo:1.20, quiebre:0.70,
+ 'rompiente':{reposo:0.85, fam:'espuma', famH:'espuma', hondo:0.10, espuma:0.30, brillo:1.20, quiebre:0.70,
    rampa:['-','~','=','*','#'],
    olas:[{largo:6.0,dir:1.57,vel:2.60,amp:1.10},{largo:1.4,dir:1.40,vel:1.60,amp:0.50}]}
 };

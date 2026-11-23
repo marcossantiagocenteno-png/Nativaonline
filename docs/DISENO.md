@@ -776,6 +776,19 @@ sube andando), según un ruido que cambia a lo largo del borde (`MESETA` en `pan
   acantilado con altura.
 - `pruebas/acantilados.js`.
 
+**Agua quieta (referencia: la prueba de reflejo de Ansenjeo).** El agua casi siempre
+está calmada: negra, rala, con rayitas horizontales sueltas, y solo se arruga un poco.
+Cada estado del agua lleva `reposo` (0 a 1) en `OLAS`: achata la ola (menos contraste de
+glifo y de luz) y la hace más lenta (el tiempo se escala por `reposo`). Con `reposo` de
+0,6 o menos el agua además se oscurece (×0,72) y deja vacío entre el 36 y el 52 % de las
+celdas. El mar ya no se levanta con la marea alta: solo `mar-olas` con mal tiempo
+(`intensidad` 1) o `mar-tormenta`; el resto del tiempo es `mar-calma`. Los reflejos de
+los objetos se cortan y se corren mucho menos (umbral 0,93 y 0,6 celdas, antes 0,78 y
+1,4). **Estrellas:** de noche el agua quieta refleja el cielo, con puntitos `. :` pálidos
+fijos en el mundo y un titilar lento; `NV.nocheEstrellas()` (en `cielo.js`) da cuántas se
+ven y las nubes las tapan. Falta, de la muestra, la luna reflejada y la línea fina de
+espuma solo en la orilla.
+
 ### La textura del suelo
 
 El suelo se sorteaba celda por celda: cada celda sacaba su densidad de un hash

@@ -150,3 +150,10 @@ function cieloEnPalabras(){
 NV_.probarRelampago=relampago;
 NV_.cielo=cielo; NV_.actualizarCielo=actualizarCielo;
 NV_.cieloEnPalabras=cieloEnPalabras; NV_.luz=cielo.luz;
+/* Cuántas estrellas se ven: 0 de día, 1 en plena noche, y las nubes las tapan.
+   Lo usa el agua quieta para reflejarlas. */
+NV_.nocheEstrellas=function(){
+  const nub=cielo.clima?cielo.clima.nubes:0;
+  const oscuro=Math.max(0,Math.min(1,(0.36-cielo.luz.amb)/0.30));
+  return oscuro*(1-Math.max(0,Math.min(1,nub*1.4)));
+};

@@ -237,19 +237,21 @@ const tex2=(wx,wy,e)=>0.66*texRuido(wx/e,wy/e,1,1)
 const _ola={g:0,fam:'agua',lz:1};
 function celdaOla(est,wx,wy,t){
   const A=NV.OLAS[est]||NV.OLAS.rio;
+  const rp=A.reposo===undefined?1:A.reposo;
   let h=0, dx=0, dy=0, amp=0;
   for(let i=0;i<A.olas.length;i++){
     const o=A.olas[i];
     const kx=NV.cosn(o.dir)/o.largo, ky=NV.sen(o.dir)/o.largo;
     /* el frente se desordena con ruido: una ola perfecta se lee como corrugado */
     const des=A.quiebre?(olaRuido(wx*0.42+i*7,wy*0.42,1,1)-0.5)*A.quiebre*1.7:0;
-    const f=(wx*kx+wy*ky-t*o.vel/o.largo+des)*6.28318;
+    const f=(wx*kx+wy*ky-t*rp*o.vel/o.largo+des)*6.28318;     // más quieta, más lenta
     h+=NV.sen(f)*o.amp;
     const c=NV.cosn(f)*o.amp*6.28318;           // la pendiente: la derivada
     dx+=c*kx; dy+=c*ky;
     amp+=o.amp;
   }
-  h/=amp;
+  h=h/amp*rp;                                   // el reposo achata la ola
+  dx*=rp; dy*=rp;
   const pend=Math.sqrt(dx*dx+dy*dy)/amp;
   const subida=h*0.5+0.5;                       // 0 valle, 1 cresta
   let g, fam=A.hondo>0.55?A.famH:A.fam;
@@ -268,6 +270,25 @@ function celdaOla(est,wx,wy,t){
       g = esp>0.95?42:176; fam='espuma'; lz=1.00+esp*0.42;
     }
   }
+  /* el agua quieta de la muestra es casi negra y rala: rayitas sueltas y mucho
+     vacío, no una trama pareja. Más reposo, más vacío y más oscuro. */
+  if(rp<=0.6 && !rompe && g!==42 && g!==176){
+    lz*=0.72;
+    if((hash3((wx*5)|0,(wy*9)|0,89)%100)<(subida<0.5?52:36)) g=32;
+  }
+  /* el cielo en el agua quieta: de noche las estrellas se ven reflejadas, apenas
+     más tenues que arriba y alargadas hacia abajo. Fijas en el mundo (no en la
+     pantalla) y con un titilar lento; las nubes y el mal tiempo las tapan. */
+  if(rp<=0.6 && !rompe){
+    const noche=NV.nocheEstrellas?NV.nocheEstrellas():0;
+    if(noche>0.05){
+      const hq=hash3((wx*9)|0,(wy*7)|0,83)%1000;
+      if(hq<26*noche){
+        const tit=0.55+0.45*NV.sen(t*0.8+hq*0.9);
+        g=(hq&1)?58:46; fam='nieve'; lz=(0.40+0.75*tit)*(hq<8?1.3:1);
+      }
+    }
+  }
   if(A.rocio && subida>0.80 && (hash3((wx*13)|0,(wy*13)|0,7)%100)<16){
     g=39; fam='espuma'; lz=1.25;                // el rocío que arranca el viento
   }
@@ -278,10 +299,10 @@ function celdaOla(est,wx,wy,t){
    tormenta. No hay que elegirlo a mano en ningún lado. */
 function estadoDelMar(){
   const cl=NV.cielo&&NV.cielo.clima;
-  if(!cl) return 'mar-olas';
+  if(!cl) return 'mar-calma';
   if(cl.tormenta||cl.intensidad>=2) return 'mar-tormenta';
-  const am=cl.marea?cl.marea.amplitud:0.5;
-  return (cl.intensidad>=1||am>0.62)?'mar-olas':'mar-calma';
+  /* con la marea alta ya no se arma oleaje: el mar sólo se revuelve con el tiempo */
+  return cl.intensidad>=1?'mar-olas':'mar-calma';
 }
 
 /* ---------- EL BORDE ENTRE DOS MATERIALES ----------
@@ -1338,8 +1359,8 @@ function dibujarReflejo(tr,br,t){
     const h=br-r; if(h<0) continue;
     const r2=br+1+h;
     const fase=r2*0.62+t*1.9;
-    if(NV.sen(fase+c*0.05)>0.78) continue;            // la onda corta el reflejo
-    const c2=c+Math.round(NV.sen(fase+c*0.02)*1.4);     // y lo corre de lado
+    if(NV.sen(fase+c*0.05)>0.93) continue;            // la onda corta el reflejo (poco: el agua está quieta)
+    const c2=c+Math.round(NV.sen(fase+c*0.02)*0.6);     // y lo corre apenas de lado
     const mx=camX+Math.floor(c2/CPM), my=camY+Math.floor(r2/RPM);
     const letra=filaT(my)[mx-_ftX0];
     if(!letra||!esAgua(letra)) continue;
