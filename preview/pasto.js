@@ -164,6 +164,81 @@ function pintar(ctx,g,cw,chh,ox,oy,c0,c1){
   }
 }
 
+
+/* ======================== COMPACTO: tres variantes de superficie continua ========================
+   Segunda propuesta (pedida tras ver la primera): nada de briznas largas. Casi cada celda lleva
+   una marca de 1 caracter (. , ' ` : ; - ~ " ! i); sobre eso, trazos | / \ de 1 a 3 caracteres
+   como mucho, de orientación entrelazada. Cubre 90-96 % de las celdas; los huecos que quedan
+   son sueltos y chicos. Seis tonos: bosque muy oscuro, musgo, gris verdoso, oliva apagado,
+   reflejo verde claro y un gris discreto. Las florecitas van en grupitos y escasas.
+     A · muy alta, microscópica     B · extrema, pequeños trazos entrelazados
+     C · extrema, más variación de tono y de luminosidad por manchas */
+const PAL=[ [[16,42,30],[24,60,42]],       // 0 verde bosque muy oscuro
+            [[44,82,44],[62,106,54]],      // 1 musgo
+            [[70,94,80],[90,114,98]],      // 2 verde grisáceo
+            [[80,90,46],[102,112,58]],      // 3 oliva apagado
+            [[104,166,104],[146,204,138]],// 4 reflejo verde claro
+            [[100,110,106],[124,132,126]] ]; // 5 gris discreto
+const VAR={
+  A:{cover:0.93, trazo:0.07, largo:[1,2], pesos:[0.44,0.20,0.12,0.14,0.07,0.03], micro:":;'`-,.:;~", zona:0.15},
+  B:{cover:0.965,trazo:0.36, largo:[1,3], pesos:[0.34,0.20,0.12,0.16,0.12,0.06], micro:":;'`-~\"!i,.:;", zona:0.25},
+  C:{cover:0.965,trazo:0.30, largo:[1,3], pesos:[0.28,0.20,0.15,0.17,0.14,0.06], micro:":;'`-~\"!i,.:;", zona:0.55}
+};
+function generarCompacto(o,v){
+  const V=VAR[v], g=nueva(o.cols,o.rows), cols=o.cols, rows=o.rows, S=(o.semilla|0)+(v==='A'?0:v==='B'?101:202);
+  const dens=o.dens, k=o.k, t=o.t||0;
+  const rn=NV.makeNoise(NV.mulberry(S*7919+17));
+  const cum=[]; let acc=0; for(const w of V.pesos){ acc+=w; cum.push(acc); }
+  const col=(tono,u,lum)=>{ const a=PAL[tono][0], b=PAL[tono][1];
+    return pack((a[0]+(b[0]-a[0])*u)*lum*k,(a[1]+(b[1]-a[1])*u)*lum*k,(a[2]+(b[2]-a[2])*u)*lum*k); };
+  for(let r=0;r<rows;r++){
+    const d=r/rows, y=r/RPM;
+    for(let c=0;c<cols;c++){
+      const x=c/CPM, h=hash3(c,r,S+3);
+      const lumZ=rn(x+31.7,y+8.3,3,0.30);                        // manchas de ~3 m: más claras o más oscuras
+      const tonZ=rn(x+77.1,y+52.9,2,0.45);                       // manchas de tono
+      if(((h%1000)/1000)>=clamp(V.cover*dens,0,0.985)) continue;
+      /* tono: sorteo por pesos, desplazado por la mancha de tono (tanto más cuanto más variación) */
+      let ro=((h>>10)%1000)/1000;
+      ro=clamp(ro+(tonZ-0.5)*V.zona*1.4,0,0.999);
+      let tono=0; while(tono<5&&ro>=cum[tono]) tono++;
+      const u=((h>>20)%100)/100;
+      let lum=(0.80+0.55*(((h>>4)%100)/100))*(0.72+0.28*d)*(1+(lumZ-0.45)*V.zona*1.6);
+      if(tono>=4) lum=Math.max(lum,0.85);
+      const colr=col(tono,u,clamp(lum,0.35,1.5));
+      const lean0=rn(x+90.1,y+33.7,2,0.22)+0.10*Math.sin(t*0.22+c*0.5+r*0.3);   // corriente suave (+ balanceo lento)
+      const rr=((h>>14)%100)/100;
+      if(rr<V.trazo){
+        /* trazo corto de 1 a 3 caracteres, de orientación entrelazada */
+        const q=((h>>24)%100)/100;
+        const lean=(q<0.22?-1:q>0.78?1:(lean0<0.40?-1:lean0>0.60?1:0));
+        const lr=((h>>8)%100)/100;
+        const L=V.largo[1]>=3?(lr<0.70?1:lr<0.94?2:3):(lr<0.75?1:2);
+        for(let j=0;j<L;j++){
+          const ch=lean>0?'/':lean<0?'\\':'|';
+          poner(g,c+Math.round(lean*j*0.6),r-j,ch.charCodeAt(0),j===L-1&&L>1?col(Math.max(tono,1),u,Math.min(1.5,lum*1.1)):colr);
+        }
+      } else {
+        poner(g,c,r,V.micro.charCodeAt((h>>6)%V.micro.length),colr);
+      }
+    }
+  }
+  /* florecitas: escasas y en grupitos. Un grupo cada cierto tramo del suelo, no en todos. */
+  const TW=6*CPM/3, TH=6*RPM/1.7;                                // baldosas de ~4-5 m
+  for(let ty=-1;ty<=Math.ceil(rows/TH);ty++) for(let tx=-1;tx<=Math.ceil(cols/TW);tx++){
+    const h=hash3(tx+500,ty+500,S+9);
+    if(h%100>=11) continue;                                       // ~1 de cada 9 baldosas tiene grupito
+    const cx=(tx+((h>>8)%100)/100)*TW, cy=(ty+((h>>16)%100)/100)*TH;
+    const n=3+((h>>3)%4);                                         // 3 a 6 flores
+    for(let i=0;i<n;i++){
+      const hi=hash3(tx+500,ty+500,S+40+i);
+      const fx=Math.round(cx+(((hi%100)/100)-0.5)*7), fy=Math.round(cy+((((hi>>8)%100)/100)-0.5)*3.2);
+      poner(g,fx,fy,'@eo'.charCodeAt((hi>>16)%3),pack(205*k,218*k,208*k));
+    }
+  }
+  return g;
+}
+
 /* ======================== LA PÁGINA ======================== */
 function iniciar(){
   const css=document.createElement('style');
@@ -182,8 +257,8 @@ function iniciar(){
   document.title='Vista previa del pasto — Nativa Online';
   document.body.innerHTML=
    '<div id="barra">'+
-    '<label>Vista <select id="modo"><option value="lado">lado a lado</option><option value="divisor">divisor</option>'+
-      '<option value="nuevo">solo nuevo</option><option value="actual">solo actual</option></select></label>'+
+    '<label>Vista <select id="modo"><option value="abc">A · B · C</option><option value="abcr">A · B · C · actual</option><option value="vA">solo A</option><option value="vB">solo B</option><option value="vC">solo C</option><option value="lado">actual vs. primera propuesta</option><option value="divisor">divisor</option>'+
+      '<option value="nuevo">solo primera propuesta</option><option value="actual">solo actual</option></select></label>'+
     '<label id="lDiv" style="display:none">Divisor <input id="div" type="range" min="5" max="95" value="50"></label>'+
     '<label>Densidad <input id="dens" type="range" min="30" max="200" value="100"></label>'+
     '<label>Escala de caracteres <input id="esc" type="range" min="30" max="90" value="40"></label>'+
@@ -192,7 +267,7 @@ function iniciar(){
     '<button id="ani" class="on">Animación: sí</button>'+
     '<b id="info"></b>'+
    '</div>'+
-   '<div id="zona"><canvas id="cv"></canvas><span id="r1" class="rotulo">ACTUAL</span><span id="r2" class="rotulo">NUEVO</span></div>';
+   '<div id="zona"><canvas id="cv"></canvas><span id="r1" class="rotulo">ACTUAL</span><span id="r2" class="rotulo">NUEVO</span><span id="r3" class="rotulo"></span><span id="r4" class="rotulo"></span></div>';
   const $=id=>document.getElementById(id), cv=$('cv'), ctx=cv.getContext('2d');
   let semilla=(Math.random()*1e6)|0, anim=true, dpr=1, W=0, H=0, sucio=true, tUlt=0;
   const nums=()=>({dens:$('dens').value/100, cw:$('esc').value/10, k:$('int').value/100});
@@ -210,13 +285,23 @@ function iniciar(){
     ctx.fillStyle='rgb(5,9,8)'; ctx.fillRect(0,0,W,H);
     const rows=Math.floor(H/chh)+1;
     const o=(cols)=>({cols,rows,semilla,dens:n.dens,k:n.k,t,anim});
-    $('r1').style.display=$('r2').style.display='none';
-    if(modo==='lado'){
+    $('r1').style.display=$('r2').style.display=$('r3').style.display=$('r4').style.display='none';
+    $('r1').textContent='ACTUAL'; $('r2').textContent='NUEVO';
+    if(modo==='abc'||modo==='abcr'||modo[0]==='v'){
+      const lista=modo==='abc'?['A','B','C']:modo==='abcr'?['R','A','B','C']:[modo[1]];
+      const n=lista.length, pw=Math.floor((W-6*(n-1))/n), cols=Math.floor(pw/cw);
+      lista.forEach((v,i)=>{
+        const ox=i*(pw+6);
+        pintar(ctx,v==='R'?generarActual(o(cols)):generarCompacto(o(cols),v),cw,chh,ox,0,0,cols);
+        if(i>0){ ctx.fillStyle='#c8a24a'; ctx.fillRect(ox-4,0,2,H); }
+        const r=$('r'+(i+1)); r.textContent=v==='R'?'ACTUAL':v; r.style.cssText='display:block;left:'+(ox+6)+'px';
+      });
+    } else if(modo==='lado'){
       const pw=Math.floor((W-6)/2), cols=Math.floor(pw/cw);
       pintar(ctx,generarActual(o(cols)),cw,chh,0,0,0,cols);
       pintar(ctx,generarNuevo(o(cols)),cw,chh,pw+6,0,0,cols);
       ctx.fillStyle='#c8a24a'; ctx.fillRect(pw+2,0,2,H);
-      $('r1').style.cssText='display:block;left:6px'; $('r2').style.cssText='display:block;left:'+(pw+12)+'px';
+      $('r1').textContent='ACTUAL'; $('r2').textContent='NUEVO'; $('r1').style.cssText='display:block;left:6px'; $('r2').style.cssText='display:block;left:'+(pw+12)+'px';
     } else {
       const cols=Math.floor(W/cw);
       if(modo==='divisor'){
@@ -249,6 +334,6 @@ function iniciar(){
   dimensionar(); requestAnimationFrame(lazo);
 }
 
-window.PastoPreview={generarActual,generarNuevo,CPM,RPM,ASP,FONT_K};
+window.PastoPreview={generarActual,generarNuevo,generarCompacto,CPM,RPM,ASP,FONT_K};
 if(!window.__PASTO_SIN_UI) iniciar();
 })();
