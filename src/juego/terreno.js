@@ -120,8 +120,11 @@ function normalizar(s){
 }
 const iguales=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 /* un sector neutro no cambia ni un glifo del pasto de hoy */
-function esNeutro(s){ return s.terreno==='pradera'&&iguales(s.pasto,DEF.pasto)&&iguales(s.flores,DEF.flores)&&s.relieve.tipo==='plano'
+function esNeutroCalc(s){ return s.terreno==='pradera'&&iguales(s.pasto,DEF.pasto)&&iguales(s.flores,DEF.flores)&&s.relieve.tipo==='plano'
   &&iguales(s.visual,DEF.visual)&&!s.sem; }
+/* serializar a JSON en cada llamada era de lo más caro al entrar metros nuevos: se guarda por sector y por versión del mundo */
+const _neutros=new WeakMap();
+function esNeutro(s){ if(s===BASE_SEC) return true; const v=T.mundo?T.mundo.v:0, c=_neutros.get(s); if(c&&c.v===v) return c.r; const r=esNeutroCalc(s); _neutros.set(s,{v,r}); return r; }
 
 /* ================================================================== EL MUNDO DE SECTORES ==== */
 const M=T.mundo={sectores:[],v:0,hist:[],fav:{}};
@@ -331,7 +334,7 @@ function envoltorio(c,r,ch,col){
   if(r!==W.rb){ if(W.skip) return; W.real(c,r,ch,W.lastCol===undefined?col:W.lastCol); return; }
   W.skip=false; W.lastCol=undefined;
   const k=c-W.base, cx=W.mx*CPM+k, cyb=W.my*RPM+W.sy, wx=W.mx+(k+0.5)/CPM, wy=W.my+(W.sy+0.5)/RPM;
-  const P=perfilEn(wx,wy,W.cand), pa=P.pasto, trazo=GLIFO_TRAZO(ch);
+  const P=W.e?pCelda(W.e,W.mx,W.my,k,W.sy,W.cand):perfilEn(wx,wy,W.cand), pa=P.pasto, trazo=GLIFO_TRAZO(ch);
   const h=hf(cx,cyb,88), h2=hf(cx,cyb,89);
   const hz=NV.hash3(cx,cyb,23);
   const veg=pa.densidad*P.TR.veg*P.mask;
@@ -345,8 +348,12 @@ function envoltorio(c,r,ch,col){
   const lz=W.luz*(1+(W.lfSub||0));
   let lf=lz;
   /* luz de la celda: relieve del sector (pendiente hacia el este mira al oeste: penumbra) */
-  if(P.h!==undefined){ const V=P.visual, g=3.2*(0.25+1.5*V.sombra); lf*=clamp(1-P.dh*g,0.55,1.5);
-    lf*=1+P.h*V.profundidad*0.6; if(V.variacionLuz!==0.5) lf*=1+(tex2(wx+3,wy-4,4.5)-0.5)*(V.variacionLuz-0.5)*1.6; }
+  if(P.h!==undefined){
+    /* los tres factores sólo dependen de la celda y de los sectores: se calculan una vez y se guardan en el perfil
+       (mismo orden de multiplicación que antes: el resultado no cambia ni en el último bit) */
+    if(P._fa===undefined){ const V=P.visual, g=3.2*(0.25+1.5*V.sombra); P._fa=clamp(1-P.dh*g,0.55,1.5); P._fb=1+P.h*V.profundidad*0.6;
+      P._fc=V.variacionLuz!==0.5?1+(tex2(wx+3,wy-4,4.5)-0.5)*(V.variacionLuz-0.5)*1.6:1; }
+    lf*=P._fa; lf*=P._fb; if(P._fc!==1) lf*=P._fc; }
   const kLuz=lf/(W.luz||1);
   const base=tinte(col,P,lz,h2);
   let [rr,gg,bb]=base; rr*=kLuz; gg*=kLuz; bb*=kLuz;
@@ -440,22 +447,41 @@ function floresDelMetro(mx,my,cand,out){
 }
 const _fl=[];
 
+/* ====================================================================== CACHÉ POR METRO ====
+   perfilEn() es lo más caro del motor (listas, objetos, cierres y decenas de llamadas a ruido) y se pedía por celda, en
+   cada cuadro, para sectores que NO cambian entre cuadros. Medido con tres sectores: 330 ms por cuadro (3 FPS).
+   Todo lo que sólo depende de los sectores y de la cuadrícula (perfil de cada celda, las muestras de cada franja, las
+   flores) se calcula una vez por metro y se guarda. Se invalida solo: cambia la versión de los sectores (M.v), la
+   cuadrícula (CPM/RPM, al hacer zoom) o se pasa del tope de celdas guardadas. La luz, el calor y el viento no se guardan:
+   cambian en cada cuadro y se aplican encima. Mismo resultado, celda por celda. */
+const _pm=new Map(); let _pmCeldas=0, _pmV=-1, _pmC=0, _pmR=0;
+const TOPE_CELDAS=90000;
+function entradaMetro(mx,my){
+  if(_pmV!==M.v||_pmC!==CPM||_pmR!==RPM||_pmCeldas>TOPE_CELDAS){ _pm.clear(); _pmCeldas=0; _pmV=M.v; _pmC=CPM; _pmR=RPM; }
+  const key=mx*131072+my; let e=_pm.get(key);
+  if(!e){ e={cells:new Array(CPM*RPM), Pc:null, tn:undefined, fr:new Array(RPM), ps:new Array(RPM), fl:null}; _pm.set(key,e); _pmCeldas+=CPM*RPM; }
+  return e;
+}
+const pCelda=(e,mx,my,k,sy,cand)=>e.cells[sy*CPM+k]||(e.cells[sy*CPM+k]=perfilEn(mx+(k+0.5)/CPM,my+(sy+0.5)/RPM,cand));
+
 /* ======================================================================== DIBUJO ==== */
 /* Un metro entero. o: {base, rb0, luz, calor, dPasto, t, calidad}
    base = columna donde empieza el metro; rb0 = fila de su primera franja.
    Dibuja: el suelo de cada celda, el pasto (el real, ajustado) y las flores. */
 T.dibujarMetro=function(mx,my,o){
   const cand=candidatos(mx,my), cal=o.calidad===undefined?1:o.calidad, calor=o.calor||0, t=o.t||0;
-  const Pc=perfilEn(mx+0.5,my+0.5,cand);
+  const e=entradaMetro(mx,my);
+  const Pc=e.Pc||(e.Pc=perfilEn(mx+0.5,my+0.5,cand));
   const put0=PUT.get();
   /* con todo neutro: el pasto real, sin envoltorio, y sus flores */
-  const todoNeutro=!cand||Pc.neutro&&(function(){ for(let k=0;k<5;k++){ const p=perfilEn(mx+k/4,my+0.5,cand); if(!p.neutro) return false; } return true; })();
+  if(e.tn===undefined) e.tn=!cand||Pc.neutro&&(function(){ for(let k=0;k<5;k++){ const p=perfilEn(mx+k/4,my+0.5,cand); if(!p.neutro) return false; } return true; })();
+  const todoNeutro=e.tn;
   /* el suelo */
   for(let sy=0;sy<RPM;sy++){
     const rb=o.rb0+sy;
     let alza=0;
     for(let k=0;k<CPM;k++){
-      const wx=mx+(k+0.5)/CPM, wy=my+(sy+0.5)/RPM, P=perfilEn(wx,wy,cand);
+      const wx=mx+(k+0.5)/CPM, wy=my+(sy+0.5)/RPM, P=pCelda(e,mx,my,k,sy,cand);
       if(P.geo&&!k&&o.alzar!==false) alza=Math.round(P.h*HPM*1.6);
       if(P.h!==undefined&&k===0&&sy===0) { /* solo para que el cálculo se haga una vez */ }
       let lz=o.luz; if(P.h!==undefined){ const V=P.visual; lz*=clamp(1-P.dh*3.2*(0.25+1.5*V.sombra),0.55,1.5)*(1+P.h*V.profundidad*0.6); }
@@ -466,21 +492,23 @@ T.dibujarMetro=function(mx,my,o){
     for(let sy=0;sy<RPM;sy++) pastoFranja(mx,my,sy,o.rb0+sy,o.base,false,o.luz,calor,o.dPasto||0,cal);
     return Pc; }
   pastoPreparar(mx,my,false);                                 // las flores las pone esta capa
-  floresDelMetro(mx,my,cand,_fl);
+  if(!e.fl){ floresDelMetro(mx,my,cand,_fl); e.fl=_fl.slice(); }
+  const fl=e.fl;
   for(let sy=0;sy<RPM;sy++){
     const rb=o.rb0+sy;
     /* perillas del pasto real para esta franja: el máximo que pida alguna de sus celdas */
-    let vmax=0, off=0, sample=null;
-    for(let k=0;k<CPM;k+=3){ const wx=mx+(k+0.5)/CPM, wy=my+(sy+0.5)/RPM, P=perfilEn(wx,wy,cand); const v=P.pasto.densidad*P.TR.veg*P.mask; if(v>vmax){ vmax=v; sample=P; } }
-    const Pm=sample||Pc, cfg=NV.pasto.cfg, c0=cfg.cobertura, t0=cfg.trazo, z0=cfg.zona;
+    let F=e.fr[sy];
+    if(!F){ let vmax=0, sample=null;
+      for(let k=0;k<CPM;k+=3){ const P=pCelda(e,mx,my,k,sy,cand); const v=P.pasto.densidad*P.TR.veg*P.mask; if(v>vmax){ vmax=v; sample=P; } }
+      F=e.fr[sy]={vmax,sem:perfilEn(mx+0.5,my+(sy+0.5)/RPM,cand).sem|0}; }
+    const vmax=F.vmax, sem=F.sem, cfg=NV.pasto.cfg, c0=cfg.cobertura, t0=cfg.trazo, z0=cfg.zona;
     cfg.cobertura=cobDe(vmax); cfg.trazo=trzDe(vmax);
-    const Ps=perfilEn(mx+0.5,my+(sy+0.5)/RPM,cand), sem=Ps.sem|0;
-    _W={real:put0,mx,my,sy,base:o.base,rb,cand,luz:o.luz,cob:cfg.cobertura,trz:cfg.trazo,skip:false,dP:o.dPasto||0,lfSub:0};
+    _W={real:put0,e,mx,my,sy,base:o.base,rb,cand,luz:o.luz,cob:cfg.cobertura,trz:cfg.trazo,skip:false,dP:o.dPasto||0,lfSub:0};
     PUT.set(envoltorio);
     try{ if(vmax>0) pastoFranja(mx+(sem?sem*37:0),my+(sem?sem*53:0),sy,rb,o.base,false,o.luz,calor,o.dPasto||0,cal); }
     finally{ PUT.set(put0); cfg.cobertura=c0; cfg.trazo=t0; cfg.zona=z0; _W=null; }
     /* flores de esta franja */
-    for(const f of _fl) if(f.s===sy){
+    for(const f of fl) if(f.s===sy){
       const P=f.P, st=P.pasto.estado; let rr=f.col[0], gg=f.col[1], bb=f.col[2];
       if(st==='seco'||st==='marchito'){ rr=rr*0.55+40; gg=gg*0.5+30; bb=bb*0.4+16; }
       put0(o.base+f.c,rb,f.g,packc(rr,gg,bb));
