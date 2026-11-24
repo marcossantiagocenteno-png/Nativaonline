@@ -1730,3 +1730,31 @@ En la fila **Parcela** hay un tercer modo, junto a Añadir y Remover: **Seleccio
 ### Ondas de los pasos en el agua (23/11)
 
 El jugador ya generaba ondas al pisar agua (`AG.actor`), pero eran físicas y diminutas (~1 cm, 28 cm de largo): nunca cruzaban el umbral donde la superficie pone glifo, así que casi no se veían. Ahora los golpes del actor llevan `vis` (0..1): además de la altura real suman una cresta/valle "de dibujo" (`o.rs` → `o.h`, ganancia ×5 sobre `amp·ondas` del cuerpo) que se abre ~2 m y se apaga con `dec·2.2`. Las ondas son más largas (0,42–0,62 m) para que el muestreo de filas (cuatro por metro) no las deshaga. Cascadas y lluvia no llevan `vis` y no cambian. Prueba: `aguas-juego` ("caminando por el agua se dibuja una estela").
+
+## Motor de estructuras y ruinas (laboratorio, 23/11)
+
+**Estado: sólo laboratorio.** `src/juego/estructuras.js` está en `modulos.js` (se carga y se prueba) pero el juego **no lo usa**: no está en la paleta del Modo Dios ni en `objetos.js`. Se integra cuando Marcos revise `preview/estructuras.html` y lo apruebe. No toca ni reemplaza rocoso, arbolado, pasto ni aguas.
+
+**Esta tanda (14 tipos, 5 agrupaciones):** muro de piedra, muro de ladrillo, pared caída, cerca de piedra, columna, pilar, arco, escalera, chimenea, puerta, ventana, cerca de madera, puente, pozo. Agrupaciones: ruina, casa, pozo antiguo, cercado, puente roto. **No están todavía:** madera caída y troncos (A), campamentos (D), restos animales (E), cuevas (F), objetos abandonados (G), estatuas y altares (H), complementos naturales (I), generación ambiental aleatoria, partes que reaccionan al viento, cuevas caminables.
+
+**Arquitectura (la de rocas y árboles).** Un objeto es una *spec* chica y determinista `{tipo,mat,sem,semD,semV,escala,yaw,inclinacion,largo,alto,grosor,edad,deterioro,tono,lum,sat,estado:{musgo,liquen,humedad,vegetacion,tierra,hojas,quemadura,enterrada}}` más un sólido por distancia que cada celda recorre con un rayo a la inclinación de cámara del juego. La spec es lo único que se guarda (`aObjeto`/`deObjeto`, JSON); el dibujo siempre se regenera.
+
+**Perillas separadas.**
+- `edad` → juntas comidas, aristas redondas, tono lavado, hundimiento. No quita piezas.
+- `deterioro` → qué bloques faltan (primero arriba y en las puntas), corona bajada, núcleo a la vista, escombro al pie, inclinación. Tiene su propia semilla `semD`.
+- `semV` sólo decide dónde va el musgo y la vegetación; cambiarla no mueve nada de lo demás.
+- `sem` decide la forma. `regenerar(spec,'forma'|'deterioro'|'vegetacion'|'todo')` sortea una sola.
+
+**Edición.** `editar(spec,cambios)` devuelve `{spec,tocado:{forma,deterioro,pintado}}` sin mutar la original. Si sólo cambió apariencia o estado, el sólido y los rayos se reutilizan (caché por forma y por resolución). `plantilla(tipo,cambios)` modifica el *generador*: vale para lo que se cree después con `nuevo(tipo,sem)`, nunca para lo ya colocado. `variar(spec)` da otra forma de la misma familia.
+
+**Agrupaciones.** `grupo(id,sem,{deterioro,edad})` → lista de partes `{id,spec,x,y}`; `descomponer` las separa para editar cada una (las demás no se mueven); `pintarGrupo` las dibuja ordenadas por y.
+
+**Interfaces con los otros sistemas (ya definidas, aún sin cablear al juego):**
+- Luz y sombra: `NV.entorno.luz` y `E.huella`; contorno: `E.contorno.silueta` (conectado como `estructuras`).
+- Oclusión y profundidad: se pinta por `y` creciente como el resto de los objetos; el laboratorio lo prueba con un árbol y una roca delante.
+- Zoom: todo está en metros; el motor traduce a celdas según CPM/RPM del contexto.
+- Mundo: `aObjeto(spec)→{k:'estructura',e,h,s}`; `paraPaleta` entrega las entradas para la paleta del Modo Dios; `NV.motores.registrar({id:'estructuras',estado:'pendiente'})` expone la cara `editor`.
+
+**Limitaciones conocidas.** Sin viento. Las tablas del puente y la cuerda del pozo son sólidos, no partes que se muevan. La vegetación sobre las piezas es sombreado, no plantas del motor de pasto. Los 14 tipos se midieron en 6–134 ms por estructura en frío (después, caché); en el juego real con cientos aún no se midió.
+
+**Laboratorio:** `preview/estructuras.html` con vistas Muestrario (10 categorías × 3 variantes), Envejecer y deteriorar (matriz 4×4), Banco (controles reales, editar objeto vs generador, referencia, copias, semillas por capa, estadísticas de caché), Agrupaciones, Oclusión y distancia, y Favoritas (se guarda la receta). Pruebas: `node pruebas/estructuras.js`.
