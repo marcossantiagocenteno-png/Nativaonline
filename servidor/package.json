@@ -1,0 +1,9 @@
+{
+  "name": "nativa-servidor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Servidor del mundo oficial de Nativa Online. La única dependencia del proyecto, y sólo de este lado: el juego sigue sin ninguna.",
+  "engines": { "node": ">=20" },
+  "scripts": { "start": "node iniciar.js" },
+  "dependencies": { "ws": "8.18.0" }
+}

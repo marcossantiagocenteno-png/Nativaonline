@@ -136,7 +136,22 @@ async function abrirMundoOficial(op){
       return {ok:!problemas.length,problemas,versiones:seq,instantaneas:snaps.length};
     }
 
-    return {NV,alm,aplicar,reconstruir,restaurar,copiaCompleta,importarCopia,auditar,
+    /* consultas para la red: se hacen DENTRO de la cola, así nunca se lee el mundo a mitad de una edición */
+    const estado=()=>enSerie(async()=>({seq,huella,semilla:NV.CONFIG.seed,mundo:NV.mundo.exportar()}));
+    async function huellaEn_(n){ if(n===seq) return huella; if(n<0||n>seq) return null;
+      const e=(await alm.diario(n-1,n))[0]; if(e) return e.h; const s=await alm.instantaneaHasta(n); return s&&s.seq===n?s.huella:null; }
+    /* lo que le falta a quien tiene el mundo en la versión `desde` con la huella `hDesde`: las operaciones, si todas son ediciones comunes
+       y su huella coincide; si no (restauraciones, importaciones, huella distinta), null: hay que mandarle el mundo entero */
+    const operacionesDesde=(desde,hDesde)=>enSerie(async()=>{
+      if(!Number.isInteger(desde)||desde<0||desde>seq) return null;
+      if(hDesde!==undefined&&(await huellaEn_(desde))!==hDesde) return null;
+      const es=await alm.diario(desde,seq); if(es.some(e=>e.t!=='op')) return null;
+      return {seq,huella,ops:es.map(e=>({seq:e.seq,op:e.op,autor:e.autor,h:e.h}))};
+    });
+    /* restaurar o importar y devolver, en el mismo turno de la cola, el mundo entero que quedó: así nadie recibe una edición posterior antes que el mundo nuevo */
+    const conEstado=f=>enSerie(async()=>{ const r=await f(); return {r,estado:{seq,huella,semilla:NV.CONFIG.seed,mundo:NV.mundo.exportar()}}; });
+    const restaurarConEstado=(n,a)=>conEstado(()=>restaurar_(n,a)), importarConEstado=(c,a)=>conEstado(()=>importarCopia_(c,a));
+    return {NV,alm,estado,operacionesDesde,restaurarConEstado,importarConEstado,aplicar,reconstruir,restaurar,copiaCompleta,importarCopia,auditar,
       seq:()=>seq, huella:()=>huella, reparado:()=>alm.reparado, historial:o=>alm.historial(o), respaldar:m=>alm.respaldar(m),
       instantanea:motivo=>enSerie(async()=>{ await alm.guardarInstantanea({seq,ts:reloj(),motivo:motivo||'a pedido',semilla:NV.CONFIG.seed,huella,mundo:NV.mundo.exportar()}); return seq; }),
       cerrar:()=>alm.cerrar()};

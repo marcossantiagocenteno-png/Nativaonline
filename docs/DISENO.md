@@ -1876,3 +1876,22 @@ Punto de restauración: etiqueta `antes-multijugador` (= `6537e0e`, el último c
 - `src/mundo/huella.js` (cliente y servidor): `NV.canonico`, `NV.sha256` (a mano, igual al de Node) y `NV.huella`. Es lo que después permitirá comprobar en el Modo Dios que PC y teléfono tienen exactamente los mismos datos.
 - Los datos viven en `datos/` (o en `NATIVA_DATOS`), que git ignora: el código nunca los pisa.
 - Los motores, el Modo Dios, el modo solitario y la huella dorada no cambiaron.
+
+## Multijugador — Etapa 3: servidor de red (rama multijugador)
+
+`servidor/red.js` (WebSocket + HTTP), `servidor/identidad.js` (identidad y permisos), `servidor/iniciar.js` (arranque). Única dependencia del
+proyecto: `ws` 8.18.0, sólo en `servidor/package.json`. El juego sigue sin dependencias y el cliente todavía no se toca.
+
+**Protocolo v1** (JSON): `hola{token,desde?,huella?}` → `bienvenida{modo:'completo'|'incremental'}`; `editar{n,op}` → `ok{n,seq,huella}`
+y a los demás `op{seq,op,autor,huella}`; `restaurar{n,version}` → todos reciben `mundo{...}`; errores con código
+(`version, token, permiso, invalida, formato, desconocido, ritmo, orden`). HTTP: `GET /salud`, `GET /copia` y `POST /importar` (estos dos con
+`Authorization: Bearer <clave>`).
+
+**Reglas**: sólo el servidor decide (un jugador que intenta editar recibe `permiso` y nada cambia; una edición inválida no se guarda ni se difunde);
+las ediciones se aplican en serie y cada una recibe una versión única; la reconexión es incremental sólo si la versión y la huella del cliente
+coinciden con el diario, si no recibe el mundo entero; topes de tamaño (256 KB), de ritmo (60 msg/s), de conexiones y de cola lenta; latidos;
+lista de orígenes (`NATIVA_ORIGENES`). La clave de administrador vive sólo en `NATIVA_ADMIN_TOKEN` (servidor); se compara por huella y nunca se
+escribe en registros ni respuestas. Cuentas y personajes sólo cambiarán `identidad.autenticar`.
+
+Arranque local: `cd servidor && npm install && NATIVA_ADMIN_TOKEN=<clave de 16+ caracteres> node iniciar.js` (puerto 8787, datos en `datos/`, ignorado por git).
+Prueba: `node pruebas/red.js` (se omite si falta `npm install`).
