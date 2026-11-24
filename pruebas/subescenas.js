@@ -17,29 +17,38 @@ probar('los motores bocacueva y subescenas están registrados con paleta y venta
 const eU=MS.caras.objetos.catalogo()[0], eB=MB.caras.objetos.catalogo()[0];
 probar('la paleta ofrece "Umbral" (pregunta al colocar) y "Entrada de cueva (diseñar)"', eU.nombre==='Umbral'&&eU.alColocar&&eB.disenar);
 
-/* ---- la entrada de cueva: pared sólida con un hueco libre ---- */
-const B=MB.caras.creador.aObjeto({mat:'caliza',ancho:9,alto:4.4,boca:3,sem:77});
-probar('la entrada es una pared de 9 con hueco de 3: fx 4, hx 1, una fila', B.k==='bocacueva'&&B.fx===4&&B.hx===1&&B.fy===0);
-probar('ancho y boca pares se llevan a impar', (()=>{ const o=MB.caras.creador.aObjeto({ancho:8,boca:2}); return o.fx===4&&o.hx===1; })());
+/* ---- la entrada de cueva: masa sólida con la boca libre, de frente, en tres cuartos y de lado ---- */
 const bx=62, by=48;
+const hay=(o,x,y)=>o.occ.some(c=>c[0]===x&&c[1]===y);
+function conectado(o){ const oc=new Set(o.occ.map(c=>c[0]+','+c[1])), q=[[0,0]], vis=new Set(['0,0']); for(let i=0;i<q.length;i++){ const [x,y]=q[i]; if(o.um&&x===o.um[0]&&y===o.um[1]) return true; for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){ const c=(x+a)+','+(y+b); if(vis.has(c)||oc.has(c)||Math.abs(x+a)>14||Math.abs(y+b)>14) continue; vis.add(c); q.push([x+a,y+b]); } } return false; }
+let todasOk=true, detalleCaras='';
+for(const tipo of ['muro','monticulo','penasco']) for(const cara of ['sur','sureste','suroeste','este','oeste']){
+  const o=MB.caras.creador.aObjeto({tipo,cara,mat:'caliza',ancho:9,alto:4.4,boca:2.8,sem:77});
+  const bien=o.k==='bocacueva'&&o.occ.length>8&&!hay(o,0,0)&&o.um&&!hay(o,o.um[0],o.um[1])&&conectado(o)&&o.dirIn===NV.bocaCueva.ENTRA[cara];
+  if(!bien){ todasOk=false; detalleCaras+=tipo+'/'+cara+' '; }
+}
+probar('las 3 formas × 5 caras (sur, 3/4 y de lado) tienen masa sólida, la casilla de afuera libre y un camino libre hasta el umbral'+(detalleCaras?' — fallan: '+detalleCaras:''), todasOk);
+const B=MB.caras.creador.aObjeto({tipo:'muro',cara:'sur',mat:'caliza',ancho:9,alto:4.4,boca:2.8,sem:77});
+probar('mirando al sur el umbral queda dos casillas adentro, en línea con la boca, y se cruza hacia el norte', B.um[0]===0&&B.um[1]<=-2&&B.dirIn==='norte');
+probar('mirando al este se entra hacia el oeste y el umbral queda adentro, casi en la misma fila', (()=>{ const o=MB.caras.creador.aObjeto({tipo:'muro',cara:'este',ancho:9,alto:4.4,sem:5}); return o.dirIn==='oeste'&&Math.abs(o.um[1])<=1&&o.um[0]<=-2; })());
+probar('tres cuartos: se entra en diagonal', (()=>{ const o=MB.caras.creador.aObjeto({tipo:'muro',cara:'sureste',ancho:9,sem:5}); return o.dirIn==='noroeste'&&o.um[0]<0&&o.um[1]<0; })());
 NV.mundo.editar({t:'objeto+',x:bx,y:by,objeto:B}); NV.olvidarObjetos();
-let paredOk=true, huecoOk=true;
-for(let dx=-4;dx<=4;dx++){ const sol=NV.solidoEn(bx+dx,by); if(Math.abs(dx)<=1) { if(sol) huecoOk=false; } else if(!sol) paredOk=false; }
-probar('las casillas de la pared son sólidas', paredOk);
-probar('el hueco del arco queda libre para pasar', huecoOk);
-probar('no hay nada sólido una fila delante ni detrás', !NV.solidoEn(bx,by+1)&&!NV.solidoEn(bx,by-1)&&!NV.solidoEn(bx+5,by));
+probar('las casillas de la masa son sólidas en el mundo y la boca no', B.occ.every(c=>NV.solidoEn(bx+c[0],by+c[1]))&&!NV.solidoEn(bx,by)&&!NV.solidoEn(bx+B.um[0],by+B.um[1]));
 NV.mundo.editar({t:'objeto-',x:bx,y:by}); NV.olvidarObjetos(); m.ponerYo(bx,by+4); m.draw_(); m.draw_(); const sinPared=foto();
-NV.mundo.editar({t:'objeto+',x:bx,y:by,objeto:B}); NV.olvidarObjetos(); m.draw_(); m.draw_(); const conPared=cuenta();
-probar('la pared se dibuja: cambian cientos de celdas respecto de sin ella', difieren(sinPared,foto())>300);
-probar('es idéntica cada vez: misma receta, misma imagen', (()=>{ const I1=NV.bocaCueva.hornear(B.r,13,6.8), I2=NV.bocaCueva.hornear(B.r,13,6.8); return I1===I2&&I1.G.some(g=>g); })());
-probar('el mundo sin ella no cambia: quitarla devuelve el panel como estaba', (()=>{ NV.mundo.editar({t:'objeto-',x:bx,y:by}); NV.olvidarObjetos(); const l=!NV.solidoEn(bx+3,by); NV.mundo.editar({t:'objeto+',x:bx,y:by,objeto:B}); NV.olvidarObjetos(); return l&&NV.solidoEn(bx+3,by); })());
+NV.mundo.editar({t:'objeto+',x:bx,y:by,objeto:B}); NV.olvidarObjetos();
+for(let i=0;i<40;i++) m.draw_();                           // las bandas se hornean de a poco
+const conPared=cuenta();
+probar('la entrada se dibuja: cambian cientos de celdas respecto de sin ella', difieren(sinPared,foto())>300);
+probar('es idéntica cada vez: misma receta, misma imagen', (()=>{ const I1=NV.bocaCueva.imagen(B.r,1), I2=NV.bocaCueva.imagen(B.r,1); NV.bocaCueva.hornearTodo(I1); return I1===I2&&I1.G.some(g=>g); })());
+probar('cambiar de cara cambia la imagen', (()=>{ const a=NV.bocaCueva.imagen(B.r,0.6), b=NV.bocaCueva.imagen(Object.assign({},B.r,{cara:'oeste'}),0.6); NV.bocaCueva.hornearTodo(a); NV.bocaCueva.hornearTodo(b); let d=0; const n=Math.min(a.G.length,b.G.length); for(let i=0;i<n;i++) if(a.G[i]!==b.G[i]) d++; return d>200; })());
+probar('el montículo tiene pasto y la pared no tanto', (()=>{ const f=r=>{ const I=NV.bocaCueva.imagen(NV.bocaCueva.limpiar(r),0.6); NV.bocaCueva.hornearTodo(I); let n=0; for(let i=0;i<I.G.length;i++){ const g=String.fromCharCode(I.G[i]); if(g===','||g==="'"||g==='`'||g==='"') n++; } return n; }; return f({tipo:'monticulo',pasto:1,sem:3})>f({tipo:'muro',pasto:0,sem:3}); })());
+m.ponerYo(bx,by+4); m.draw_();
 
-/* ---- el Umbral: pregunta al colocarse, con nombre por defecto ---- */
-const ux=bx, uy=by-1;                                     // sobre el hueco → una casilla detrás
-E.entrar(); E.elegir(eU);
-SU.preguntar(bx,by,eU);
-const pend=SU._pend();
-probar('colocar sobre el hueco de una entrada lleva el umbral una casilla detrás', pend&&pend.x===ux&&pend.y===uy);
+/* ---- el Umbral: se pide solo al colocar la entrada, con nombre por defecto ---- */
+E.entrar(); E.elegir(eB);
+eB.trasColocar(bx,by,B);
+const pend=SU._pend(), ux=bx+B.um[0], uy=by+B.um[1];
+probar('al colocar la entrada se pide el umbral, adentro del túnel, en la dirección de entrada', pend&&pend.x===ux&&pend.y===uy&&pend.dir==='norte');
 const pan=NV.panelDe(ux,uy);
 probar('el nombre por defecto es su mapa y su coordenada', SU.nombrePorDefecto(ux,uy)===pan.nombre+' '+ux+','+uy);
 probar('la pregunta ofrece su mundo: sólo cueva por ahora', true);
@@ -57,9 +66,9 @@ E.salir();
 
 /* ---- cruzar: adentro de la cueva ---- */
 const antes={suelo:NV.sueloEn,solido:NV.solidoEn,alt:NV.alturaEn};
-m.ponerYo(ux,uy+2); m.draw_();
-m.move(0,-1);                                              // a la casilla delante del umbral
-const llegoAdentro=NV.escena!==null||(m.move(0,-1),NV.escena!==null);
+m.ponerYo(bx,by+2); m.draw_();
+for(let i=0;i<6&&NV.escena===null;i++) m.move(0,-1);       // caminando de frente hacia la boca
+const llegoAdentro=NV.escena!==null;
 probar('pisar el umbral deja al personaje en el sub-mundo', llegoAdentro&&SU.dentro()&&SU.dentro().nombre==='Gruta del Zorro');
 probar('adentro, el suelo, lo sólido y la altura son los de la cueva', NV.sueloEn!==antes.suelo&&NV.solidoEn!==antes.solido&&NV.alturaEn!==antes.alt);
 const E0=SU.dentro();
@@ -85,9 +94,9 @@ if(camino) for(const p of camino){ const o=m.me(); m.move(Math.sign(p.x-o.x),Mat
 probar('pisar la boca lleva de vuelta al mapa de afuera', saliendo&&NV.escena===null);
 probar('vuelve a las funciones del mundo de afuera', NV.sueloEn===antes.suelo&&NV.solidoEn===antes.solido&&NV.alturaEn===antes.alt);
 const f=m.me();
-probar('queda afuera, frente a la entrada y no sobre el umbral', f.x===ux&&f.y>by&&f.y<=by+3&&!NV.solidoEn(f.x,f.y));
+probar('queda afuera, frente a la entrada y no sobre el umbral', f.x===ux&&f.y>=by&&f.y<=by+3&&!NV.solidoEn(f.x,f.y));
 probar('mira hacia afuera de la cueva', m.facing()==='sur');
-probar('puede volver a entrar', (()=>{ m.move(0,-1); return NV.escena!==null||(m.move(0,-1),NV.escena!==null); })());
+probar('puede volver a entrar', (()=>{ for(let i=0;i<4&&NV.escena===null;i++) m.move(0,-1); return NV.escena!==null; })());
 /* salir de nuevo para seguir */
 { const c2=ruta(); if(c2) for(const p of c2){ const o=m.me(); m.move(Math.sign(p.x-o.x),Math.sign(p.y-o.y)); if(NV.escena===null) break; } }
 probar('el cuadro de afuera vuelve a dibujarse como antes', (()=>{ m.draw_(); return NV.escena===null&&cuenta()>=conPared-50; })());
@@ -95,11 +104,11 @@ probar('el cuadro de afuera vuelve a dibujarse como antes', (()=>{ m.draw_(); re
 /* ---- un umbral sin destino no se cruza ---- */
 {
   NV.umbrales.desvincular(E0.id+':fuera',true);
-  m.ponerYo(ux,uy+2);
+  m.ponerYo(bx,by+2);
   const fr=SU.bloquea(ux,uy);
   probar('un umbral que no lleva a ningún lado frena el paso, con una frase sin números', typeof fr==='string'&&!/\d/.test(fr));
-  m.move(0,-1); m.move(0,-1);
-  probar('y quien camina no entra', NV.escena===null&&!(m.me().y<=uy));
+  for(let i=0;i<6;i++) m.move(0,-1);
+  probar('y quien camina no entra', NV.escena===null&&m.me().y>uy);
 }
 
 /* ---- ediciones: borrar y deshacer ---- */
@@ -110,7 +119,7 @@ NV.mundo.editar({t:'objeto+',x:ux,y:uy,objeto:obj}); SU.sincronizar();
 probar('y deshacer lo trae de vuelta con su cueva', SU.lista().length===1&&SU.lista()[0].nombre==='Gruta del Zorro');
 /* ---- el Modo Dios funciona adentro ---- */
 E.salir(); NV.mundo.editar({t:'objeto-',x:ux,y:uy}); NV.mundo.editar({t:'objeto+',x:ux,y:uy,objeto:obj}); SU.sincronizar();
-m.ponerYo(ux,uy+2); m.move(0,-1); m.move(0,-1);
+m.ponerYo(bx,by+2); for(let i=0;i<6&&NV.escena===null;i++) m.move(0,-1);
 probar('se entra de nuevo', NV.escena!==null);
 E.entrar();
 probar('el Modo Dios se abre adentro y muestra su panel de sub-mundo', E.activo&&document.getElementById('subNombre').textContent==='Gruta del Zorro');

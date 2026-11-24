@@ -112,8 +112,11 @@
     if(no){ decir(no); return; }
     if(E.sel.alColocar&&NV.subescenas){ NV.subescenas.preguntar(x,y,E.sel); return; }   // el Umbral pregunta antes de colocarse
     /* lo que se pone es EXACTAMENTE lo que se veía en la vista previa; después sale otra variante */
-    if(hacer({t:'objeto+',x,y,objeto:o},(E.sel.etiqueta||E.sel.nombre)+' colocado.'))
-      E.fantasma=NV.motorDeEntrada(E.sel.id).caras.objetos.crear(E.sel.id);
+    const sel=E.sel;
+    if(hacer({t:'objeto+',x,y,objeto:o},(sel.etiqueta||sel.nombre)+' colocado.')){
+      E.fantasma=NV.motorDeEntrada(sel.id).caras.objetos.crear(sel.id);
+      if(sel.trasColocar) sel.trasColocar(x,y,o);          // la entrada de cueva pide su umbral en el acto
+    }
   }
   function regenerar(o){
     const r=NV.entradaDeObjeto(o); if(!r){ decir('Ese objeto no se puede regenerar.'); return; }

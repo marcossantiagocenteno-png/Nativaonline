@@ -17,8 +17,8 @@
 (function(NV){
 'use strict';
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
-const DIRS={norte:[0,-1],este:[1,0],sur:[0,1],oeste:[-1,0]};
-const DIR_TXT=[['norte','hacia el norte'],['este','hacia el este'],['sur','hacia el sur'],['oeste','hacia el oeste']];
+const DIRS={norte:[0,-1],este:[1,0],sur:[0,1],oeste:[-1,0],noreste:[0.7071,-0.7071],noroeste:[-0.7071,-0.7071]};
+const DIR_TXT=[['norte','hacia el norte'],['noreste','hacia el noreste'],['este','hacia el este'],['sur','hacia el sur'],['oeste','hacia el oeste'],['noroeste','hacia el noroeste']];
 const ID='umbral:umbral';
 const MUNDOS=[['cueva','cueva']];                     // más adelante: casa, sótano, ruina…
 const TIPOS_ALEA=['galeria','camara','caverna','cuevaAgua'];
@@ -318,13 +318,8 @@ const resumen=o=>'Umbral «'+((o.r&&o.r.nombre)||'Sin nombre')+'»';
 
 /* la pregunta al colocar: cómo se llama el sub-mapa y de qué mundo es */
 function nombrePorDefecto(x,y){ const p=NV.panelDe?NV.panelDe(x,y):null; return ((p&&p.nombre)||'Mundo')+' '+x+','+y; }
-function preguntar(x,y,entrada){
-  const hueco=NV.objetosEn(x-12,y,x+12,y).find(o=>o.k==='bocacueva'&&o.y===y&&Math.abs(o.x-x)<=(o.hx==null?0:o.hx));
-  if(hueco){                                            // sobre el hueco de una entrada: el umbral va una casilla detrás, adentro
-    const no=NV.editor.apoyo.porQueNo(x,y-1,{k:'umbral'}); if(no){ NV.editor.decir(no); return; }
-    y=y-1;
-  }
-  PEND={x,y,entrada};
+function preguntar(x,y,entrada,dir){
+  PEND={x,y,entrada,dir:DIRS[dir]?dir:'norte'};
   $e('umbNombre').value=nombrePorDefecto(x,y);
   const sel=$e('umbMundo'); sel.innerHTML=''; for(const [v,t] of MUNDOS){ const o=document.createElement('option'); o.value=v; o.textContent=t; sel.appendChild(o); }
   $e('umbralAsk').classList.add('show');
@@ -333,8 +328,8 @@ function preguntar(x,y,entrada){
 function cerrarPregunta(){ PEND=null; const p=$e('umbralAsk'); if(p) p.classList.remove('show'); }
 function confirmarPregunta(){
   if(!PEND) return;
-  const {x,y}=PEND, nombre=($e('umbNombre').value||'').trim()||nombrePorDefecto(x,y);
-  const o=aObjeto({nombre,mundo:$e('umbMundo').value,dir:'norte',cueva:cuevaAleatoria()});
+  const {x,y,dir}=PEND, nombre=($e('umbNombre').value||'').trim()||nombrePorDefecto(x,y);
+  const o=aObjeto({nombre,mundo:$e('umbMundo').value,dir,cueva:cuevaAleatoria()});
   cerrarPregunta();
   NV.editor.hacer({t:'objeto+',x,y,objeto:o},'Umbral «'+nombre+'» colocado.\nClic sobre él para editar la cueva.');
 }

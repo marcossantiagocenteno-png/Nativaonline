@@ -151,6 +151,7 @@ const OCUPAN={arbol:1,roca:1,hoguera:1,rocoso:1,arbolnv:1,tope:1,bocacueva:1};
 function huella(t){
   const out=[];
   if(t.k==='caido'){ for(let q=0;q<(t.len||1);q++) if(t.x+q<L) out.push(t.y*L+t.x+q); return out; }
+  if(t.occ){ for(const c of t.occ){ const x=t.x+c[0], y=t.y+c[1]; if(x>=0&&y>=0&&x<L&&y<L) out.push(y*L+x); } return out; }   // una forma libre: las casillas que ocupa, una por una
   const fx=t.fx||0, fy=t.fy||0;
   for(let dy=-fy;dy<=fy;dy++) for(let dx=-fx;dx<=fx;dx++){
     if(t.hx!=null&&dy===fy&&Math.abs(dx)<=t.hx) continue;       // un hueco por el que se pasa (la boca de una cueva)
