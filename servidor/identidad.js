@@ -10,8 +10,8 @@ const sha=t=>crypto.createHash('sha256').update(String(t)).digest();
 const iguales=(a,b)=>crypto.timingSafeEqual(a,b);
 
 const PERMISOS={
-  jugador:new Set(['ver']),
-  admin:new Set(['ver','editar','restaurar','importar','copia','historial'])
+  jugador:new Set(['ver','jugar']),
+  admin:new Set(['ver','jugar','editar','restaurar','importar','copia','historial'])
 };
 const puede=(rol,accion)=>!!(PERMISOS[rol]&&PERMISOS[rol].has(accion));
 

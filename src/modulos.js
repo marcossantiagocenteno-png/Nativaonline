@@ -43,6 +43,7 @@ window.NV_MODULOS=[
   'juego/editor-terreno',    // la pestaña "terreno" del Modo Dios
   'juego/creador',           // la ventana de diseño del Modo Dios: las perillas de los motores
   'juego/oficial',           // modo oficial (?oficial): el mundo único del servidor; sin ?oficial no hace nada
+  'juego/jugadores',         // modo oficial: los demás jugadores y los pasos propios hacia el servidor; sin ?oficial no hace nada
   'juego/jugar'
 ];
 
@@ -59,5 +60,5 @@ window.NV_MODULOS_SERVIDOR=[
 window.NV_MODULOS_SOLO_CLIENTE=[
   'motor/fluidez','motor/pincel','motor/lienzo','arte/myrella','motor/sprites','juego/interfaz','juego/personajes','juego/pasto',
   'juego/subescenas','juego/dibujar','juego/particulas','juego/editor','juego/editor-caminos','juego/editor-fluidez','juego/editor-aguas',
-  'juego/editor-terreno','juego/creador','juego/oficial','juego/jugar'
+  'juego/editor-terreno','juego/creador','juego/oficial','juego/jugadores','juego/jugar'
 ];

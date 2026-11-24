@@ -77,19 +77,8 @@
 
   /* ---------- el mundo que se muestra ---------- */
   function cargarMundo(m){ try{ NV.mundo.cargar(m); return true; }catch(e){ console.warn('mundo oficial no cargado: '+e.message); return false; } }
-  /* si el mundo cambió bajo los pies del personaje (otro administrador construyó ahí), se lo corre a la casilla libre más cercana */
-  function reubicar(){
-    if(typeof me==='undefined'||NV.escena) return;
-    if(NV.sueloEn(me.x,me.y)&&!NV.solidoEn(me.x,me.y)) return;
-    for(let r=1;r<=24;r++) for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){
-      if(Math.max(Math.abs(dx),Math.abs(dy))!==r) continue;
-      const x=me.x+dx, y=me.y+dy, g=NV.sueloEn(x,y);
-      if(g&&g!=='P'&&!NV.solidoEn(x,y)){ me.x=x; me.y=y; NV.desdeX=undefined; NV.desdeY=undefined; return; }
-    }
-  }
   function refrescar(){
     if(!O.listo) return;
-    reubicar();
     if(typeof tictac==='function') tictac();
     NV.olvidarObjetos();
     if(NV.editor&&NV.editor.refrescar) NV.editor.refrescar();
@@ -145,6 +134,7 @@
     s.onclose=()=>{
       if(ws!==s) return;
       ws=null; clearInterval(latido); perdidos=pend.size; pend.clear();
+      if(NV.jugadores) NV.jugadores.desconectado();     // los demás jugadores dejan de verse: al volver se estrena personaje
       if(O.estado!=='rechazado'){ O.estado='sin-conexion'; O.reconexiones++; }
       actualizarUI(); programar();
     };
@@ -153,8 +143,9 @@
   function alPrimera(){ if(primera){ const f=primera; primera=null; f(); } }
   /* volver a bajar el mundo oficial entero (un cambio rechazado, un salto de versiones, una huella que no coincide) */
   function resync(){
-    O.resincronizaciones++; forzarCompleto=true;
-    if(ws&&ws.readyState<=1){ try{ ws.close(4000,'resync'); }catch(e){} } else conectar();
+    O.resincronizaciones++;
+    if(ws&&ws.readyState===1){ enviar({t:'resync'}); return; }       // pide el mundo entero sin cortar la conexión (el personaje sigue siendo el mismo)
+    forzarCompleto=true; if(ws&&ws.readyState===0){ try{ ws.close(4000,'resync'); }catch(e){} } else conectar();
   }
   function reiniciarConexion(){ if(ws&&ws.readyState<=1){ try{ ws.close(4001,'otra identidad'); }catch(e){} } else conectar(); }
   function arrancarLatido(){
@@ -172,6 +163,7 @@
           else { aviso('Esa no es una clave de administrador.'); reiniciarConexion(); return; }
         }
         const rolAntes=O.rol; O.rol=m.rol; O.id=m.id;
+        if(NV.jugadores) NV.jugadores.bienvenida(m);          // su personaje temporal y los jugadores que ya estaban
         let cambio=false;
         if(m.modo==='completo'){
           if(!cargarMundo(m.mundo)){ rechazar('No pude cargar el mundo oficial en este navegador.'); return; }
@@ -199,10 +191,12 @@
         actualizarUI(); verificarLuego(); guardarReplicaLuego(); return; }
       case 'mundo': {
         if(!cargarMundo(m.mundo)){ resync(); return; }
+        if(O.estado!=='en-linea'){ O.estado='en-linea'; retardo=500; arrancarLatido(); }
         seq=m.seq; O.seq=seq; lastSeq=seq; lastHuella=m.huella; baseValida=true; pend.clear();
         if(NV.editor&&NV.editor.vaciarPilas) NV.editor.vaciarPilas();
-        refrescar(); actualizarUI(); guardarReplicaLuego();
-        aviso(m.motivo==='restaurar'?'El administrador restauró una versión anterior del mundo.':'El mundo oficial fue reemplazado por una copia importada.');
+        refrescar(); actualizarUI(); guardarReplicaLuego(); alPrimera();
+        if(m.motivo==='restaurar') aviso('El administrador restauró una versión anterior del mundo.');
+        else if(m.motivo==='importar') aviso('El mundo oficial fue reemplazado por una copia importada.');
         return; }
       case 'error': {
         if(m.n!==undefined) pend.delete(m.n);
@@ -216,7 +210,7 @@
           resync();
         }
         return; }
-      default: return;     // pong y lo que venga en el futuro
+      default: if(NV.jugadores) NV.jugadores.recibir(m); return;     // presencia (j+, j-, mov, pos); pong y lo que venga después
     }
   }
 
@@ -286,7 +280,7 @@
   O.arrancar=function(seguir){
     if(!leerReplica()) cargarMundo(mundoVacio());     // nunca el borrador ni mundo-datos.js: lo único que cuenta es lo que diga el servidor
     const t=$o('toast'); if(t){ t.textContent='Conectando con el mundo oficial…'; t.classList.add('show'); }
-    const salir=()=>{ if(O.listo) return; O.listo=true; if(t) t.classList.remove('show'); seguir(); actualizarUI(); };
+    const salir=()=>{ if(O.listo) return; O.listo=true; if(t) t.classList.remove('show'); seguir(); if(NV.jugadores) NV.jugadores.alIniciar(); actualizarUI(); };
     primera=salir; setTimeout(()=>{ if(primera){ primera=null; salir(); } },4500);
     O.estado=baseValida?'sin-conexion':'conectando';
     conectar();
@@ -294,6 +288,6 @@
   /* para pruebas y mantenimiento: cortar la conexión sin que se reconecte, y volver a abrirla */
   O.pausar=function(){ pausado=true; clearTimeout(tRec); if(ws){ try{ ws.close(); }catch(e){} } };
   O.reanudar=function(){ pausado=false; retardo=500; conectar(); };
-  O.huella=huellaLocal;
+  O.huella=huellaLocal; O.enviar=enviar;
   O.pendientes=()=>pend.size;
 })(window.NV);

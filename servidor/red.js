@@ -9,6 +9,10 @@
        {t:'editar', n, op}                       una edición del Modo Dios. Sólo admin. `n` lo elige el cliente para reconocer la respuesta.
        {t:'restaurar', n, version}               sólo admin.
        {t:'ping', ts}
+       {t:'mover', x, y, e}                      un paso del jugador (un metro, cuatro direcciones). `e` = la época que le dio el servidor.
+       {t:'escena', dentro, x?, y?}              entra o sale de una cueva (adentro desaparece de la vista de los demás)
+       {t:'reaparecer'}                          volver cerca del punto de partida
+       {t:'resync'}                              pide el mundo entero otra vez (sin cortar la conexión)
      servidor → cliente
        {t:'bienvenida', v:1, id, rol, semilla, seq, huella, modo:'completo', mundo}   o   modo:'incremental', ops:[{seq,op,autor,h}]
        {t:'ok', n, seq, huella, sinCambio?}      la edición se aceptó, se guardó y es la versión `seq`
@@ -16,6 +20,10 @@
        {t:'mundo', seq, huella, mundo, motivo}   reemplazo completo (restauración o importación)
        {t:'error', n?, codigo, motivo}           codigos: version, token, permiso, invalida, formato, desconocido, ritmo, orden
        {t:'pong', ts}
+     presencia (ver servidor/presencia.js): `bienvenida` trae además yo:{id,nombre,x,y,mirando,e} y jugadores:[…]; después llegan
+       {t:'j+', j:{id,nombre,x,y,mirando}} · {t:'j-', id} · {t:'mov', id, x, y, mirando, salto} (salto = teletransporte, sin animar el paso)
+       {t:'pos', x, y, mirando, e, motivo}      sólo a quien se corrige: su posición verdadera y su época nueva (motivos: lejos, solido, rapido,
+                                                formato, obra, inicio, escena)
    HTTP: GET /salud · GET /copia (admin, Authorization: Bearer <token>) · POST /importar (admin, cuerpo = la copia)
    Seguridad: sólo el servidor decide qué se acepta (los clientes no imponen nada); un rol sin permiso recibe 'permiso' y no cambia nada;
    mensajes con tope de tamaño, tope de ritmo por conexión, latidos que cierran conexiones muertas, lista opcional de orígenes. */
@@ -24,6 +32,7 @@ const http=require('http');
 const {WebSocketServer}=require('ws');
 const {abrirMundoOficial}=require('./mundo-oficial.js');
 const {crearIdentidad,puede}=require('./identidad.js');
+const {crearPresencia}=require('./presencia.js');
 const VERSION=1;
 
 async function iniciarServidor(op){
@@ -31,7 +40,8 @@ async function iniciarServidor(op){
   const mo=await abrirMundoOficial({dir:op.dir,cadaN:op.cadaN});
   const ident=op.identidad||crearIdentidad({adminTokens:op.adminTokens});
   const lim={mensaje:op.maxMensaje||256*1024, copia:op.maxCopia||32*1024*1024, clientes:op.maxClientes||200, porSegundo:op.maxPorSegundo||60, lento:8*1024*1024};
-  const log=op.log||(()=>{}), clientes=new Set();
+  const pres=op.presencia||crearPresencia({NV:mo.NV,aleatorio:op.aleatorio,ahora:op.ahora});
+  const log=op.log||(()=>{}), clientes=new Set(), porJugador=new Map();
   let proximo=1, cerrando=false;
   const origenOk=o=>!op.origenes||(o?op.origenes.includes(o):!!op.permitirSinOrigen);
 
@@ -51,6 +61,32 @@ async function iniciarServidor(op){
     }
   }
   const mensajeMundo=(e,motivo)=>({t:'mundo',seq:e.seq,huella:e.huella,mundo:e.mundo,motivo});
+  /* presencia: mensajes que van a todos los que ya tienen personaje (menos el que los origina). Al que está entrando se le guardan hasta que
+     reciba el mundo; el cliente aplica cada uno de forma idempotente, así que un repetido por el camino no hace daño. */
+  function avisarJugadores(m,salvo){
+    for(const c of clientes){
+      if(c===salvo||!c.pj) continue;
+      if(c.estado==='entrando'){ c.cola.push(m); continue; }
+      if(c.estado==='listo') enviar(c,m);
+    }
+  }
+  const mov=(j,salto)=>({t:'mov',id:j.id,x:j.x,y:j.y,mirando:j.mirando,salto:!!salto});
+  /* un jugador corrido por el servidor: se le dice la verdad a él y a todos los demás */
+  function corregido(j,motivo){
+    const c=porJugador.get(j.id);
+    if(c) enviar(c,{t:'pos',x:j.x,y:j.y,mirando:j.mirando,e:j.epoca,motivo});
+    if(!j.oculto) avisarJugadores(mov(j,true),c);
+  }
+  /* el mundo cambió: quien quedó dentro de un obstáculo se mueve a la casilla libre más cercana, y todos lo saben */
+  function revisarJugadores(){ for(const j of pres.revisar()){ corregido(j,'obra'); log('reubicado '+j.id+' ('+j.nombre+') tras un cambio del mundo'); } }
+  /* entrega lo que se guardó mientras entraba */
+  function vaciarCola(c){
+    for(const q of c.cola){
+      if(q.t==='op'||q.t==='mundo'){ if(q.seq>c.seq){ enviar(c,q); c.seq=q.seq; } }
+      else enviar(c,q);
+    }
+    c.cola=[];
+  }
 
   /* ---------------- HTTP ---------------- */
   const cabecerasCors=(req,res)=>{
@@ -77,7 +113,7 @@ async function iniciarServidor(op){
         for await(const t of req){ n+=t.length; if(n>lim.copia){ res.writeHead(413); return res.end(); } trozos.push(t); }
         let copia; try{ copia=JSON.parse(Buffer.concat(trozos).toString('utf8')); }catch(e){ return json(res,400,{error:'no es JSON'}); }
         let r; try{ r=await mo.importarConEstado(copia,id.usuarioId); }catch(e){ return json(res,422,{error:e.message}); }
-        difundir(mensajeMundo(r.estado,'importar'),null);
+        difundir(mensajeMundo(r.estado,'importar'),null); revisarJugadores();
         log('importó una copia → versión '+r.r.seq+' ('+id.usuarioId+')');
         return json(res,200,{ok:true,seq:r.r.seq,huella:r.r.huella,migrada:!!r.r.migrada});
       }
@@ -97,7 +133,11 @@ async function iniciarServidor(op){
     clientes.add(c);
     const reloj=setTimeout(()=>{ if(c.estado==='nuevo') ws.close(4001,'sin hola'); },op.tiempoHola||10000);
     ws.on('pong',()=>{ c.vivo=true; });
-    ws.on('close',()=>{ clearTimeout(reloj); clientes.delete(c); if(c.usuarioId) log('se fue '+c.usuarioId); });
+    ws.on('close',()=>{
+      clearTimeout(reloj); clientes.delete(c);
+      if(c.pj){ const j=pres.salir(c.pj); porJugador.delete(c.pj); if(j&&!j.oculto) avisarJugadores({t:'j-',id:j.id},c); }
+      if(c.usuarioId) log('se fue '+c.usuarioId+(c.pj?' ('+c.pj+')':''));
+    });
     ws.on('error',()=>{});
     ws.on('message',(data,esBinario)=>{
       if(esBinario){ ws.close(1003,'sólo texto'); return; }
@@ -118,11 +158,17 @@ async function iniciarServidor(op){
       c.usuarioId=id.usuarioId; c.rol=id.rol; c.estado='entrando';
       let inc=null; if(m.desde!==undefined) inc=await mo.operacionesDesde(m.desde,m.huella);
       const base={t:'bienvenida',v:VERSION,id:c.usuarioId,rol:c.rol,semilla:mo.NV.CONFIG.seed};
+      let e=null; if(!inc) e=await mo.estado();
+      if(c.ws.readyState!==1) return;                                   // se fue mientras se le preparaba el mundo
+      /* su personaje temporal: id nuevo, nombre nuevo, casilla libre y desocupada cerca del punto de partida */
+      const j=pres.entrar(); c.pj=j.id; porJugador.set(j.id,c);
+      base.yo={id:j.id,nombre:j.nombre,x:j.x,y:j.y,mirando:j.mirando,e:j.epoca}; base.jugadores=pres.lista(j.id);
       if(inc){ c.seq=inc.seq; enviar(c,Object.assign(base,{seq:inc.seq,huella:inc.huella,modo:'incremental',ops:inc.ops})); }
-      else { const e=await mo.estado(); c.seq=e.seq; enviar(c,Object.assign(base,{seq:e.seq,huella:e.huella,modo:'completo',mundo:e.mundo})); }
-      c.estado='listo';
-      for(const q of c.cola){ if(q.t==='mundo'){ if(q.seq>c.seq){ enviar(c,q); c.seq=q.seq; } } else if(q.seq>c.seq){ enviar(c,q); c.seq=q.seq; } }
-      c.cola=[]; log('entró '+c.usuarioId+' ('+c.rol+', '+(inc?'incremental':'completo')+')'); return;
+      else { c.seq=e.seq; enviar(c,Object.assign(base,{seq:e.seq,huella:e.huella,modo:'completo',mundo:e.mundo})); }
+      c.estado='listo'; vaciarCola(c);
+      avisarJugadores({t:'j+',j:pres.publica(j)},c);
+      revisarJugadores();
+      log('entró '+c.usuarioId+' ('+c.rol+', '+(inc?'incremental':'completo')+') como '+j.id+' «'+j.nombre+'»'); return;
     }
     if(c.estado!=='listo'){ error(c,m.n,'orden','primero hay que saludar'); return; }
     if(m.t==='editar'){
@@ -132,14 +178,37 @@ async function iniciarServidor(op){
       c.seq=Math.max(c.seq,r.seq);
       enviar(c,{t:'ok',n:m.n,seq:r.seq,huella:r.huella});
       difundir({t:'op',seq:r.seq,op:m.op,autor:c.usuarioId,huella:r.huella},c);
+      revisarJugadores();
       return;
+    }
+    if(m.t==='mover'){
+      if(!puede(c.rol,'jugar')) return;
+      const r=pres.mover(c.pj,m.x,m.y,m.e);
+      if(r.ok) avisarJugadores(mov(r.j,false),c);
+      else if(r.rechazo) enviar(c,{t:'pos',x:r.j.x,y:r.j.y,mirando:r.j.mirando,e:r.j.epoca,motivo:r.rechazo});
+      return;
+    }
+    if(m.t==='escena'){
+      const r=pres.escena(c.pj,!!m.dentro,m.x,m.y); if(!r) return;
+      if(r.oculto) avisarJugadores({t:'j-',id:r.j.id},c);
+      else { avisarJugadores({t:'j+',j:pres.publica(r.j)},c); if(r.corregido) enviar(c,{t:'pos',x:r.j.x,y:r.j.y,mirando:r.j.mirando,e:r.j.epoca,motivo:'escena'}); }
+      return;
+    }
+    if(m.t==='reaparecer'){
+      const r=pres.reaparecer(c.pj); if(!r||r.ignorado) return;
+      corregido(r.j,'inicio'); return;
+    }
+    if(m.t==='resync'){            // el cliente perdió la cuenta de las versiones: se le manda el mundo entero (sin cortar la conexión ni cambiar su personaje)
+      c.estado='entrando'; const e=await mo.estado();
+      if(c.ws.readyState===1){ c.seq=e.seq; enviar(c,mensajeMundo(e,'resync')); }
+      c.estado='listo'; vaciarCola(c); return;
     }
     if(m.t==='restaurar'){
       if(!puede(c.rol,'restaurar')){ error(c,m.n,'permiso','sólo un administrador puede restaurar versiones'); return; }
       let r; try{ r=await mo.restaurarConEstado(m.version,c.usuarioId); }catch(e){ error(c,m.n,'invalida',e.message); return; }
       log('restauró la versión '+m.version+' → '+r.r.seq+' ('+c.usuarioId+')');
       enviar(c,{t:'ok',n:m.n,seq:r.r.seq,huella:r.r.huella});
-      difundir(mensajeMundo(r.estado,'restaurar'),null);
+      difundir(mensajeMundo(r.estado,'restaurar'),null); revisarJugadores();
       return;
     }
     error(c,m.n,'desconocido','mensaje desconocido: '+m.t.slice(0,40));
@@ -150,7 +219,7 @@ async function iniciarServidor(op){
   const puerto=server.address().port;
   log('servidor del mundo oficial en el puerto '+puerto+' · versión '+mo.seq()+' · semilla '+mo.NV.CONFIG.seed);
 
-  return {puerto,mundo:mo,clientes:()=>clientes.size,
+  return {puerto,mundo:mo,presencia:pres,clientes:()=>clientes.size,
     async cerrar(){
       cerrando=true; clearInterval(latido);
       for(const c of clientes) try{ c.ws.close(1001,'el servidor se apaga'); }catch(e){}

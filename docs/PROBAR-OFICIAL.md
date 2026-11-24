@@ -6,10 +6,10 @@ Para cuando el servidor esté disponible. Todo es en tu PC, sin instalar nada m�
 ```
 cd servidor
 npm install                     # sólo la primera vez
-NATIVA_ADMIN_TOKEN=pon-una-clave-de-16-o-mas-caracteres node iniciar.js
+NATIVA_ADMIN_TOKEN=<tu clave de 16 o más caracteres> node iniciar.js
 ```
 Dice «servidor del mundo oficial en el puerto 8787». Los datos quedan en la carpeta `datos/` (git no la sube). En Windows (PowerShell):
-`$env:NATIVA_ADMIN_TOKEN="tu-clave-larga"; node iniciar.js`. Se apaga con Ctrl+C.
+`$env:NATIVA_ADMIN_TOKEN="<tu clave>"; node iniciar.js`. Se apaga con Ctrl+C.
 
 ## 2. Abrir el juego
 - **En la misma PC:** abre `index.html?oficial=ws://localhost:8787` (también vale `?oficial` solo en desarrollo).
@@ -32,5 +32,18 @@ Nunca lleva números.
 
 **Lo que NO debería ocurrir:** que lo construido desaparezca al reiniciar, que el personaje se mueva al escribir la clave, que el modo solitario (`index.html` sin `?oficial`) muestre la línea dorada o el panel de conexión.
 
-## 4. Revisión rápida automática
-`NODE_PATH=/tmp/pp/node_modules node pruebas/chrome-oficial.js` hace casi todo lo anterior en un Chrome de verdad (comprueba los datos, no cómo se ve).
+## 4. Probar a los otros jugadores (PC + teléfono)
+Con el servidor andando (paso 1):
+1. **PC:** abre `index.html?oficial=ws://localhost:8787` (o la dirección con la IP de tu PC, como en el paso 2).
+2. **Teléfono:** abre `http://IP-DE-TU-PC:8080/index.html?oficial=ws://IP-DE-TU-PC:8787` (servidor de archivos del paso 2).
+3. Cada uno ve **al otro** como un personaje con nombre encima (`Viajero-XXXX`). Tu propio personaje sigue mostrando el nombre de siempre.
+4. Camina en uno: en el otro, el personaje se mueve solo, mirando hacia donde va. Camina los dos a la vez.
+5. **Invitado:** nadie necesita clave para caminar y verse; la clave sólo da el Modo Dios con permisos.
+6. Choca contra agua honda, rocas o muros: no se atraviesan. Si mantienes una flecha apretada, el ritmo es el del juego (un metro cada 186 ms).
+7. **Obra sobre un jugador:** con la clave de administrador en la PC, coloca una roca justo donde está parado el personaje del teléfono: el servidor lo corre a una casilla libre cercana y aparece un aviso en el teléfono.
+8. **Desconexión:** cierra la pestaña del teléfono: desaparece de la PC en un instante. Vuélvela a abrir: aparece con otro nombre, cerca del punto de partida (los jugadores son temporales; no se guarda nada).
+9. **Lo que NO debería ocurrir:** dos personajes exactamente en la misma casilla al entrar, un personaje que se queda quieto en la pantalla del otro después de irse, o atravesar agua/rocas.
+10. Nota: dentro de una cueva el jugador desaparece para los demás (las cuevas compartidas son de una etapa posterior). Con el modo solitario (`index.html` sin `?oficial`) nada de esto existe.
+
+## 5. Revisión rápida automática
+`NODE_PATH=/tmp/pp/node_modules node pruebas/chrome-oficial.js` (mundo, Modo Dios, clave, reconexión) y `NODE_PATH=/tmp/pp/node_modules node pruebas/chrome-jugadores.js` (tres navegadores que se ven caminar) hacen casi todo lo anterior en un Chrome de verdad (comprueban los datos, no cómo se ve). Sin navegador: `node pruebas/presencia.js` y `node pruebas/red-jugadores.js`.

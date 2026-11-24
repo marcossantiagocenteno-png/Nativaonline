@@ -1941,3 +1941,25 @@ reinicio del servidor, restaurar, importar con confirmación, copia, arranque si
   personaje temporal. **Administrador**: acceso protegido por contraseña, con permisos para usar el Modo Dios. Sin cuentas definitivas ni progreso individual guardado.
   Esa pantalla sólo reemplazará lo que hoy hacen `?oficial` y el botón «clave» (la identidad ya llega al servidor por `identidad.autenticar`, que es lo único que cambiará).
 - **Orden de trabajo:** primero conexión y sincronización de jugadores; la pantalla inicial y las identidades después.
+
+## Multijugador — Etapa 5: jugadores conectados y sincronizados (rama multijugador)
+
+**Qué hay.** `servidor/presencia.js` (jugadores temporales y validación), mensajes nuevos en `servidor/red.js` (`mover`, `escena`, `reaparecer`, `resync`; `j+`, `j-`, `mov`, `pos`;
+la `bienvenida` trae `yo` y `jugadores`), `src/juego/jugadores.js` (cliente) y dos enganches en `jugar.js`. Sin `?oficial` el módulo existe pero no está activo: modo solitario intacto.
+
+**Reglas.**
+- **Identidad temporal:** cada conexión estrena personaje. `id` interno al azar (`j` + 12 hex), independiente del nombre visible (`Viajero-XXXX`) y de la identidad del dispositivo. Al desconectarse
+  desaparece de todos los clientes; al reconectarse se estrena otro y nace de nuevo cerca del inicio: no hay progreso que recuperar. Con `?oficial` el cliente tampoco guarda posición ni zoom (`jugar.js`).
+- **Nacer:** el primero en la casilla de partida; los siguientes, en la casilla libre y desocupada más cercana (anillos, al azar dentro de cada anillo, sin agua somera si se puede).
+- **El servidor manda:** el cliente anticipa el paso y lo avisa; el servidor lo valida con `NV.sueloEn`/`NV.solidoEn` (el mismo código del juego, cargado en el servidor; no hay una segunda colisión)
+  y con el ritmo (186 ms por paso, margen de 20 % y ráfaga de 4). Lo que no vale se corrige con `pos`, que sube la época del jugador; los pasos que ya venían en camino con la época vieja se descartan
+  sin responder. Los jugadores no se bloquean entre sí al caminar (pueden superponerse); sólo al nacer o ser reubicados se busca una casilla desocupada.
+- **Obras:** tras cada edición, restauración o importación el servidor revisa a todos; a quien quedó dentro de un obstáculo lo corre a la casilla libre más cercana, se lo dice a él (`pos`, con aviso) y a
+  los demás (`mov` con `salto`).
+- **Cuevas:** al entrar a una cueva el jugador sale de la vista de los demás; al salir vuelve cerca de donde estaba (el servidor lo corrige si es lejos o inválido). Cuevas compartidas: etapa posterior.
+- **Los ajenos:** son personajes de `NV.personajes` creados con `NV.nuevoPersonaje` y movidos con `NV.avanzarPersonaje`; los pasos llegan a tirones y se encolan para darlos al ritmo del juego. No se tocó el motor
+  de personajes, ni las animaciones ni el dibujo. El sprite es el del jugador (monito) con el nombre encima; mi propio personaje conserva el nombre de siempre.
+- **Mundo y presencia:** pedir el mundo entero otra vez ahora es el mensaje `resync` (no corta la conexión ni cambia de personaje). Se retiró del cliente la reubicación local por obras: la decide el servidor.
+- **Pendiente a propósito:** filtrar por zona de interés (hoy se avisa a todos; el punto de entrada es `avisarJugadores`), jugadores compartidos dentro de cuevas, apariencias y la pantalla inicial.
+
+**Pruebas.** `node pruebas/presencia.js` (reglas, sin red), `node pruebas/red-jugadores.js` (siete clientes por red), `pruebas/chrome-jugadores.js` (tres Chrome independientes).

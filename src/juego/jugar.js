@@ -90,6 +90,7 @@ function move(dx,dy,tIdeal){
   NV.ultimoPaso=(tIdeal&&tIdeal<=ahora&&ahora-tIdeal<PASO_MS)?tIdeal:ahora;
   hide(); animarSuave(); drawMap(); guardar();
   if(NV.subescenas) NV.subescenas.alPisar();            // ¿se pisó un umbral? (entrar a una cueva, volver a salir)
+  if(NV.jugadores) NV.jugadores.alPaso();               // modo oficial: se avisa el paso al servidor (en solitario no hace nada)
 }
 function look(){
   let n=0,near=null;
@@ -139,6 +140,7 @@ const animarSuave=programarCuadro;
 const CLAVE='nativa.guardado.v1';
 let ultGuardado=0, guardadoPendiente=false;
 function guardar(forzar){
+  if(NV.oficial&&NV.oficial.activo) return;     // modo oficial: personaje temporal, sin progreso individual guardado
   const ahora=Date.now();
   if(!forzar && ahora-ultGuardado<1500){ guardadoPendiente=true; return; }
   ultGuardado=ahora; guardadoPendiente=false;
@@ -150,6 +152,7 @@ function guardar(forzar){
   }catch(e){}
 }
 function cargarGuardado(){
+  if(NV.oficial&&NV.oficial.activo) return null;
   let d=null;
   try{ d=JSON.parse(localStorage.getItem(CLAVE)||'null'); }catch(e){}
   if(!d||d.semilla!==NV.CONFIG.seed) return null;
