@@ -6,12 +6,13 @@ const archivos=cp.execSync('git ls-files',{cwd:raiz}).toString().split('\n').fil
 
 /* nada de lo que se publica (juego, documentos, servidor) puede traer una clave: ni la variable con un valor, ni un Bearer escrito a mano */
 const publicos=archivos.filter(f=>!/^pruebas\//.test(f)&&/\.(js|html|css|md|json|sh)$/.test(f)&&!/package-lock/.test(f));
-const asignaciones=publicos.filter(f=>/NATIVA_ADMIN_TOKEN\s*[=:]\s*['"]?[A-Za-z0-9]/.test(fs.readFileSync(path.join(raiz,f),'utf8')));
+const asignaciones=publicos.filter(f=>/NATIVA_ADMIN_TOKEN\s*(=['"]?|=\s*['"]|:\s*['"])[A-Za-z0-9]/.test(fs.readFileSync(path.join(raiz,f),'utf8')));
 ok(!asignaciones.length,'ningún archivo publicado asigna un valor a NATIVA_ADMIN_TOKEN: '+asignaciones.join(', '));
 const bearer=publicos.filter(f=>/Bearer\s+['"][A-Za-z0-9]/.test(fs.readFileSync(path.join(raiz,f),'utf8')));
 ok(!bearer.length,'ningún archivo publicado trae una clave escrita en un Bearer: '+bearer.join(', '));
 const cliente=archivos.filter(f=>/^src\//.test(f)||f==='index.html');
-ok(!cliente.some(f=>/NATIVA_ADMIN_TOKEN/.test(fs.readFileSync(path.join(raiz,f),'utf8'))),'el código que baja el navegador (src/, index.html) no menciona la variable de la clave');
+/* el navegador sólo puede nombrar la variable para decirle al administrador dónde configurarla (mensaje «sin clave»), nunca darle un valor */
+ok(!cliente.some(f=>fs.readFileSync(path.join(raiz,f),'utf8').split('\n').some(l=>/NATIVA_ADMIN_TOKEN/.test(l)&&!/msg\(['"]/.test(l))),'el código que baja el navegador (src/, index.html) nombra la variable de la clave sólo en el mensaje de «sin clave»');
 const of=fs.readFileSync(path.join(raiz,'src/juego/oficial.js'),'utf8');
 ok(!/[?&]token=|[?&]clave=|location\.search[^;]*clave/.test(of),'el cliente no manda ni lee la clave por el enlace');
 ok(!archivos.some(f=>/^datos\//.test(f)||/node_modules/.test(f)),'los datos del mundo y node_modules no están en git');

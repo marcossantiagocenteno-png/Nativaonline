@@ -2,13 +2,15 @@
 /* Nativa Online — arranca el servidor del mundo oficial.
    Variables de entorno:
      PORT                 puerto (por defecto 8787)
-     NATIVA_DATOS         carpeta de los datos del mundo (por defecto ../datos, que git ignora). En un alojamiento: el volumen persistente.
+     NATIVA_DATOS         carpeta de los datos del mundo (por defecto ../datos, que git ignora). En un alojamiento: el volumen persistente
+                          (también guarda las sesiones cerradas, sesiones-revocadas.json: tiene que sobrevivir a los reinicios).
      NATIVA_ADMIN_TOKEN   la contraseña de administrador (una o varias separadas por coma, mínimo 16 caracteres). NUNCA va en el repositorio.
                           Se comprueba una sola vez, en POST /entrar; el navegador nunca la guarda: recibe una sesión firmada.
      NATIVA_SESION_CLAVE  la clave con que se FIRMAN las sesiones de administrador (mínimo 32 caracteres, distinta de la contraseña). NUNCA va en el
                           repositorio. Sin ella en desarrollo se usa una al azar por arranque (las sesiones no sobreviven a un reinicio);
                           con NODE_ENV=production el servidor se niega a arrancar sin ella. Cambiarla cierra todas las sesiones.
-     NATIVA_CONFIAR_PROXY 1 si el servidor está detrás de un proxy del alojamiento: el freno de intentos usa la dirección de X-Forwarded-For.
+     NATIVA_CONFIAR_PROXY 1 SÓLO si hay exactamente un proxy delante que añade al final de X-Forwarded-For la dirección real y el servidor no es alcanzable sin él
+                          (ver docs/DISENO.md, «Condiciones para NATIVA_CONFIAR_PROXY»). Apagada por defecto: sin ella X-Forwarded-For se ignora.
      NATIVA_ORIGENES      los orígenes de página que pueden conectarse, separados por coma (p. ej. https://marcossantiagocenteno-png.github.io: esquema y
                           dominio, sin ruta). Vacío = cualquiera: SÓLO para desarrollo. Con NODE_ENV=production el servidor se niega a arrancar sin esto.
      NODE_ENV=production  modo publicado: exige NATIVA_ORIGENES y NATIVA_ADMIN_TOKEN, y no acepta conexiones web sin origen.

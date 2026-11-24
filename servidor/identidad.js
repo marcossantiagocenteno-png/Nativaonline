@@ -24,7 +24,7 @@ function crearIdentidad(op){
   const claves=(op.adminTokens||[]).filter(t=>typeof t==='string'&&t.length>=MIN_CLAVE_ADMIN);
   const admins=claves.map(sha);
   const claveSesion=op.claveSesion||crypto.randomBytes(32).toString('hex');   // sin clave propia: una al azar por arranque (las sesiones no sobreviven)
-  const ses=crearSesiones({claveSesion,adminClaves:claves,ahora:op.ahora,vigenciaMs:op.vigenciaMs});
+  const ses=crearSesiones({claveSesion,adminClaves:claves,ahora:op.ahora,vigenciaMs:op.vigenciaMs,archivoRevocadas:op.archivoRevocadas});
   return {
     /* identidad de INVITADO: {usuarioId, rol:'jugador'} o null si el token no sirve */
     autenticar(token){

@@ -5,9 +5,11 @@
      · ADMINISTRADOR   → la contraseña se manda UNA vez a POST /entrar del servidor, que la comprueba. Si es válida devuelve una sesión firmada;
                          se guarda sólo en sessionStorage de esta pestaña (nunca la contraseña) y se recarga con ?oficial.
      · MODO SOLITARIO  → ?solitario: el juego de siempre, sin servidor.
-   El servidor al que se conecta es NV.SERVIDOR_OFICIAL, o ws://<este equipo>:8787 si no hay. Para probar con otro (un teléfono contra tu PC):
-   ?servidor=ws://192.168.1.20:8787 — sólo se acepta cuando la página NO viene por https (en la página publicada nadie puede mandar la
-   contraseña a otro servidor con un enlace).
+   A qué servidor se conecta lo decide juego/destino.js (NV.destino.elegir): NV.SERVIDOR_OFICIAL —hoy PENDIENTE, vacío— o, sólo en una página
+   de prueba (archivo, localhost o red privada), el servidor del propio equipo. Para probar con otro (un teléfono contra tu PC):
+   ?servidor=ws://192.168.1.20:8787 — sólo se acepta en páginas de prueba y hacia localhost o redes privadas; en una página pública el
+   parámetro se ignora, así que nadie puede mandar la contraseña a otro servidor con un enlace. Sin servidor configurado la portada
+   lo dice y no intenta conectarse a ninguna dirección.
    El arte es de código: un bosque pelado de noche, neblina, luz fría de lila arriba, pétalos pálidos, y a veces un par de ojos en la
    oscuridad. Lo dibuja un lienzo; el marco y el título son SVG. Sin imágenes, sin librerías, sin tipografías externas. */
 (function(NV){
@@ -22,15 +24,10 @@
   const ORO='#c8a24a';
 
   /* ---------- a qué servidor ---------- */
-  function parametro(n){ const m=new RegExp('[?&]'+n+'=([^&]*)').exec(busqueda); return m?decodeURIComponent(m[1]):''; }
-  const segura=(()=>{ try{ return location.protocol==='https:'; }catch(e){ return false; } })();
-  let url=(!segura&&parametro('servidor'))||NV.SERVIDOR_OFICIAL||'';
-  const personalizado=!!(!segura&&parametro('servidor'));
-  if(!url) url='ws://'+(location.hostname||'localhost')+':8787';
-  url=url.replace(/^http/,'ws').replace(/\/+$/,'');
-  const urlValida=/^wss?:\/\/[^\s/]+$/.test(url);
-  const http=url.replace(/^ws/,'http');
-  P.servidor=url;
+  function parametro(n){ const m=new RegExp('[?&]'+n+'=([^&]*)').exec(busqueda); if(!m) return ''; try{ return decodeURIComponent(m[1]); }catch(e){ return ''; } }
+  const D=NV.destino.elegir(parametro('servidor'));
+  const url=D.url, personalizado=D.personalizado, pendiente=D.pendiente, urlValida=D.valida, http=D.http;
+  P.servidor=url; P.pendiente=pendiente; P.origen=D.origen;
 
   document.body.insertAdjacentHTML('afterbegin',NV.MARCADO_PORTADA);
   document.body.classList.add('conPortada');
@@ -40,7 +37,8 @@
   const estado={conexion:'comprobando',admin:null};
   function pintarEstado(){
     let t;
-    if(!urlValida) t='La dirección del servidor no es válida.';
+    if(pendiente) t=NV.destino.MENSAJE_PENDIENTE;
+    else if(!urlValida) t='La dirección del servidor no es válida.';
     else if(estado.conexion==='comprobando') t='Buscando el mundo oficial…';
     else if(estado.conexion==='en-linea') t='El mundo oficial responde.';
     else t='El mundo oficial no responde por ahora.';
@@ -48,11 +46,12 @@
     $('ptEstado').textContent=t;
     $('ptEstado').className=estado.conexion;
     const sinClave=estado.conexion==='en-linea'&&estado.admin===false;
-    $('ptClaveOk').disabled=sinClave;
+    $('ptClaveOk').disabled=sinClave||pendiente;
+    if(pendiente&&$('ptClaveForm').classList.contains('abierto')) msg(NV.destino.MENSAJE_PENDIENTE);
     if(sinClave&&$('ptClaveForm').classList.contains('abierto')) msg('Este servidor todavía no tiene configurada la clave de administrador (variable NATIVA_ADMIN_TOKEN, en el alojamiento del servidor).');
   }
   async function comprobar(){
-    if(!urlValida){ estado.conexion='sin-conexion'; pintarEstado(); return; }
+    if(pendiente||!urlValida){ estado.conexion='sin-conexion'; pintarEstado(); return; }
     const ac=new AbortController(), tm=setTimeout(()=>ac.abort(),4000);
     try{
       const r=await fetch(http+'/salud',{cache:'no-store',signal:ac.signal}); const j=await r.json();
@@ -60,11 +59,12 @@
     }catch(e){ estado.conexion='sin-conexion'; estado.admin=null; }
     clearTimeout(tm); pintarEstado();
   }
-  comprobar(); setInterval(()=>{ if(!document.hidden) comprobar(); },12000);
+  if(pendiente){ estado.conexion='pendiente'; pintarEstado(); }
+  else { comprobar(); setInterval(()=>{ if(!document.hidden) comprobar(); },12000); }
 
   /* ---------- los tres caminos ---------- */
   const destino=()=>'?oficial'+(personalizado?'='+encodeURIComponent(url):'');
-  function irAlJuego(){ location.href=destino(); }
+  function irAlJuego(){ if(pendiente){ msg(NV.destino.MENSAJE_PENDIENTE); return; } location.href=destino(); }
   const olvidarSesion=()=>{ try{ sessionStorage.removeItem(CLAVE_SESION); }catch(e){} };
 
   $('ptInvitado').addEventListener('click',()=>{ olvidarSesion(); irAlJuego(); });          // un invitado nunca arrastra una sesión de administrador
@@ -84,6 +84,7 @@
     e.preventDefault(); if(enCurso) return;
     const clave=campo.value; campo.value='';                       // la contraseña no se queda en el campo
     if(!clave){ msg('Escribe la contraseña de administrador.'); campo.focus(); return; }
+    if(pendiente){ msg(NV.destino.MENSAJE_PENDIENTE); return; }              // sin servidor oficial no se manda la contraseña a ninguna parte
     if(!urlValida){ msg('La dirección del servidor no es válida.'); return; }
     enCurso=true; $('ptClaveOk').disabled=true; msg('Comprobando…');
     try{

@@ -34,19 +34,24 @@ const http=require('http');
 const {WebSocketServer}=require('ws');
 const {abrirMundoOficial}=require('./mundo-oficial.js');
 const {crearIdentidad,puede}=require('./identidad.js');
-const {crearFreno}=require('./sesiones.js');
+const {crearFreno,bloqueDeRed}=require('./sesiones.js');
 const {crearPresencia}=require('./presencia.js');
 const VERSION=1;
 
 async function iniciarServidor(op){
   op=op||{};
   const mo=await abrirMundoOficial({dir:op.dir,cadaN:op.cadaN});
-  const ident=op.identidad||crearIdentidad({adminTokens:op.adminTokens,claveSesion:op.claveSesion,ahora:op.ahora,vigenciaMs:op.vigenciaSesionMs});
+  /* las sesiones cerradas se guardan junto a los datos del mundo (el volumen persistente): un reinicio no las revive */
+  const archivoRevocadas=op.archivoRevocadas===undefined?require('path').join(mo.alm.dir,'sesiones-revocadas.json'):op.archivoRevocadas;
+  const ident=op.identidad||crearIdentidad({adminTokens:op.adminTokens,claveSesion:op.claveSesion,ahora:op.ahora,vigenciaMs:op.vigenciaSesionMs,archivoRevocadas});
   const freno=crearFreno({maxFallos:op.maxIntentos,ventanaMs:op.ventanaIntentosMs,ahora:op.ahora});
   const retrasoLogin=op.retrasoLoginMs===undefined?400:op.retrasoLoginMs;
-  /* de dónde viene una petición, para el freno de intentos. Detrás de un proxy (alojamiento) la dirección real viene en X-Forwarded-For:
-     sólo se lee si se pidió expresamente (NATIVA_CONFIAR_PROXY), porque de otro modo cualquiera podría falsearla para esquivar el freno. */
-  const ipDe=req=>{ if(op.confiarProxy){ const f=String(req.headers['x-forwarded-for']||'').split(',').map(x=>x.trim()).filter(Boolean); if(f.length) return f[f.length-1]; } return req.socket.remoteAddress||'?'; };
+  /* de dónde viene una petición, para el freno de intentos. El intento se cuenta al BLOQUE de red (IPv4 completa, IPv6 por /64: ver bloqueDeRed).
+     Por defecto se usa la dirección de la conexión y la cabecera X-Forwarded-For se IGNORA: cualquiera puede escribirla.
+     NATIVA_CONFIAR_PROXY=1 (op.confiarProxy) hace que se lea el ÚLTIMO elemento de X-Forwarded-For. Sólo es correcto si se cumplen las tres
+     condiciones de docs/DISENO.md («Condiciones para NATIVA_CONFIAR_PROXY»): un único proxy delante, que añade al final la dirección real
+     de quien se conectó, y que el servidor no se pueda alcanzar sin pasar por él. Si no, el freno se esquiva o bloquea a todos por igual. */
+  const ipDe=req=>{ let ip=req.socket.remoteAddress||'?'; if(op.confiarProxy){ const f=String(req.headers['x-forwarded-for']||'').split(',').map(x=>x.trim()).filter(Boolean); if(f.length) ip=f[f.length-1]; } return bloqueDeRed(ip); };
   const pausa=ms=>new Promise(r=>setTimeout(r,ms));
   const lim={mensaje:op.maxMensaje||256*1024, copia:op.maxCopia||32*1024*1024, clientes:op.maxClientes||200, porSegundo:op.maxPorSegundo||60, lento:8*1024*1024};
   const pres=op.presencia||crearPresencia({NV:mo.NV,aleatorio:op.aleatorio,ahora:op.ahora});
@@ -128,9 +133,12 @@ async function iniciarServidor(op){
         return json(res,200,{ok:true,sesion:s.sesion,vence:s.vence,rol:'admin'});
       }
       if(req.method==='POST'&&url==='/salir'){
-        const s=sesionDe(req), v=s&&ident.revocarSesion(s);
-        if(v) for(const c of clientes) if(c.sesionId===v.id){ try{ c.ws.close(4005,'sesión cerrada'); }catch(e){} }
-        return json(res,200,{ok:true});
+        const s=sesionDe(req), v=s&&ident.verificarSesion(s); let guardada=true;
+        if(v){
+          try{ ident.revocarSesion(s); }catch(e){ guardada=false; log('ERROR: la sesión se cerró en memoria pero no se pudo guardar la revocación ('+e.message+')'); }
+          for(const c of clientes) if(c.sesionId===v.id){ try{ c.ws.close(4005,'sesión cerrada'); }catch(e){} }
+        }
+        return guardada?json(res,200,{ok:true}):json(res,500,{error:'revocacion-no-guardada'});
       }
       if(req.method==='GET'&&url==='/copia'){
         const id=adminDe(req); if(!id) return json(res,401,{error:'hace falta la clave de administrador'});

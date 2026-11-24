@@ -20,7 +20,7 @@ Sin `NATIVA_SESION_CLAVE` también arranca (usa una al azar y avisa), pero las s
 ## 2. Abrir la portada
 - **En la misma PC:** abre `index.html` (sin nada más). Te encuentras la portada. Si el servidor está en marcha, abajo dice «El mundo oficial responde.».
 - **En el teléfono (misma red wifi):** en otra terminal, desde la carpeta del juego, `python3 -m http.server 8080`; en el teléfono abre
-  `http://IP-DE-TU-PC:8080/index.html?servidor=ws://IP-DE-TU-PC:8787` (la IP la da `ipconfig` / `ifconfig`; si no conecta, el cortafuegos de la PC
+  `http://IP-DE-TU-PC:8080/index.html?servidor=ws://IP-DE-TU-PC:8787` (la IP la da `ipconfig` / `ifconfig`; `?servidor=` sólo se acepta si la página y el servidor están en tu PC o en tu red privada —IP 192.168.x.x, 10.x.x.x…—, nunca con un nombre de Internet; si no conecta, el cortafuegos de la PC
   tiene que dejar pasar los puertos 8080 y 8787). En ese caso la portada muestra también la dirección del servidor, para que veas a dónde va tu contraseña.
   Con GitHub Pages (https) el teléfono necesita un servidor con `wss://`: eso llega al publicar el servidor.
 

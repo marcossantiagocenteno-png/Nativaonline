@@ -42,6 +42,7 @@ window.NV_MODULOS=[
   'juego/editor-aguas',      // la pestaña "aguas" del Modo Dios: lagos, ríos, cascadas
   'juego/editor-terreno',    // la pestaña "terreno" del Modo Dios
   'juego/creador',           // la ventana de diseño del Modo Dios: las perillas de los motores
+  'juego/destino',           // a qué servidor se conecta el juego (NV.SERVIDOR_OFICIAL, hoy PENDIENTE) y qué enlaces pueden cambiarlo; lo usan la portada y el modo oficial
   'juego/portada',           // la pantalla de entrada (index.html sin parámetros): Invitado / Administrador / modo solitario; con ?oficial o ?solitario no hace nada
   'juego/oficial',           // modo oficial (?oficial): el mundo único del servidor; sin ?oficial no hace nada
   'juego/jugadores',         // modo oficial: los demás jugadores y los pasos propios hacia el servidor; sin ?oficial no hace nada
@@ -61,5 +62,5 @@ window.NV_MODULOS_SERVIDOR=[
 window.NV_MODULOS_SOLO_CLIENTE=[
   'motor/fluidez','motor/pincel','motor/lienzo','arte/myrella','motor/sprites','juego/interfaz','juego/personajes','juego/pasto',
   'juego/subescenas','juego/dibujar','juego/particulas','juego/editor','juego/editor-caminos','juego/editor-fluidez','juego/editor-aguas',
-  'juego/editor-terreno','juego/creador','juego/portada','juego/oficial','juego/jugadores','juego/jugar'
+  'juego/editor-terreno','juego/creador','juego/destino','juego/portada','juego/oficial','juego/jugadores','juego/jugar'
 ];

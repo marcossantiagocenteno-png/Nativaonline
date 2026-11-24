@@ -29,10 +29,11 @@
   const $o=id=>document.getElementById(id);
 
   /* ---------- a dónde se conecta ---------- */
-  let url=par[1]?decodeURIComponent(par[1]):(NV.SERVIDOR_OFICIAL||'');
-  if(!url) url='ws://'+(location.hostname||'localhost')+':8787';
-  url=url.replace(/^http/,'ws').replace(/\/+$/,'');
-  const urlValida=/^wss?:\/\/[^\s/]+$/.test(url);
+  /* a dónde: la misma regla que la portada (juego/destino.js). Un servidor pedido en el enlace (?oficial=wss://…) sólo se acepta en páginas de
+     prueba y hacia localhost o redes privadas; en una página pública se ignora, y sin NV.SERVIDOR_OFICIAL no hay a dónde conectarse. */
+  let pedido=''; try{ pedido=par[1]?decodeURIComponent(par[1]):''; }catch(e){}
+  const D=NV.destino.elegir(pedido);
+  const url=D.url, urlValida=D.valida, pendiente=D.pendiente;
   O.activo=true; O.url=url; O.http=url.replace(/^ws/,'http');
 
   let ws=null, seq=0, lastSeq=-1, lastHuella=null, baseValida=false, forzarCompleto=false, perdidos=0;
@@ -122,6 +123,7 @@
   function conectar(){
     clearTimeout(tRec); if(pausado||O.estado==='rechazado') return;
     if(ws&&ws.readyState<=1) return;
+    if(pendiente){ rechazar(NV.destino.MENSAJE_PENDIENTE); return; }
     if(!urlValida){ rechazar('La dirección del servidor oficial no es válida.'); return; }
     if(O.estado!=='en-linea') O.estado=baseValida||O.reconexiones?'sin-conexion':'conectando';
     let s; try{ s=new WebSocket(url); }catch(e){ rechazar('Este navegador no puede abrir esa conexión (¿página segura con servidor sin cifrar?).'); return; }

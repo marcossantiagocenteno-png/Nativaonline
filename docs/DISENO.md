@@ -1988,31 +1988,55 @@ la `bienvenida` trae `yo` y `jugadores`), `src/juego/jugadores.js` (cliente) y d
   con la sesión que devuelve el servidor guarda `{s, u}` en `sessionStorage` (sólo esa pestaña) y recarga con `?oficial`. **Modo solitario (sin servidor)** → enlace a `?solitario`.
 - La portada consulta `GET /salud` (cada 12 s mientras está abierta): dice si el mundo oficial responde y, si el servidor no tiene clave de administrador configurada (`admin:false`), lo dice con el nombre de
   la variable (`NATIVA_ADMIN_TOKEN`) y no deja intentar. Los errores se leen en la propia portada: «Contraseña incorrecta», «Demasiados intentos. Espera N minutos…», «No se pudo contactar con el servidor».
-- Servidor: `NV.SERVIDOR_OFICIAL` o `ws://<este equipo>:8787`. Para probar otro desde un teléfono: `?servidor=ws://IP:8787` en la portada. **Sólo se acepta cuando la página no viene por https**: en la
-  página publicada nadie puede mandar la contraseña a otro servidor con un enlace. La sesión guardada también lleva la dirección del servidor que la emitió y el cliente no la manda a otro.
+- **A qué servidor se conecta** lo decide `src/juego/destino.js` (`NV.destino.elegir`), una sola regla para la portada y el modo oficial:
+  1. Un servidor pedido en el enlace (`?servidor=…` en la portada, `?oficial=…` en el juego) sólo se acepta si la **página** está en un entorno de prueba (abierta como archivo `file:`, en `localhost` o en una
+     red privada: 127/8, 10/8, 172.16/12, 192.168/16, 169.254/16, `::1`, `fc00::/7`, `fe80::/10`) **y** el servidor pedido también es `localhost` o de red privada (sólo literales: un nombre cualquiera podría
+     apuntar a Internet). En una página pública, con o sin https, el parámetro se ignora: un enlace no puede mandar a nadie —ni su contraseña— a un servidor ajeno.
+  2. Si no, `NV.SERVIDOR_OFICIAL`. 3. Si tampoco hay y la página es de prueba, el servidor del propio equipo (puerto 8787). 4. Si nada de eso, el servidor oficial está **pendiente**.
+  Una página https sólo acepta `wss://`.
+- **`NV.SERVIDOR_OFICIAL` es configuración PENDIENTE.** Está definida, vacía y marcada en `destino.js`; no se rellena hasta publicar el servidor (y entonces con `wss://…`). Mientras esté vacía, una página
+  publicada no se conecta a nada: la portada dice «El servidor oficial todavía no está disponible. Mientras tanto puedes jugar en Modo solitario.», desactiva el acceso de administrador, «Invitado» avisa en vez de
+  navegar, no se hace ninguna petición ni se abre ningún WebSocket, y `?oficial` en el juego se detiene con el mismo aviso. El modo solitario no se toca. La sesión guardada también lleva la dirección del
+  servidor que la emitió y el cliente no la manda a otro.
 
 **Autenticación (servidor).**
 - **La contraseña** (`NATIVA_ADMIN_TOKEN`, mínimo 16 caracteres; una contraseña más corta se rechaza al arrancar, no se ignora en silencio) se comprueba sólo en `POST /entrar`
   (`identidad.entrar`): hash SHA-256 y comparación en tiempo constante contra todas las claves. Nunca se devuelve, se registra ni se guarda en el navegador.
 - **La sesión** (`servidor/sesiones.js`) es `s1.<datos>.<firma>`; firma HMAC-SHA256 con **otra clave** (`NATIVA_SESION_CLAVE`, mínimo 32 caracteres, que no puede ser ni contener la contraseña).
   Los datos: id de usuario al azar, rol, vencimiento (12 h), identificador único (para revocarla) y una marca derivada de la contraseña vigente. Por eso una sesión alterada, de otra clave de firma, vencida,
-  cerrada, o emitida con otra contraseña, no vale. Cambiar `NATIVA_SESION_CLAVE` cierra todas las sesiones; cambiar `NATIVA_ADMIN_TOKEN` también.
+  cerrada, o emitida con otra contraseña, no vale. Cambiar `NATIVA_SESION_CLAVE` cierra todas las sesiones; cambiar `NATIVA_ADMIN_TOKEN` también. Cada sesión lleva además su hora de emisión (`i`).
+- **Las sesiones cerradas siguen cerradas tras un reinicio.** `POST /salir` apunta el identificador y el vencimiento de la sesión (nunca la sesión ni su firma) en `sesiones-revocadas.json`, dentro de la
+  carpeta de datos del servidor (`NATIVA_DATOS`, el volumen persistente), con escritura atómica (archivo temporal, `fsync` y renombrar). Al arrancar se lee y se descartan las entradas vencidas (una sesión vencida
+  ya no vale por sí sola); también se poda al revocar. Si el archivo existe pero está dañado no se puede saber qué estaba cerrado: se aparta como `sesiones-revocadas.json.danado-<hora>` y, por seguridad, dejan de
+  valer **todas** las sesiones emitidas antes de ese arranque (el administrador entra de nuevo). Si la revocación no se puede escribir en disco, `/salir` responde 500 `revocacion-no-guardada` (no finge) y la sesión queda
+  cerrada en memoria mientras el servidor siga encendido. **Requisito del alojamiento:** la carpeta de datos tiene que sobrevivir a los reinicios; en un disco efímero, cada reinicio revive las sesiones cerradas que
+  aún no hayan vencido (máximo 12 h) salvo que se cambie `NATIVA_SESION_CLAVE`.
 - **El token crudo ya no da poder.** `hola.token` es sólo la identidad temporal de invitado y siempre da rol `jugador`, por largo o parecido a una contraseña que sea (se probó). `hola.sesion` es lo
   único que da rol `admin`. Tampoco sirve como `Bearer` de `/copia` e `/importar`: ahí se manda la sesión. Una sesión que vence con la conexión abierta deja de poder editar y restaurar (error `sesion`).
-- **Freno de intentos:** por dirección, 5 fallos en 10 minutos bloquean (429 con `Retry-After`; mientras dura ni la contraseña buena entra). El intento se cuenta **antes** de la demora, así que 30 peticiones
-  simultáneas no suman más de 5 comprobaciones; la demora es la misma con acierto y con fallo (400 ms). La dirección sale de la conexión; `X-Forwarded-For` sólo cuenta con `NATIVA_CONFIAR_PROXY=1`
-  (para cuando haya un proxy del alojamiento), porque si no cualquiera lo falsearía.
-- **Cerrar sesión:** `POST /salir` revoca la sesión y corta la conexión de administrador abierta; el botón «cerrar sesión» del Modo Dios lo usa y vuelve a la portada.
+- **Freno de intentos:** por **bloque de red**, 5 fallos en 10 minutos bloquean (429 con `Retry-After`; mientras dura ni la contraseña buena entra). El bloque es la dirección completa en IPv4 y el **/64** en IPv6
+  (quien tiene una red IPv6 propia dispone de millones de direcciones dentro de su /64; una IPv4 escrita como `::ffff:a.b.c.d` cuenta como la IPv4). El intento se cuenta **antes** de la demora, así que 30 peticiones
+  simultáneas no suman más de 5 comprobaciones; la demora es la misma con acierto y con fallo (400 ms). La cuenta vive en memoria (se reinicia al reiniciar el servidor) y no hay límite global: con una contraseña
+  larga y al azar (`generar-claves.js`) basta; un atacante con muchas redes distintas sigue necesitando adivinarla.
+  **Condiciones para `NATIVA_CONFIAR_PROXY=1`.** Por defecto está **apagada**, ningún archivo del servidor la enciende y la dirección sale de la conexión: `X-Forwarded-For` se ignora porque cualquiera puede escribirla.
+  Encendida, el freno usa el **último** elemento de `X-Forwarded-For`. Sólo es correcto si se cumplen las TRES condiciones: (1) hay **exactamente un** proxy delante del servidor; (2) ese proxy **añade al final** de
+  la cabecera la dirección real de quien se conectó (y no la reemplaza por la del anterior ni la deja intacta); (3) el servidor **no se puede alcanzar sin pasar por ese proxy** (de lo contrario cualquiera se conecta
+  directo y escribe la cabecera que quiera). Si falla (1) o (2), todos los visitantes comparten una sola cuenta (cinco fallos de cualquiera bloquean a todos, incluido el administrador) o el freno se esquiva; si falla (3), se
+  esquiva por completo. No se supone cómo funciona el proxy de ningún proveedor: **al elegir alojamiento hay que comprobar esas tres condiciones con ese proveedor antes de encender la variable** (p. ej. enviando una
+  petición con una cabecera inventada y viendo qué le llega al servidor).
+- **Cerrar sesión:** `POST /salir` revoca la sesión (de forma persistente, ver arriba) y corta la conexión de administrador abierta; el botón «cerrar sesión» del Modo Dios lo usa y vuelve a la portada.
 - **Producción:** `NODE_ENV=production` exige `NATIVA_ORIGENES`, `NATIVA_ADMIN_TOKEN` y `NATIVA_SESION_CLAVE`. En desarrollo, sin `NATIVA_SESION_CLAVE` se usa una al azar por arranque (las sesiones no
-  sobreviven a un reinicio). `node servidor/generar-claves.js` imprime dos valores al azar (contraseña y clave de firma); no guarda nada.
+  sobreviven a un reinicio; las revocaciones se guardan igual). `node servidor/generar-claves.js` imprime dos valores al azar (contraseña y clave de firma); no guarda nada.
 - **HTTP nuevo:** `POST /entrar {clave} → {sesion, vence}`, `POST /salir`, y `GET /salud` ahora trae `admin` (sólo sí o no). Mensaje WebSocket nuevo: `hola.sesion`; código de error nuevo: `sesion` (cierre 4004).
 
 **Lo que cambió en lo existente.** `oficial.js`: sin formulario ni almacenamiento de la contraseña (se borra la clave `nativa.admin.v1` si una versión anterior la dejó), usa la sesión; el panel del Modo Dios cambia el
 botón «clave» por «cerrar sesión». Las pruebas que entraban con la contraseña como token ahora entran con sesión (`pruebas/sesion.js`); las de Chrome que abren `index.html` sin parámetros ahora llevan `?solitario`.
 No se tocó ningún motor, ni el Modo Dios (más allá de ese botón), ni la presencia, ni la persistencia del mundo.
 
-**Pendiente a propósito:** elegir alojamiento y publicar el servidor (wss, variables de entorno, `NATIVA_CONFIAR_PROXY` si hay proxy); cuentas definitivas; el nombre propio del personaje; aplicar la dirección
+**Pendiente a propósito:** elegir alojamiento y publicar el servidor (rellenar `NV.SERVIDOR_OFICIAL` con `wss://…`, variables de entorno, comprobar las tres condiciones de `NATIVA_CONFIAR_PROXY` si hay proxy, volumen persistente para la carpeta de datos); cuentas definitivas; el nombre propio del personaje; aplicar la dirección
 artística a personajes, criaturas y escenarios.
+
+**Cierre de la etapa (auditoría).** Persistencia de revocaciones (`pruebas/revocadas.js`), freno por /64 y condiciones de proxy (`pruebas/freno.js`), regla única de destino y servidor pendiente (`pruebas/destino.js`,
+`pruebas/chrome-https.js`: página publicada simulada, sin tráfico y sin WebSocket mientras esté pendiente; modo solitario sin red).
 
 **Pruebas.** `node pruebas/acceso.js` (servidor: contraseña, sesiones, falsificaciones, freno, registros), `pruebas/produccion.js`, `pruebas/chrome-portada.js` (portada en cinco tamaños, Invitado, Administrador, solitario, reconexión).
 
