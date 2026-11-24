@@ -227,6 +227,16 @@ button.on{border-color:var(--oro);color:var(--oro)}
   border-bottom:2px solid #d9534f;max-height:40%;overflow:auto;display:none}
 
 /* aviso breve */
+/* modo oficial (?oficial): estado discreto fuera del Modo Dios; dentro, el panel de conexión, clave y copia */
+#ofEstado{color:var(--oro);font-size:9px;letter-spacing:.4px;white-space:nowrap}
+#ofEstado:empty{display:none}
+#diosOficial{display:none;border-bottom:1px solid var(--oroflojo);margin-bottom:6px;padding-bottom:6px}
+#ofLinea{color:var(--oro);font-size:10px;white-space:pre-line;line-height:1.4}
+#ofClaveForm{display:none;margin-top:4px}
+#ofClaveTxt{width:100%;box-sizing:border-box;background:var(--negro);color:var(--ink);border:1px solid var(--oro);border-radius:0;padding:3px 5px;font:inherit;font-size:11px}
+#ofArchivo{display:none}
+#dios.soloLectura .cuerpo,#dios.soloLectura .pie{opacity:.55}
+
 #toast{position:fixed;left:50%;top:10px;transform:translateX(-50%);background:#000000ee;
   border:1px solid var(--oro);color:var(--oro);padding:3px 8px;
   font-size:10px;display:none;z-index:60}

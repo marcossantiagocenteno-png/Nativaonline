@@ -1895,3 +1895,41 @@ escribe en registros ni respuestas. Cuentas y personajes sólo cambiarán `ident
 
 Arranque local: `cd servidor && npm install && NATIVA_ADMIN_TOKEN=<clave de 16+ caracteres> node iniciar.js` (puerto 8787, datos en `datos/`, ignorado por git).
 Prueba: `node pruebas/red.js` (se omite si falta `npm install`).
+
+## Multijugador — Etapa 4: el cliente en modo oficial (rama multijugador)
+
+**Cómo se activa.** Sólo con `?oficial` en el enlace (`?oficial=wss://servidor` para elegir servidor; sin valor usa `NV.SERVIDOR_OFICIAL`, que se fija al publicar,
+o `ws://<mismo host>:8787` en desarrollo). Sin `?oficial`, `index.html` es el modo solitario de siempre: el módulo `juego/oficial.js` se carga y no hace nada
+(`NV.oficial.activo=false`), no abre ninguna conexión y el borrador local funciona igual. Pasar el enlace de siempre al modo oficial es una decisión de una etapa posterior.
+
+**Archivos tocados.** `src/juego/oficial.js` (nuevo), `src/juego/editor.js` (la compuerta), `src/juego/jugar.js` (una línea de arranque), `src/juego/interfaz.js` (el panel),
+`src/style.css`, `src/modulos.js`. Ningún motor, ni de terreno, agua, rocas, árboles, viento, luz, movimiento o cámara, se tocó.
+
+**La compuerta.** Todo cambio del Modo Dios pasaba ya por tres puntos de `editor.js` (`hacer`, `deshacer`, `rehacer`). Ahora los tres llaman a `aplicarAlMundo(op)`:
+en solitario es `NV.mundo.editar` (igual que antes); en modo oficial es `NV.oficial.editar`, que aplica la edición acá en el acto, la manda al servidor y deja que éste decida.
+Si el servidor la rechaza, o la huella no coincide con la suya, el cliente baja el mundo oficial entero y descarta lo deshecho/rehecho (ya no vale).
+
+**Reglas del modo oficial.**
+- El mundo se baja ANTES de generar el primer panel. El borrador local y `mundo-datos.js` no se leen ni se escriben.
+- Sin conexión, o sin clave de administrador, el Modo Dios es de solo lectura (también deshacer/rehacer): no se guarda nada para mandarlo después.
+- Se guarda una réplica del último estado oficial (`nativa.oficial.v1`) para abrir rápido y ver el mundo sin conexión. No es fuente de verdad: se verifica por huella al abrirla y
+  el servidor la comprueba al conectar (si no coincide, manda el mundo entero). Sin réplica ni servidor se ve el mundo base vacío, no uno inventado.
+- Reconexión automática con espera creciente; incremental si coincide la huella, completa si no. Latido propio para detectar conexiones muertas.
+- Si el mundo cambia bajo los pies del personaje, se lo corre a la casilla libre más cercana.
+- Dentro del Modo Dios se ve el estado, la versión y el código (huella) del mundo; fuera, sólo palabras («mundo oficial · sin conexión · solo lectura»), nunca números.
+
+**La clave de administrador.** Es la variable `NATIVA_ADMIN_TOKEN` del servidor: no está en el código, ni en el enlace, ni en GitHub, ni en ninguna respuesta del servidor
+(`node pruebas/produccion.js` lo vigila). Se escribe en el panel del Modo Dios («clave»), se prueba contra el servidor y sólo se recuerda en ese dispositivo (`nativa.admin.v1`)
+si el servidor la acepta como de administrador; «olvidar» la borra. Mientras se escribe, el teclado no mueve al personaje ni abre nada. En producción viaja siempre cifrada (wss/https).
+El panel ofrece además «copia» (baja la copia completa) e «importar» (reemplaza el mundo oficial por una copia, con confirmación y respaldo previo del servidor). El botón «exportar»
+del Modo Dios baja la copia completa del servidor en modo oficial.
+
+**Restringir el origen antes de publicar (obligatorio).** El navegador manda siempre la cabecera `Origin` (esquema + dominio, sin ruta). Para GitHub Pages:
+`NODE_ENV=production NATIVA_ORIGENES=https://marcossantiagocenteno-png.github.io NATIVA_ADMIN_TOKEN=<clave de 16+ caracteres> NATIVA_DATOS=<volumen persistente> node servidor/iniciar.js`.
+Con `NODE_ENV=production` el servidor se niega a arrancar sin `NATIVA_ORIGENES` o sin clave, y no acepta conexiones web sin origen (`/salud` sí responde sin origen, para el control de vida
+del alojamiento). Dejarlo abierto (sin lista) es sólo para desarrollo. La lista protege contra páginas ajenas; la autoridad sigue siendo la clave de administrador. Pages es https: el servidor
+tiene que estar detrás de TLS (wss://), lo que dan los alojamientos con HTTPS propio.
+
+**Pruebas.** `node pruebas/produccion.js` (clave fuera de los archivos; el servidor publicado exige orígenes) y `NODE_PATH=/tmp/pp/node_modules node pruebas/chrome-oficial.js`
+(Chrome real: solitario intacto, administrador y jugador, clave escrita con el teclado, edición/deshacer vía servidor, reconexión incremental, solo lectura sin conexión,
+reinicio del servidor, restaurar, importar con confirmación, copia, arranque sin servidor con y sin réplica, origen no permitido).

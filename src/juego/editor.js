@@ -21,7 +21,9 @@
   const decir=t=>{ if(typeof bubble==='function') bubble(t); };
 
   /* ---------- el mundo editado: se carga antes de generar el primer panel ---------- */
-  E.arrancar=function(){ try{ NV.mundo.cargarBorrador(); }catch(e){} };
+  /* En modo oficial (?oficial) el mundo es el del servidor: el borrador del navegador ni se lee ni se escribe, y los cambios pasan por NV.oficial. */
+  const oficial=()=>!!(NV.oficial&&NV.oficial.activo);
+  E.arrancar=function(){ if(oficial()) return; try{ NV.mundo.cargarBorrador(); }catch(e){} };
 
   /* ---------- la paleta, armada con lo que los motores registraron ---------- */
   function armarPaleta(){
@@ -92,8 +94,10 @@
   }
 
   /* ---------- acciones: todo pasa por NV.mundo.editar ---------- */
+  /* la única puerta por la que el Modo Dios cambia el mundo: en solitario lo cambia acá; en modo oficial lo cambia el servidor (o nadie) */
+  const aplicarAlMundo=op=>oficial()?NV.oficial.editar(op):NV.mundo.editar(op);
   function hacer(op,aviso){
-    const inv=NV.mundo.editar(op);
+    const inv=aplicarAlMundo(op);
     if(!inv) return false;
     pila.push(inv); if(pila.length>300) pila.shift();
     rehacer.length=0;
@@ -103,7 +107,7 @@
     return true;
   }
   function olvidarGeneradoCercano(){ NV.olvidarObjetos(); }
-  function guardarPronto(){ clearTimeout(tGuardar); tGuardar=setTimeout(()=>NV.mundo.guardarBorrador(),350); }
+  function guardarPronto(){ if(oficial()) return; clearTimeout(tGuardar); tGuardar=setTimeout(()=>NV.mundo.guardarBorrador(),350); }
 
   function colocar(x,y){
     if(!E.sel||!E.fantasma) return;
@@ -139,13 +143,15 @@
     hacer({t:'objeto-',x:o.x,y:o.y},(r?(r.entrada.etiqueta||r.entrada.nombre):'Objeto')+' eliminado.');
   }
   function deshacer(){
+    if(oficial()&&pila.length&&!NV.oficial.puedeEditar()){ decir(NV.oficial.motivoSoloLectura()); return; }
     const op=pila.pop(); if(!op){ decir('No hay nada que deshacer.'); return; }
-    const inv=NV.mundo.editar(op); if(inv) rehacer.push(inv);
+    const inv=aplicarAlMundo(op); if(inv) rehacer.push(inv);
     guardarPronto(); tictac(); NV.olvidarObjetos(); programarCuadro(); decir('Deshecho.'); refrescar();
   }
   function rehacerUno(){
+    if(oficial()&&rehacer.length&&!NV.oficial.puedeEditar()){ decir(NV.oficial.motivoSoloLectura()); return; }
     const op=rehacer.pop(); if(!op){ decir('No hay nada que rehacer.'); return; }
-    const inv=NV.mundo.editar(op); if(inv) pila.push(inv);
+    const inv=aplicarAlMundo(op); if(inv) pila.push(inv);
     guardarPronto(); tictac(); NV.olvidarObjetos(); programarCuadro(); decir('Rehecho.'); refrescar();
   }
   /* lo que la ventana de diseño entrega: armar la herramienta con un objeto exacto, o cambiar uno ya puesto */
@@ -169,6 +175,7 @@
     refrescar(); programarCuadro();
   };
   E.pilas=()=>({deshacer:pila.length,rehacer:rehacer.length});
+  E.vaciarPilas=()=>{ pila.length=0; rehacer.length=0; };      // el mundo oficial se bajó de nuevo: lo deshecho ya no vale
 
   /* ---------- mover el mapa: Espacio + arrastrar ----------
      La cámara se desplaza en metros sobre lo que seguiría al personaje (NV.camLibre). Mientras se arrastra, la cámara no se
@@ -342,12 +349,12 @@
     if(!E.activo) return;
     const Mx=E.modos[E.modo]; if(Mx&&Mx.cerrar) Mx.cerrar();
     if(NV.creador) NV.creador.cerrar();
-    clearTimeout(tGuardar); NV.mundo.guardarBorrador();   // lo editado ya está en el mundo; además queda guardado
+    if(!oficial()){ clearTimeout(tGuardar); NV.mundo.guardarBorrador(); }   // lo editado ya está en el mundo; además queda guardado (en modo oficial lo guarda el servidor)
     cerrarExpansion(); E.parcelaModo='anadir'; E.selCaja=null; E.selObjs=[]; { const a=$e('parAdd'), q=$e('parQuit'), sl=$e('parSel'); if(a) a.classList.add('on'); if(q) q.classList.remove('on'); if(sl) sl.classList.remove('on'); actualizarBorrar(); } NV.camLibre=null; NV.camDirecta=false; E.espacio=false; E.paneo=null;
     NV.zoomLibre(false); E.activo=false; E.sel=null; E.fantasma=null; E.hover=null; NV.pick(false);
     const p=$e('dios'); if(p) p.classList.remove('show');
     $e('cv').style.cursor='';
-    marcarPaleta(); decir('Mundo guardado. Seguís en el juego normal.'); programarCuadro();
+    marcarPaleta(); decir(oficial()?'Saliste del Modo Dios. El mundo oficial lo guarda el servidor.':'Mundo guardado. Seguís en el juego normal.'); programarCuadro();
   };
 
   /* ---------- lo que se ve ---------- */
@@ -481,6 +488,7 @@
     b('diosRehacer').addEventListener('click',rehacerUno);
     b('diosSalir').addEventListener('click',E.salir);
     b('diosExportar').addEventListener('click',()=>{
+      if(oficial()){ NV.oficial.copia(); return; }          // en modo oficial «exportar» baja la copia completa del servidor
       clearTimeout(tGuardar); NV.mundo.guardarBorrador();
       if(NV.mundo.descargar('mundo-datos.js')) decir('<b>Mundo exportado</b>\nSe bajó mundo-datos.js. Pasámelo y lo publico para todos.');
       else decir('No pude bajar el archivo desde acá.');

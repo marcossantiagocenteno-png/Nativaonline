@@ -8,7 +8,7 @@ const NVi = window.NV;
 
 /* Sello de versión, puesto por sellar.sh al publicar. Se ve en el pie: así
    Marcos y yo sabemos al instante si está mirando la última versión. */
-NVi.VERSION='24/11 13:16';
+NVi.VERSION='24/11 13:29';
 
 NVi.MARCADO = `<div id="stage">
   <canvas id="cv"></canvas>
@@ -16,6 +16,7 @@ NVi.MARCADO = `<div id="stage">
 
   <div id="hudTL" class="hud">
     <div id="wname">Claro del norte</div>
+    <div id="ofEstado"></div>
     <div id="st2"></div>
     <div class="fila"><button id="bAnim" class="on" title="Viento">~</button><button id="bMap" title="Mapa">mapa</button></div>
   </div>
@@ -34,6 +35,12 @@ NVi.MARCADO = `<div id="stage">
 
   <div id="dios">
     <div id="diosTit">Modo Dios</div>
+    <div id="diosOficial">
+      <div id="ofLinea"></div>
+      <div class="fila"><button id="ofClave" title="Clave de administrador del mundo oficial">clave</button><button id="ofCopia" title="Copia completa del mundo oficial">copia</button><button id="ofImportar" title="Reemplazar el mundo oficial por una copia">importar</button></div>
+      <div id="ofClaveForm"><input id="ofClaveTxt" type="password" autocomplete="off" spellcheck="false" placeholder="clave de administrador"><div class="fila"><button id="ofClaveOk">entrar</button><button id="ofClaveOlvidar" title="Olvidar la clave en este dispositivo">olvidar</button></div></div>
+      <input id="ofArchivo" type="file" accept=".json,application/json">
+    </div>
     <div class="pestanas"><button id="diosModoObj" class="on">Objetos</button><button id="diosModoCam">Caminos</button><button id="diosModoTer">Terreno</button><button id="diosModoAgu">Aguas</button><button id="diosModoFlu">Fluidez</button></div>
     <div id="diosParcela"><span>Parcela</span><button id="parAdd" class="on">Añadir</button><button id="parQuit">Remover</button><button id="parSel" title="Arrastrá un rectángulo: lo que queda dentro se selecciona (Mayús suma)">Seleccionar objetos</button><button id="parBorrar" disabled title="Supr o Retroceso">Borrar</button></div>
     <div class="cuerpo">
