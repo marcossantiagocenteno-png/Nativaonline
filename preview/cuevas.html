@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, max-age=0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laboratorio de cuevas</title>
+</head>
+<body>
+<noscript>El laboratorio necesita JavaScript.</noscript>
+<script>
+/* Igual que estructuras.html: nada adentro salvo un cargador que pide cada archivo con la hora actual.
+   Motores reales de luz y viento (sin tocarlos), el entorno compartido, el motor de cuevas y Umbrales. No arranca el juego. */
+(function(){
+  var v='?v='+Date.now();
+  ['../src/motor/base.js','../src/motor/registro.js','../src/luz-de-lunas/luz.js','../src/mundo/viento.js',
+   '../src/motor/entorno.js','../src/juego/cuevas.js','../src/juego/umbrales.js','cuevas.js'].forEach(function(f){
+    document.write('<script src="'+f+v+'"><\/script>');
+  });
+})();
+</script>
+</body>
+</html>
