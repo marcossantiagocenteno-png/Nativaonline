@@ -1,22 +1,40 @@
-# EJEMPLO del servidor del juego (el guion de despliegue lo fijará cuando se contrate Oracle). Aquí está para que el respaldo y el juego
-# usen la MISMA carpeta de datos: /var/lib/nativa. Los secretos del juego viven en /etc/nativa/juego.env (modo 600) y NO entran a ningún respaldo.
+# Servidor del juego. El guion de despliegue (operaciones/despliegue/instalar.sh) lo instala; ver docs/DESPLIEGUE.md.
+# Los secretos (contraseña de administrador, clave de firma) y NATIVA_ORIGENES viven en /etc/nativa/juego.env (modo 600, dueño root) y
+# NO entran a ningún respaldo ni al repositorio. Aquí sólo van valores que no son secretos.
 [Unit]
 Description=Nativa Online - servidor del mundo
 After=network-online.target
+Wants=network-online.target
 
 [Service]
 User=nativa
 Group=nativa
 EnvironmentFile=/etc/nativa/juego.env
+Environment=NODE_ENV=production
 Environment=NATIVA_DATOS=/var/lib/nativa
 Environment=PORT=8787
+# Escucha SÓLO en la propia máquina: el único camino desde Internet es Caddy (condición 3 de NATIVA_CONFIAR_PROXY, docs/DISENO.md).
+Environment=NATIVA_HOST=127.0.0.1
+# Un solo proxy (Caddy) delante. Antes de dejarlo encendido hay que comprobar las tres condiciones con operaciones/despliegue/verificar-despliegue.js.
 Environment=NATIVA_CONFIAR_PROXY=1
 WorkingDirectory=/opt/nativa
 ExecStart=/usr/bin/node /opt/nativa/servidor/iniciar.js
 Restart=always
 RestartSec=3
-# Los archivos de datos deben poder leerlos el grupo (para el respaldo, que es de sólo lectura)
+# El servidor atiende SIGTERM y cierra el almacén; darle tiempo antes del SIGKILL
+TimeoutStopSec=30
+# Los archivos de datos los lee el grupo (el respaldo es de sólo lectura)
 UMask=0027
+# Aislamiento: sólo escribe en la carpeta de datos
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/nativa
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LimitNOFILE=4096
 
 [Install]
 WantedBy=multi-user.target

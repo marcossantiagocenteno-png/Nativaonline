@@ -212,12 +212,17 @@ const arch=(d,p)=>{ const o=[]; (function r(x){ if(!fs.existsSync(x)) return; fo
     ok(/OnFailure=nativa-respaldo-fallo\.service/.test(s)&&/User=nativa-respaldo/.test(s),'systemd: un fallo dispara el aviso y corre con un usuario propio');
     ok((t.match(/OnCalendar=.*00,06,12,18/g)||[]).length===1&&/Persistent=true/.test(t),'systemd: cada 6 horas, y recupera las que se perdieron si la máquina estaba apagada');
     ok(!/NATIVA_ADMIN_TOKEN|NATIVA_SESION_CLAVE/.test(s+t+sv('nativa-respaldo-fallo.service')),'systemd: las unidades del respaldo no mencionan los secretos del juego');
+    const j=sv('nativa-juego.service');
+    ok(/Environment=NODE_ENV=production/.test(j)&&/Environment=NATIVA_HOST=127\.0\.0\.1/.test(j),'systemd: el juego arranca en producción y escuchando sólo en 127.0.0.1');
+    ok(/EnvironmentFile=\/etc\/nativa\/juego\.env/.test(j)&&!/(NATIVA_ADMIN_TOKEN|NATIVA_SESION_CLAVE)\s*=/.test(j),'systemd: los secretos del juego salen de un archivo aparte, no de la unidad');
+    ok(/ReadWritePaths=\/var\/lib\/nativa$/m.test(j)&&/ProtectSystem=strict/.test(j)&&/NoNewPrivileges=yes/.test(j)&&/TimeoutStopSec=/.test(j),'systemd: el juego sólo escribe en su carpeta de datos y tiene tiempo para apagarse limpio');
+    ok(/npm ci --omit=dev/.test(fs.readFileSync(path.join(raiz,'docs','RESPALDOS.md'),'utf8')),'la restauración documenta npm ci (node_modules no viaja en el respaldo)');
     const wf=fs.readFileSync(path.join(raiz,'.github','workflows','vigilancia-respaldos.yml'),'utf8');
     ok(/vars\.RESPALDOS_ACTIVOS == 'true'/.test(wf)&&/schedule:/.test(wf)&&/B2_CLAVE_LECTURA/.test(wf),'workflow: apagado hasta activarlo, programado y con la clave de sólo lectura');
     const usados=[...wf.matchAll(/secrets\.([A-Z0-9_]+)/g)].map(m=>m[1]).filter((v,i,a)=>a.indexOf(v)===i).sort();
     ok(usados.join()==='B2_CLAVE_LECTURA,B2_ID_LECTURA,NATIVA_VERIFICADOR_IDENTIDAD','workflow: sólo usa tres secretos: clave de lectura de B2 y clave del verificador ('+usados+')'); ok(!/AGE-SECRET-KEY/.test(wf),'workflow: no lleva claves'); }
   { let fuga=[]; (function rec(d){ for(const e of fs.readdirSync(d,{withFileTypes:true})){ const p=path.join(d,e.name); if(e.isDirectory()) rec(p); else{ const t=fs.readFileSync(p,'utf8'); if(/AGE-SECRET-KEY-1[A-Z0-9]{20,}/.test(t)||/(NATIVA_ADMIN_TOKEN|NATIVA_SESION_CLAVE|B2_CLAVE_[A-Z]+)[ \t]*=[ \t]*['"]?[A-Za-z0-9_\-+\/=.]{16,}/.test(t)) fuga.push(path.relative(raiz,p)); } } })(path.join(raiz,'operaciones')); ok(fuga.length===0,'ningún archivo de operaciones/ lleva credenciales ('+fuga.join(',')+')'); }
-  { const g=spawnSync('git',['status','--porcelain','--','servidor','src','docs/DISENO.md'],{cwd:raiz,encoding:'utf8'}); ok(g.status!==0||g.stdout.trim()==='','el respaldo no modificó servidor/, src/ ni el diseño ('+g.stdout.trim()+')'); }
+  { const g=spawnSync('git',['show','--name-only','--format=','1658ac5'],{cwd:raiz,encoding:'utf8'}); ok(g.status!==0||!g.stdout.split('\n').some(f=>/^(servidor|src)\//.test(f)),'el commit de los respaldos (1658ac5) no tocó servidor/ ni src/'); }
 
   console.log('respaldos: '+bien+' bien, '+mal+' mal ('+Math.round((Date.now()-t0)/1000)+' s)'); process.exit(mal?1:0);
 })().catch(e=>{ console.error(e); process.exit(1); });

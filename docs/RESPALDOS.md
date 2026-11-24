@@ -91,12 +91,12 @@ operaciones/caddy/      Caddyfile.ejemplo
 .github/workflows/vigilancia-respaldos.yml   apagado hasta definir la variable RESPALDOS_ACTIVOS=true
 pruebas/respaldos.js    119 comprobaciones (≈50 s); pruebas/ayudas/{b2-falso,escritor}.js
 ```
-Sólo hace falta `node ≥ 20` (ya requerido), `age` y `tar` (`apt install age`). Sin dependencias de npm.
+Los respaldos sólo necesitan `node ≥ 20`, `age` y `tar` (`apt install age`): sin dependencias de npm. **El servidor del juego sí necesita `npm ci --omit=dev` en `servidor/`** (su única dependencia es `ws`); `node_modules` no viaja en los respaldos a propósito.
 
 ## 6. Restaurar (el servidor, si Oracle apaga o elimina la máquina)
 Los respaldos viven en B2, **no dependen de Oracle ni de tu computadora**; el servidor se reconstruye con el código que viaja dentro del respaldo.
 1. **Máquina apagada pero existente:** encenderla. Nada que restaurar.
-2. **VM eliminada, cuenta de Oracle viva:** crear otra VM (misma región), instalar `node`, `age`, Caddy; bajar el último `.tar.gz.age` y su `.json` de `nativa-seis-horas` (o diario/semanal) con la clave de lectura; pegar **a mano** la clave maestra en un archivo temporal; `node restaurar.js --archivo X.tar.gz.age --meta X.json --identidad clave.txt --datos /var/lib/nativa --codigo-destino /opt/nativa`; borrar la clave del disco; crear `/etc/nativa/juego.env` con `NATIVA_ADMIN_TOKEN` y `NATIVA_SESION_CLAVE` del gestor de contraseñas; arrancar `nativa-juego.service`; apuntar DuckDNS a la IP nueva (`docs/DOMINIO.md`).
+2. **VM eliminada, cuenta de Oracle viva:** crear otra VM (misma región) y correr `operaciones/despliegue/instalar.sh` (instala `node`, `age`, Caddy, usuarios y unidades; ver `docs/DESPLIEGUE.md`); bajar el último `.tar.gz.age` y su `.json` de `nativa-seis-horas` (o diario/semanal) con la clave de lectura; pegar **a mano** la clave maestra en un archivo temporal; `node restaurar.js --archivo X.tar.gz.age --meta X.json --identidad clave.txt --datos /var/lib/nativa --codigo-destino /opt/nativa`; **dentro de `/opt/nativa/servidor` correr `npm ci --omit=dev`** (el respaldo lleva el código y `package-lock.json`, pero **no `node_modules`**: el servidor necesita `ws` 8.18.0 y esto necesita salida a internet para el registro de npm); borrar la clave del disco; crear `/etc/nativa/juego.env` con `NATIVA_ADMIN_TOKEN` y `NATIVA_SESION_CLAVE` del gestor de contraseñas; arrancar `nativa-juego.service`; apuntar DuckDNS a la IP nueva (`docs/DOMINIO.md`).
 3. **Cuenta de Oracle perdida:** igual en cualquier VPS con Linux (Node ≥ 20 y age); el respaldo no depende del proveedor.
 - **Punto de recuperación (RPO):** se pierde lo editado desde la última copia: hasta 6 h (más lo que tarde en detectarse). Para bajarlo, se puede aumentar la frecuencia; cada copia extra cuesta sólo almacenamiento.
 - `restaurar.js` abre el mundo con el código y el Node **del respaldo** y exige la misma huella; si el Node de la máquina nueva es de otra versión mayor, avisa.
@@ -105,7 +105,7 @@ Los respaldos viven en B2, **no dependen de Oracle ni de tu computadora**; el se
 ### Oracle
 1. Crear cuenta, elegir la región de origen **(no se puede cambiar; las Always Free sólo viven allí; sin verificar si Querétaro/Monterrey ofrecen la forma gratis)**.
 2. Crear la VM, **reservar IP pública**, abrir 80/443 y cerrar el resto (SSH sólo desde tu IP).
-3. Usuarios `nativa` y `nativa-respaldo` (grupo `nativa`); `/var/lib/nativa` con `UMask=0027`; `apt install age`; copiar el repositorio a `/opt/nativa`.
+3. Usuarios `nativa` y `nativa-respaldo` (grupo `nativa`); `/var/lib/nativa` con `UMask=0027`; `apt install age`; copiar el repositorio a `/opt/nativa` y correr `npm ci --omit=dev` en `/opt/nativa/servidor`. Todo esto lo hace `operaciones/despliegue/instalar.sh` (`docs/DESPLIEGUE.md`).
 4. Poner un **presupuesto/alerta de costos** y fijar a mano la edad de la VM: revisar el estado de «recuperación de instancias inactivas» (documentación contradictoria, ver estudio previo).
 5. Instalar las unidades de `operaciones/systemd/`, `systemctl enable --now nativa-juego nativa-respaldo.timer`, y Caddy con el `Caddyfile`.
 ### Backblaze B2
