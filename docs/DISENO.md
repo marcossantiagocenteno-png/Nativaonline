@@ -1726,3 +1726,7 @@ Chrome sin GPU.
 ## Seleccionar objetos (Modo Dios, 23/11)
 
 En la fila **Parcela** hay un tercer modo, junto a Añadir y Remover: **Seleccionar objetos**. Se arrastra un rectángulo sobre el terreno (en la pestaña Objetos) y todo objeto cuya casilla cae adentro queda seleccionado (teñido de oro; el rectángulo se ve de trazos). Mayús suma a lo ya seleccionado. **Supr / Retroceso o el botón "Borrar"** elimina todo de una vez, en **un solo paso de deshacer**; Esc suelta la selección. Clic derecho sigue borrando un solo objeto. Se selecciona por la casilla del objeto (`x,y`), no por su pie: una formación ancha cuyo centro queda fuera no entra. No incluye cuerpos de agua (esos se eligen en la pestaña Aguas). Código: `src/juego/editor.js` (`iniciarSel`, `moverSel`, `finSel`, `borrarSel`).
+
+### Ondas de los pasos en el agua (23/11)
+
+El jugador ya generaba ondas al pisar agua (`AG.actor`), pero eran físicas y diminutas (~1 cm, 28 cm de largo): nunca cruzaban el umbral donde la superficie pone glifo, así que casi no se veían. Ahora los golpes del actor llevan `vis` (0..1): además de la altura real suman una cresta/valle "de dibujo" (`o.rs` → `o.h`, ganancia ×5 sobre `amp·ondas` del cuerpo) que se abre ~2 m y se apaga con `dec·2.2`. Las ondas son más largas (0,42–0,62 m) para que el muestreo de filas (cuatro por metro) no las deshaga. Cascadas y lluvia no llevan `vis` y no cambian. Prueba: `aguas-juego` ("caminando por el agua se dibuja una estela").

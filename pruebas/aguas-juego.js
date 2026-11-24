@@ -35,6 +35,12 @@ NV.tViento=100; ok(typeof cuadro()==='number','dibuja con el viento real del jue
 m.ponerYo(70,70); NV.aguasActor=null; cuadro(); const L1=A.cuerpos()[0];
 const n0=L1.golpes.length; cuadro(); ok(L1.golpes.length===n0,'fuera del agua no nacen ondas');
 m.ponerYo(50,51); NV.posDibujo=null; NV.aguasActor=null; cuadro(); NV.tViento+=0.5; cuadro(); ok(L1.golpes.length>0,'al pararse en el agua nacen ondas');
+/* caminar por el agua deja una estela que SE VE (glifos), no sólo un cambio de color de un par de celdas */
+{ NV.tViento=100; m.ponerYo(46,51); NV.posDibujo=null; NV.aguasActor=null; cuadro(); let x=46;
+  for(let f=0;f<90;f++){ NV.tViento+=1/30; x+=1.4/30; m.ponerYo(x,51); NV.posDibujo=null; m.draw_(); }
+  const con=Uint16Array.from(m.fbG()); L1.golpes.length=0; NV.aguasActor.ult=NV.tViento+99; m.draw_();
+  const sin=m.fbG(); let d=0; for(let i=0;i<con.length;i++) if(con[i]!==sin[i]) d++;
+  ok(d>=120,'caminando por el agua se dibuja una estela de ondas ('+d+' glifos distintos)'); }
 /* editar un cuerpo no pierde el estado de los demás */
 const rio=A.aDatos(A.crear('rio',{id:'rio-1',curso:{puntos:[[10,10],[30,20],[40,40]],anchos:[4,5,4]},sem:5}));
 W.editar({t:'agua',id:'rio-1',datos:rio}); ok(A.cuerpos().length===2,'un río junto al lago'); const mismo=A.cuerpos().find(c=>c.id==='lago-1');

@@ -419,18 +419,21 @@ const AWT=new Float32Array(1025); for(let i=0;i<=1024;i++) AWT[i]=Math.pow(i/512
 
 /* ------------------------------------------------------------------ la superficie ----
    h: altura en metros; sx, sy: pendiente (m/m, y al sur); turb: 0..1.4 de agitación local (espuma, rompe el reflejo) */
-const _o={h:0,sx:0,sy:0,turb:0};
+const _o={h:0,sx:0,sy:0,turb:0,rs:0};
 function ring(g,t,x,y,o){
   const dx=x-g.x, dy=y-g.y, rho=Math.sqrt(dx*dx+dy*dy), age=t-g.t0, front=g.vel*age, del=rho-front;
   if(del>g.len*1.1||del<-g.len*5) return;
   const env=Math.exp(-((del+0.6*g.len)*(del+0.6*g.len))/(1.4*g.len*g.len));
   const A=g.amp*Math.exp(-age/g.dec)/Math.sqrt(1+rho/0.35)*env, ph=TAU*del/g.len;
   senCos(ph); o.h+=A*_SN;
+  /* las ondas de los pasos (g.vis) llevan además una parte "de dibujo": la física real (1 cm) no cruza el umbral donde la
+     superficie pone glifo, así que acá se suma una cresta/valle visible que se abre unos 2 m y se apaga despacio */
+  if(g.vis){ const w=g.vis*(g.amp/0.022)*Math.exp(-age/(g.dec*2.2))/Math.sqrt(1+rho/1.2)*env; o.rs+=w*_SN; }
   const dd=A*TAU/g.len*_CS, inv=rho>1e-4?1/rho:0;
   o.sx+=dd*dx*inv; o.sy+=dd*dy*inv; o.turb+=Math.abs(A)*8;
 }
 function superficie(c,S,m,x,y,t,o){
-  o.h=0; o.sx=0; o.sy=0; o.turb=0;
+  o.h=0; o.sx=0; o.sy=0; o.turb=0; o.rs=0;
   const T=TIPOS[c.tipo], cl=S.cl;
   /* intensidad del viento aquí: se interpola entre las estaciones de este a oeste */
   const W=S.W, u=clamp((x-W.x0)/Math.max(1e-6,W.x1-W.x0),0,1), fk=u*(W.est.length-1), ik=Math.min(W.est.length-2,Math.floor(fk)), fr=fk-ik;
@@ -484,6 +487,7 @@ function superficie(c,S,m,x,y,t,o){
   }
   /* golpes y anillos (contacto, cascadas) */
   for(let i=0;i<S.anillos.length;i++){ const g=S.anillos[i]; const dx=x-g.x, dy=y-g.y, R=g.vel*(t-g.t0)+g.len*1.3; if(dx>R||dx<-R||dy>R||dy<-R) continue; ring(g,t,x,y,o); }
+  if(o.rs!==0) o.h+=o.rs*5*(T.amp*c.ondas+1e-6);
   /* lluvia */
   if(S.gotas){
     const G=S.gotas, gi=Math.floor(x)-G.gx0, gj=Math.floor(y)-G.gy0;
@@ -507,7 +511,7 @@ function golpe(cuerpos,x,y,fuerza,t,opt){
   const f=clamp(fuerza==null?1:fuerza,0.05,3), o=opt||{};
   /* se escala por profundidad: el charco chapotea, el agua honda se traga el golpe */
   const k=0.55+0.45*clamp(a.prof/0.4,0,1);
-  a.cuerpo.golpes.push({x,y,t0:t,amp:0.022*f*k,vel:o.vel||0.9,len:o.len||0.28,dec:o.dec||0.9});
+  a.cuerpo.golpes.push({x,y,t0:t,amp:0.022*f*k,vel:o.vel||0.9,len:o.len||0.28,dec:o.dec||0.9,vis:o.vis||0});
   if(a.cuerpo.golpes.length>40) a.cuerpo.golpes.shift();
   return true;
 }
@@ -516,11 +520,11 @@ function actor(est,cuerpos,x,y,t,vel){
   est=est||{enAgua:false,ult:-9,x:x,y:y,quieto:0};
   const a=enAgua(cuerpos,x,y), moved=Math.hypot(x-est.x,y-est.y), v=vel==null?(moved/Math.max(1e-3,t-(est.t||t-0.016))):vel;
   let accion='fuera';
-  if(a&&!est.enAgua){ accion='entrar'; golpe(cuerpos,x,y,1.9,t,{len:0.34,dec:1.3}); golpe(cuerpos,x,y,1.0,t+0.0001,{vel:1.3,len:0.5,dec:1.1}); est.ult=t; }
-  else if(!a&&est.enAgua){ accion='salir'; golpe(cuerpos,est.x,est.y,1.1,t,{len:0.3,dec:1.0}); est.ult=t; }
+  if(a&&!est.enAgua){ accion='entrar'; golpe(cuerpos,x,y,1.9,t,{len:0.42,dec:1.3,vis:1}); golpe(cuerpos,x,y,1.0,t+0.0001,{vel:1.3,len:0.62,dec:1.1,vis:1}); est.ult=t; }
+  else if(!a&&est.enAgua){ accion='salir'; golpe(cuerpos,est.x,est.y,1.1,t,{len:0.4,dec:1.0,vis:1}); est.ult=t; }
   else if(a){
     const corre=v>2.4, camina=v>0.25, cada=corre?0.17:camina?0.34:2.4;
-    if(t-est.ult>=cada){ golpe(cuerpos,x,y,corre?1.5:camina?0.8:0.18,t,corre?{vel:1.1,len:0.3}:undefined); est.ult=t; }
+    if(t-est.ult>=cada){ golpe(cuerpos,x,y,corre?1.5:camina?0.8:0.3,t,corre?{vel:1.2,len:0.45,vis:1}:{len:0.42,vis:camina?1:0.7}); est.ult=t; }
     accion=corre?'correr':camina?'caminar':'quieto';
   }
   est.enAgua=!!a; est.x=x; est.y=y; est.t=t; est.accion=accion; est.prof=a?a.prof:0;
