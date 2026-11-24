@@ -1,0 +1,44 @@
+# Vigilancia EXTERNA de los respaldos de Nativa Online. Corre en GitHub, no en Oracle: si la VM muere, esto lo nota.
+# Está apagada hasta que se defina la variable de repositorio RESPALDOS_ACTIVOS = true (Settings → Variables), para no fallar antes de que existan los buckets.
+# Secretos (Settings → Secrets): B2_ID_LECTURA, B2_CLAVE_LECTURA (clave de B2 de SÓLO LECTURA) y, para el ensayo, NATIVA_VERIFICADOR_IDENTIDAD
+# (la clave del VERIFICADOR, que sólo abre canarios sintéticos; NUNCA la clave maestra).
+# Aviso: en repositorios públicos GitHub desactiva los flujos programados tras 60 días sin actividad en el repositorio; el ensayo semanal
+# y el commit de cualquier cambio lo evitan, y la alerta de «no hay respaldos» también llega por el aviso HTTP de la propia VM.
+name: Vigilancia de respaldos
+on:
+  schedule:
+    - cron: '17 * * * *'      # cada hora
+    - cron: '43 5 * * 1'      # ensayo de restauración, lunes
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: vigilancia-respaldos
+  cancel-in-progress: false
+jobs:
+  vigilar:
+    if: ${{ vars.RESPALDOS_ACTIVOS == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NATIVA_RESPALDO_DESTINO: b2
+      B2_ID_LECTURA: ${{ secrets.B2_ID_LECTURA }}
+      B2_CLAVE_LECTURA: ${{ secrets.B2_CLAVE_LECTURA }}
+      B2_CUBO_SEIS_HORAS: ${{ vars.B2_CUBO_SEIS_HORAS || 'nativa-seis-horas' }}
+      B2_CUBO_DIARIO: ${{ vars.B2_CUBO_DIARIO || 'nativa-diario' }}
+      B2_CUBO_SEMANAL: ${{ vars.B2_CUBO_SEMANAL || 'nativa-semanal' }}
+      NATIVA_RESPALDO_N_DESTINATARIOS: ${{ vars.NATIVA_RESPALDO_N_DESTINATARIOS || '2' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar age
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq age
+      - name: Vigilar (¿hay respaldos recientes, completos y bien cifrados?)
+        run: node operaciones/respaldos/vigilar.js
+      - name: Ensayo de restauración del canario (sólo el lunes o a mano)
+        if: ${{ github.event.schedule == '43 5 * * 1' || github.event_name == 'workflow_dispatch' }}
+        env:
+          NATIVA_VERIFICADOR_IDENTIDAD: ${{ secrets.NATIVA_VERIFICADOR_IDENTIDAD }}
+        run: node operaciones/respaldos/ensayo.js

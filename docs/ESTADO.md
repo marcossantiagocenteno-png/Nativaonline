@@ -80,3 +80,8 @@ Pasos posteriores a elegir proveedor (no antes): desplegar con variables, rellen
 - Empieza con una **comparación de alternativas**: costos, ventajas y limitaciones frente a los requisitos de la sección 6.
 - **No se implementa, contrata, despliega ni configura nada** hasta que Marcos revise las opciones y decida.
 - Después de la decisión: despliegue y pruebas contra el servidor real (etapa propia).
+
+## 8. Sistema de respaldos (etapa 7, implementado; sin contratar nada)
+- Código en `operaciones/respaldos/`, unidades en `operaciones/systemd/`, vigilancia en `.github/workflows/vigilancia-respaldos.yml` (apagada hasta `RESPALDOS_ACTIVOS=true`), pruebas en `pruebas/respaldos.js`.
+- Diseño, claves, retención, restauración, pasos manuales y riesgos: `docs/RESPALDOS.md`. Cambio de nombre del servidor (DuckDNS → dominio propio): `docs/DOMINIO.md`.
+- **No se modificó** el servidor, los motores, el sistema de jugadores ni el almacén oficial. Pendiente: configurar Oracle y Backblaze a mano y correr `verificar-b2.js` contra el B2 real.

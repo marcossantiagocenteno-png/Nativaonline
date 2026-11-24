@@ -1,0 +1,13 @@
+# Cada 6 horas (00, 06, 12, 18 UTC). Si la máquina estuvo apagada, al arrancar hace la que faltó (Persistent).
+# Cada corrida decide sola qué toca: la de 6 h siempre; la diaria y la semanal si aún no están hechas en su periodo. Repetirla no duplica nada.
+[Unit]
+Description=Respaldo del mundo de Nativa Online cada 6 horas
+
+[Timer]
+OnCalendar=*-*-* 00,06,12,18:07:00 UTC
+Persistent=true
+RandomizedDelaySec=120
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

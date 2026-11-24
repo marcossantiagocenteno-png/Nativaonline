@@ -1,0 +1,32 @@
+# Respaldo del mundo oficial. Lo lanza nativa-respaldo.timer. No toca al servidor del juego: sólo LEE la carpeta de datos.
+[Unit]
+Description=Nativa Online - respaldo cifrado del mundo
+After=network-online.target
+OnFailure=nativa-respaldo-fallo.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=nativa-respaldo
+Group=nativa
+# Variables sin credenciales de administración: claves PÚBLICAS age y la clave de B2 de SÓLO escritura (modo 600, dueño nativa-respaldo)
+EnvironmentFile=/etc/nativa-respaldo/respaldo.env
+Environment=NATIVA_RESPALDO_ESTADO=/var/lib/nativa-respaldo
+ExecStart=/usr/bin/node --max-old-space-size=256 /opt/nativa/operaciones/respaldos/respaldar.js --auto
+# Tiene que ser amable: el servidor del juego va primero (CPU, disco y red)
+Nice=19
+IOSchedulingClass=idle
+CPUWeight=20
+MemoryMax=700M
+TimeoutStartSec=45min
+# Aislamiento: sólo escribe en su carpeta de estado y en /var/tmp; la carpeta de datos del juego es de sólo lectura para este servicio
+NoNewPrivileges=yes
+PrivateTmp=no
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/var/lib/nativa /opt/nativa
+ReadWritePaths=/var/lib/nativa-respaldo /var/tmp
+StateDirectory=nativa-respaldo
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes

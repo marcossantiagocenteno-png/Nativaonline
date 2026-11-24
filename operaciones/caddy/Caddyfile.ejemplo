@@ -1,0 +1,16 @@
+# Caddy pone el certificado HTTPS solo y reenvía al juego. Hoy: DuckDNS. Mañana: dominio propio SIN cambiar la URL que ven los jugadores
+# (ver docs/DOMINIO.md). Sustituye NOMBRE por el subdominio de DuckDNS.
+NOMBRE.duckdns.org {
+	encode gzip
+	reverse_proxy 127.0.0.1:8787
+}
+
+# Al migrar a un dominio propio se AÑADE (sin quitar el de arriba) el bloque nuevo, y el de DuckDNS pasa a redirigir:
+#
+# juego.midominio.com {
+#	encode gzip
+#	reverse_proxy 127.0.0.1:8787
+# }
+# NOMBRE.duckdns.org {
+#	redir https://juego.midominio.com{uri} permanent
+# }

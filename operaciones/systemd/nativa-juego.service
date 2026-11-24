@@ -1,0 +1,22 @@
+# EJEMPLO del servidor del juego (el guion de despliegue lo fijará cuando se contrate Oracle). Aquí está para que el respaldo y el juego
+# usen la MISMA carpeta de datos: /var/lib/nativa. Los secretos del juego viven en /etc/nativa/juego.env (modo 600) y NO entran a ningún respaldo.
+[Unit]
+Description=Nativa Online - servidor del mundo
+After=network-online.target
+
+[Service]
+User=nativa
+Group=nativa
+EnvironmentFile=/etc/nativa/juego.env
+Environment=NATIVA_DATOS=/var/lib/nativa
+Environment=PORT=8787
+Environment=NATIVA_CONFIAR_PROXY=1
+WorkingDirectory=/opt/nativa
+ExecStart=/usr/bin/node /opt/nativa/servidor/iniciar.js
+Restart=always
+RestartSec=3
+# Los archivos de datos deben poder leerlos el grupo (para el respaldo, que es de sólo lectura)
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

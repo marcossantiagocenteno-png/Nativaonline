@@ -1,0 +1,9 @@
+# Se dispara si nativa-respaldo.service termina mal (OnFailure=). Deja constancia en el registro y avisa por la URL configurada.
+[Unit]
+Description=Aviso: fallo del respaldo de Nativa Online
+
+[Service]
+Type=oneshot
+User=nativa-respaldo
+EnvironmentFile=/etc/nativa-respaldo/respaldo.env
+ExecStart=/bin/sh -c 'logger -p user.crit -t nativa-respaldo "EL RESPALDO FALLO (systemd)"; [ -z "$NATIVA_ALERTA_URL" ] || curl -fsS -m 10 -d "Nativa Online: el servicio de respaldo termino con error" "$NATIVA_ALERTA_URL" || true'
