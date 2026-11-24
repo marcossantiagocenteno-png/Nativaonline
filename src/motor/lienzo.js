@@ -54,13 +54,22 @@ let metrosVista=ZOOM_INI, metrosDestino=ZOOM_INI;
    redondeo iba y venía cuadro a cuadro y la textura titilaba. */
 const TILT=ASPECTO/3;          // píxeles verticales por metro, respecto de los horizontales
 const HIST=0.18;               // cuánto hay que pasarse para que CPM cambie
-function aplicarEscala(anchoPx){
+/* Tope de celdas del tablero. Antes, al pasarse, el tablero se ENCOGÍA y quedaba una ventana arrinconada con el resto de la
+   pantalla vacía (zoom 200 m en Modo Dios). Ahora, si el zoom pide más celdas, se escribe con menos caracteres por metro
+   (CPM baja de 6 hasta 3): el tablero sigue cubriendo toda la pantalla. */
+const MAX_CELDAS=150000, CPM_MIN_LEJOS=3;
+const celdasCon=(c,pxm,w,h)=>(Math.floor(w*c/pxm)+2)*(Math.floor(h*Math.max(2,Math.round(c/3))/(pxm*TILT))+2);
+function aplicarEscala(anchoPx,altoPx){
   const tope=metrosMaximos(anchoPx);
   if(metrosDestino>tope) metrosDestino=tope;
   if(metrosVista>tope) metrosVista=tope;
   const pxm=anchoPx/metrosVista;                       // píxeles por metro
-  const ideal=clamp(pxm/3.2,6,48);
-  if(!CPM || ideal<CPM-0.5-HIST || ideal>CPM+0.5+HIST) CPM=clamp(Math.round(ideal),6,48);
+  let ideal=clamp(pxm/3.2,6,48);
+  if(altoPx&&celdasCon(Math.round(ideal),pxm,anchoPx,altoPx)>MAX_CELDAS){
+    let c=Math.round(ideal); while(c>CPM_MIN_LEJOS&&celdasCon(c,pxm,anchoPx,altoPx)>MAX_CELDAS) c--;
+    ideal=c;
+  }
+  if(!CPM || ideal<CPM-0.5-HIST || ideal>CPM+0.5+HIST) CPM=clamp(Math.round(ideal),CPM_MIN_LEJOS,48);
   cw=pxm/CPM;
   RPM=Math.max(2,Math.round(CPM/3));                   // la inclinación de la cámara
   chh=pxm*TILT/RPM;
@@ -79,10 +88,10 @@ function layout(){
   const w=st.clientWidth,h=st.clientHeight;
   cv.width=Math.max(1,Math.floor(w*dpr)); cv.height=Math.max(1,Math.floor(h*dpr));
   ctx.setTransform(dpr,0,0,dpr,0,0);
-  aplicarEscala(w);
+  aplicarEscala(w,h);
   ctx.font=fontSize+'px '+MONO; ctx.textBaseline='middle'; ctx.textAlign='center';
   cols=Math.max(20,Math.floor(w/cw)+2); rowsN=Math.max(12,Math.floor(h/chh)+2);
-  if(cols*rowsN>150000){ const k=Math.sqrt(150000/(cols*rowsN)); cols=Math.floor(cols*k); rowsN=Math.floor(rowsN*k); }
+  if(cols*rowsN>MAX_CELDAS){ const k=Math.sqrt(MAX_CELDAS/(cols*rowsN)); cols=Math.floor(cols*k); rowsN=Math.floor(rowsN*k); }
   /* el zoom llama acá en cada cuadro: no reservar memoria si el tamaño no cambió */
   if(!fbG || fbG.length!==cols*rowsN){
     fbG=new Uint16Array(cols*rowsN); fbC=new Int32Array(cols*rowsN); fbL=new Uint8Array(cols*rowsN); fbO=new Uint16Array(cols*rowsN);

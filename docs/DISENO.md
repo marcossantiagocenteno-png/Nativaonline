@@ -1609,3 +1609,11 @@ partidas de mundos anteriores (100 m con otra semilla, o el intento de 1 km) se 
 más allá del borde para poder llegar al vacío.
 
 Pruebas: `pruebas/ampliar.js`, `pruebas/limpio.js`.
+
+## Zoom lejano: el tablero cubre toda la pantalla
+
+Con el zoom libre del Modo Dios (hasta 200 m) el tablero pedía más de 150 000 celdas y `layout()` lo **encogía**: el mundo se dibujaba en
+una ventana arrinconada y el resto de la pantalla quedaba vacío. Ahora `aplicarEscala` baja los caracteres por metro (CPM de 6 hasta 3)
+antes de pasarse del tope, así el tablero siempre cubre el escenario completo; encoger queda sólo como último recurso. Medido en
+Chrome a 1345 × 554: a 200 m, CPM 3, y el dibujo llega al borde inferior de la pantalla y hasta el borde de la parcela (a 200 m, 100 m
+de mundo ocupan la mitad del ancho).
