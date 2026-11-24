@@ -1632,3 +1632,42 @@ Quitar es la operación `panel` con `def:{bioma:'vacio'}`. `panel()` devuelve nu
 dibujo lo tratan como fuera del mundo) y `limites()` lo ignora. Lo que dice el archivo del mundo ahora **manda** sobre lo de fábrica
 (`defDe(k)||BIOMAS[k]`), por eso también se puede quitar el 0:0 y deshacerlo (`def:null` lo devuelve). Lo editado dentro de una parcela
 quitada no se borra: vuelve si la parcela se vuelve a añadir. Prueba: `pruebas/quitar.js`.
+
+## Aguas continentales (motor en laboratorio, no integrado)
+
+`src/juego/aguas.js` (`NV.aguas`), laboratorio `preview/aguas.html` + `preview/aguas.js`, pruebas `pruebas/aguas.js`.
+Charcos, lagos, lagunas, arroyos, riachuelos, ríos, ríos profundos y cascadas. **El mar no entra**: tendrá motor propio; este
+no asume que el agua es plana ni que el borde es una costa. **No está en `src/modulos.js` ni en el Modo Dios** hasta que Marcos
+apruebe las muestras del laboratorio. Registrado como `aguas`, estado `pendiente`.
+
+**Cómo es un cuerpo.** Datos puros (`NV.aguas.crear(tipo, spec)`): `poligono` (lagos, lagunas, charcos) o `curso:{puntos,anchos}`
+(arroyos y ríos), `prof`, `claridad`, `opacidad`, `tono`, `ondas`, `viento`, `reflejo`, `irreg`, `humedad`, `vel`, `piedras`, `sem`.
+La cascada es `{x,y,ancho,alto,intensidad}`. Todo en metros. De esos datos el motor arma un **campo** (4 muestras por metro):
+profundidad, distancia con signo a la orilla, corriente (m/s) y coordenadas de cauce. Cambiar forma o velocidad llama a
+`A.tocar(c)` y el campo se rehace solo; no hay que reconstruir el río.
+
+**Superficie.** Ondas de viento (3 senoides que viajan hacia el oeste, con memoria de ~3 s: el agua tarda en levantarse y en
+calmarse), patrón de corriente que viaja con el flujo (dos fases cruzadas), proa y estela de las piedras, anillos por golpes
+(contacto, cascadas, lluvia). De la altura y la pendiente salen glifo, color, destello, espuma y la deformación del reflejo.
+
+**Profundidad y color.** Cinco tramos (muy somero verdoso, somero celeste, medio azul, profundo oscuro, muy profundo). El fondo
+se ve con `exp(-prof/claridad)·(1-opacidad)`: arena, grava y piedras en agua clara; nada en agua honda.
+
+**Reflejos.** Lo que se dibuja se graba (`{c,r,glifo,color,filaBase}`) y se espeja respecto de la fila de su base (la cámara es
+oblicua: un objeto de `h` filas sobre su base refleja `h` filas debajo). La pendiente de la ola de la celda desvía el reflejo, la
+agitación y la tormenta lo apagan, la niebla lo borra. El cielo y las nubes se reflejan por rayo. La intensidad del reflejo
+(Fresnel, claridad) es una aproximación estilizada, **no medida contra ninguna referencia**.
+
+**Conexiones (sólo lee).** Viento: `NV.entorno.viento('agua',…)`, tipo registrado con `NV.viento.registrar` (no hay segundo
+viento; la corriente nunca depende de él). Luz: `NV.entorno.luz()`. Clima: **no existe un motor de clima en el proyecto**; la
+interfaz que el agua necesita es `A.usarClima(()=>({lluvia,tormenta,niebla,nubes}))` (0 a 1); el laboratorio la simula con
+deslizadores. Personaje y cosas que caen: `A.actor(estado,cuerpos,x,y,t,vel)` decide entrar, caminar, correr, quieto, salir;
+`A.golpe(cuerpos,x,y,fuerza,t)` sirve para piedras, objetos o lo que venga. Nunca hay ondas fuera del agua.
+
+**Datos del mundo.** `A.datosMundo(cuerpos)` / `A.desdeMundo(obj)` (formato 1) guardan todo lo estático; la corriente y las ondas se
+recalculan al cargar. Lo que falta para el Modo Dios (pestaña "Editor de aguas continentales"): dibujar contorno, trazar cauce,
+arrastrar puntos, parámetros, regenerar sector, eliminar. El laboratorio (Banco) ya hace todo eso sobre estos mismos datos, así
+que el editor del juego es una piel sobre una API probada.
+
+**Pendiente de aprobación:** calidad visual de las 20 muestras, costo en el juego real (hoy ~20–60 ms por muestra en un Chrome sin
+GPU), y la integración (dibujar.js, Modo Dios, paneles).
