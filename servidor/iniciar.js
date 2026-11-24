@@ -9,6 +9,9 @@
      NATIVA_SESION_CLAVE  la clave con que se FIRMAN las sesiones de administrador (mínimo 32 caracteres, distinta de la contraseña). NUNCA va en el
                           repositorio. Sin ella en desarrollo se usa una al azar por arranque (las sesiones no sobreviven a un reinicio);
                           con NODE_ENV=production el servidor se niega a arrancar sin ella. Cambiarla cierra todas las sesiones.
+     NATIVA_HOST          dirección en la que ESCUCHA el servidor (por defecto 0.0.0.0: todas las interfaces). Detrás de un proxy en la misma máquina
+                          (Caddy) se pone 127.0.0.1 (o ::1): así el servidor sólo se alcanza pasando por el proxy, que es la condición 3 de
+                          NATIVA_CONFIAR_PROXY. Acepta una dirección IP o «localhost»; cualquier otra cosa se rechaza al arrancar.
      NATIVA_CONFIAR_PROXY 1 SÓLO si hay exactamente un proxy delante que añade al final de X-Forwarded-For la dirección real y el servidor no es alcanzable sin él
                           (ver docs/DISENO.md, «Condiciones para NATIVA_CONFIAR_PROXY»). Apagada por defecto: sin ella X-Forwarded-For se ignora.
      NATIVA_ORIGENES      los orígenes de página que pueden conectarse, separados por coma (p. ej. https://marcossantiagocenteno-png.github.io: esquema y
@@ -16,6 +19,7 @@
      NODE_ENV=production  modo publicado: exige NATIVA_ORIGENES y NATIVA_ADMIN_TOKEN, y no acepta conexiones web sin origen.
    Se apaga limpio con Ctrl+C o SIGTERM. */
 'use strict';
+const net=require('net');
 const {iniciarServidor}=require('./red.js');
 const lista=v=>(v||'').split(',').map(s=>s.trim()).filter(Boolean);
 (async()=>{
@@ -23,6 +27,8 @@ const lista=v=>(v||'').split(',').map(s=>s.trim()).filter(Boolean);
   const produccion=process.env.NODE_ENV==='production';
   if(produccion&&!origenes.length){ console.error('No se arranca en producción sin NATIVA_ORIGENES: aceptar conexiones desde cualquier página no es una configuración válida para un servidor publicado.\nPonelo con el origen de la página, por ejemplo NATIVA_ORIGENES=https://marcossantiagocenteno-png.github.io'); process.exit(1); }
   if(produccion&&!adminTokens.length){ console.error('No se arranca en producción sin NATIVA_ADMIN_TOKEN (nadie podría administrar el mundo).'); process.exit(1); }
+  const host=(process.env.NATIVA_HOST||'').trim(), conProxy=process.env.NATIVA_CONFIAR_PROXY==='1';
+  if(host&&host!=='localhost'&&!net.isIP(host)){ console.error('NATIVA_HOST tiene que ser una dirección IP (por ejemplo 127.0.0.1) o «localhost»: «'+host.slice(0,60)+'» no vale.'); process.exit(1); }
   const claveSesion=process.env.NATIVA_SESION_CLAVE||'';
   const cortas=adminTokens.filter(t=>t.length<16);
   if(cortas.length){ console.error('NATIVA_ADMIN_TOKEN tiene una contraseña de menos de 16 caracteres: se rechaza (un servidor público necesita una larga).'); process.exit(1); }
@@ -32,7 +38,10 @@ const lista=v=>(v||'').split(',').map(s=>s.trim()).filter(Boolean);
   if(!claveSesion) console.log('AVISO: no hay NATIVA_SESION_CLAVE; se usa una al azar y las sesiones de administrador se pierden al reiniciar (déjalo así sólo en desarrollo).');
   if(!adminTokens.length) console.log('AVISO: no hay NATIVA_ADMIN_TOKEN; nadie podrá entrar como administrador ni editar el mundo oficial.');
   if(!origenes.length) console.log('AVISO: no hay NATIVA_ORIGENES; se aceptan conexiones desde cualquier página (déjalo así sólo en desarrollo).');
-  const s=await iniciarServidor({puerto:+process.env.PORT||8787,dir:process.env.NATIVA_DATOS,adminTokens,claveSesion:claveSesion||undefined,confiarProxy:process.env.NATIVA_CONFIAR_PROXY==='1',origenes:origenes.length?origenes:null,permitirSinOrigen:!produccion,log:t=>console.log(new Date().toISOString().slice(11,19)+' '+t)});
+  const cerrado=host==='localhost'||host==='::1'||/^127\./.test(host);
+  if(conProxy&&!cerrado) console.log('AVISO: NATIVA_CONFIAR_PROXY=1 sin NATIVA_HOST=127.0.0.1: el servidor escucha en '+(host||'todas las interfaces')+'; sólo es correcto si un cortafuegos impide llegar a él sin pasar por el proxy (condición 3 de docs/DISENO.md).');
+  const s=await iniciarServidor({host:host||undefined,puerto:+process.env.PORT||8787,dir:process.env.NATIVA_DATOS,adminTokens,claveSesion:claveSesion||undefined,confiarProxy:process.env.NATIVA_CONFIAR_PROXY==='1',origenes:origenes.length?origenes:null,permitirSinOrigen:!produccion,log:t=>console.log(new Date().toISOString().slice(11,19)+' '+t)});
+  console.log('escuchando en '+(host||'0.0.0.0')+':'+s.puerto+(conProxy?' · confía en el proxy':''));
   const apagar=async()=>{ console.log('apagando…'); try{ await s.cerrar(); }catch(e){ console.log('error al cerrar: '+e.message); } process.exit(0); };
   process.on('SIGINT',apagar); process.on('SIGTERM',apagar);
 })().catch(e=>{ console.error('No se pudo iniciar: '+e.message); process.exit(1); });
