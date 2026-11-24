@@ -2,6 +2,7 @@
 
 > Este documento manda sobre el código. Si el código lo contradice, el código está mal.
 > Toda sesión de trabajo (humana o con Claude) empieza leyendo esto.
+> Estado actual del proyecto (etapas, arquitectura, pendientes, requisitos para publicar, próxima etapa): `docs/ESTADO.md`.
 
 ---
 
