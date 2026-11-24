@@ -1937,7 +1937,7 @@ reinicio del servidor, restaurar, importar con confirmación, copia, arranque si
 ### Decisiones tomadas tras la etapa 4 (para las etapas siguientes)
 - **Réplica local del último mundo oficial: se conserva.** Sirve para ver el mundo sin conexión. Es sólo de lectura: nunca modifica ni sustituye el mundo del servidor
   (se verifica por huella al abrirla y el servidor la revisa al conectar). Cómo probar el modo oficial a ojo: `docs/PROBAR-OFICIAL.md`.
-- **Pantalla inicial (etapa futura, aún NO se desarrolla):** dos accesos. **Invitado**: entra al mundo compartido como jugador normal, sin permisos de administrador, con un
+- **Pantalla inicial (hecha en la etapa 6, ver abajo):** dos accesos. **Invitado**: entra al mundo compartido como jugador normal, sin permisos de administrador, con un
   personaje temporal. **Administrador**: acceso protegido por contraseña, con permisos para usar el Modo Dios. Sin cuentas definitivas ni progreso individual guardado.
   Esa pantalla sólo reemplazará lo que hoy hacen `?oficial` y el botón «clave» (la identidad ya llega al servidor por `identidad.autenticar`, que es lo único que cambiará).
 - **Orden de trabajo:** primero conexión y sincronización de jugadores; la pantalla inicial y las identidades después.
@@ -1963,3 +1963,56 @@ la `bienvenida` trae `yo` y `jugadores`), `src/juego/jugadores.js` (cliente) y d
 - **Pendiente a propósito:** filtrar por zona de interés (hoy se avisa a todos; el punto de entrada es `avisarJugadores`), jugadores compartidos dentro de cuevas, apariencias y la pantalla inicial.
 
 **Pruebas.** `node pruebas/presencia.js` (reglas, sin red), `node pruebas/red-jugadores.js` (siete clientes por red), `pruebas/chrome-jugadores.js` (tres Chrome independientes).
+
+## Multijugador — Etapa 6: identidad visual, portada y acceso Invitado / Administrador (rama multijugador)
+
+**Dirección artística (de la portada del libro «Nativa: Los lobos de la niebla»; referencia para etapas futuras, aplicada hoy sólo a la portada del juego).**
+- *Atmósfera:* bosque de noche, pelado, con neblina; misterio y tensión contenida, con melancolía. Nada épico ni brillante: ni castillos, ni dragones, ni metal pulido, ni runas fluorescentes.
+- *Color:* casi todo azul-negro y gris pizarra azulado; una sola luz fría, lila-violeta, que viene de arriba y del centro (la niebla). Lo cálido es escaso y vale mucho: piel, marcas ocres,
+  verde salvia de la ropa y el oro del nombre. Paleta desaturada, un acento cálido por zona.
+- *Luz:* claroscuro de poca luz general; rostros apenas iluminados de frente; bordes que se pierden en viñeta; árboles como siluetas.
+- *Personajes (para futuros diseños):* gente seria, contenida, con marcas rituales pintadas en la piel (rayas ocres en mejillas, línea vertical en el labio), trenzas largas, capuchas, pañuelos
+  y cuellos tejidos con motivos geométricos, cuero y lino; flechas, colgantes de garra o piedra rojiza. Siluetas legibles por la capucha, la trenza o el pañuelo. Sin armaduras.
+- *Criaturas:* animales reales y grandes (lobos de pelaje denso, ojos pálidos) que comparten el bosque y presionan desde el borde del encuadre; amenaza natural, no monstruo de videojuego.
+- *Materiales:* corteza negra y húmeda, pelaje, cuero, lino y lana, hierba mojada, pétalos pálidos flotando.
+- *Composición:* triángulo con el personaje principal en el vértice inferior central; ramas que forman un arco sobre el título; peso a la derecha (criaturas) contra las figuras de la izquierda.
+- *Marco (de la segunda imagen):* filete fino, borde punteado y esquinas en abanico de rayos, en el oro del juego.
+- *Cómo se aplicó:* ver «Portada» abajo. Los colores de la interfaz no cambian (negro, blanco, oro viejo): el violeta y los azules grisáceos viven sólo en el arte de fondo de la portada.
+
+**Portada (`src/juego/portada.js`, marcado en `interfaz.js`, reglas al final de `style.css`).**
+- `index.html` (sin parámetros) abre la portada. Con `?solitario` o `?oficial` no hace nada y el juego arranca como siempre. En la portada el juego **no** arranca detrás
+  (`jugar.js`: una línea). Los botones y el campo son elementos reales; no hay imágenes: el fondo es un lienzo (cielo con resplandor lila, tres planos de árboles pelados generados con una semilla fija,
+  neblina que deriva, pétalos y hierba hechos de glifos, y de vez en cuando un par de ojos pálidos en la oscuridad), el marco y el título son SVG (el título lleva un filtro que le da el borde gastado).
+  Se detiene con la pestaña oculta y respeta `prefers-reduced-motion`. Sin tipografías externas.
+- **Invitado** → recarga con `?oficial` y borra cualquier sesión de administrador de la pestaña. **Administrador** → muestra el campo; la contraseña se manda UNA vez a `POST /entrar`;
+  con la sesión que devuelve el servidor guarda `{s, u}` en `sessionStorage` (sólo esa pestaña) y recarga con `?oficial`. **Modo solitario (sin servidor)** → enlace a `?solitario`.
+- La portada consulta `GET /salud` (cada 12 s mientras está abierta): dice si el mundo oficial responde y, si el servidor no tiene clave de administrador configurada (`admin:false`), lo dice con el nombre de
+  la variable (`NATIVA_ADMIN_TOKEN`) y no deja intentar. Los errores se leen en la propia portada: «Contraseña incorrecta», «Demasiados intentos. Espera N minutos…», «No se pudo contactar con el servidor».
+- Servidor: `NV.SERVIDOR_OFICIAL` o `ws://<este equipo>:8787`. Para probar otro desde un teléfono: `?servidor=ws://IP:8787` en la portada. **Sólo se acepta cuando la página no viene por https**: en la
+  página publicada nadie puede mandar la contraseña a otro servidor con un enlace. La sesión guardada también lleva la dirección del servidor que la emitió y el cliente no la manda a otro.
+
+**Autenticación (servidor).**
+- **La contraseña** (`NATIVA_ADMIN_TOKEN`, mínimo 16 caracteres; una contraseña más corta se rechaza al arrancar, no se ignora en silencio) se comprueba sólo en `POST /entrar`
+  (`identidad.entrar`): hash SHA-256 y comparación en tiempo constante contra todas las claves. Nunca se devuelve, se registra ni se guarda en el navegador.
+- **La sesión** (`servidor/sesiones.js`) es `s1.<datos>.<firma>`; firma HMAC-SHA256 con **otra clave** (`NATIVA_SESION_CLAVE`, mínimo 32 caracteres, que no puede ser ni contener la contraseña).
+  Los datos: id de usuario al azar, rol, vencimiento (12 h), identificador único (para revocarla) y una marca derivada de la contraseña vigente. Por eso una sesión alterada, de otra clave de firma, vencida,
+  cerrada, o emitida con otra contraseña, no vale. Cambiar `NATIVA_SESION_CLAVE` cierra todas las sesiones; cambiar `NATIVA_ADMIN_TOKEN` también.
+- **El token crudo ya no da poder.** `hola.token` es sólo la identidad temporal de invitado y siempre da rol `jugador`, por largo o parecido a una contraseña que sea (se probó). `hola.sesion` es lo
+  único que da rol `admin`. Tampoco sirve como `Bearer` de `/copia` e `/importar`: ahí se manda la sesión. Una sesión que vence con la conexión abierta deja de poder editar y restaurar (error `sesion`).
+- **Freno de intentos:** por dirección, 5 fallos en 10 minutos bloquean (429 con `Retry-After`; mientras dura ni la contraseña buena entra). El intento se cuenta **antes** de la demora, así que 30 peticiones
+  simultáneas no suman más de 5 comprobaciones; la demora es la misma con acierto y con fallo (400 ms). La dirección sale de la conexión; `X-Forwarded-For` sólo cuenta con `NATIVA_CONFIAR_PROXY=1`
+  (para cuando haya un proxy del alojamiento), porque si no cualquiera lo falsearía.
+- **Cerrar sesión:** `POST /salir` revoca la sesión y corta la conexión de administrador abierta; el botón «cerrar sesión» del Modo Dios lo usa y vuelve a la portada.
+- **Producción:** `NODE_ENV=production` exige `NATIVA_ORIGENES`, `NATIVA_ADMIN_TOKEN` y `NATIVA_SESION_CLAVE`. En desarrollo, sin `NATIVA_SESION_CLAVE` se usa una al azar por arranque (las sesiones no
+  sobreviven a un reinicio). `node servidor/generar-claves.js` imprime dos valores al azar (contraseña y clave de firma); no guarda nada.
+- **HTTP nuevo:** `POST /entrar {clave} → {sesion, vence}`, `POST /salir`, y `GET /salud` ahora trae `admin` (sólo sí o no). Mensaje WebSocket nuevo: `hola.sesion`; código de error nuevo: `sesion` (cierre 4004).
+
+**Lo que cambió en lo existente.** `oficial.js`: sin formulario ni almacenamiento de la contraseña (se borra la clave `nativa.admin.v1` si una versión anterior la dejó), usa la sesión; el panel del Modo Dios cambia el
+botón «clave» por «cerrar sesión». Las pruebas que entraban con la contraseña como token ahora entran con sesión (`pruebas/sesion.js`); las de Chrome que abren `index.html` sin parámetros ahora llevan `?solitario`.
+No se tocó ningún motor, ni el Modo Dios (más allá de ese botón), ni la presencia, ni la persistencia del mundo.
+
+**Pendiente a propósito:** elegir alojamiento y publicar el servidor (wss, variables de entorno, `NATIVA_CONFIAR_PROXY` si hay proxy); cuentas definitivas; el nombre propio del personaje; aplicar la dirección
+artística a personajes, criaturas y escenarios.
+
+**Pruebas.** `node pruebas/acceso.js` (servidor: contraseña, sesiones, falsificaciones, freno, registros), `pruebas/produccion.js`, `pruebas/chrome-portada.js` (portada en cinco tamaños, Invitado, Administrador, solitario, reconexión).
+

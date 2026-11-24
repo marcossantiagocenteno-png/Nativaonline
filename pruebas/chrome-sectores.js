@@ -2,7 +2,7 @@
 //   node pruebas/chrome-sectores.js [?query] [etiqueta]      (necesita puppeteer-core y Chrome; si no, se salta)
 let pp; try{ pp=require('puppeteer-core'); }catch(e){ console.log('puppeteer-core no está instalado: prueba omitida'); process.exit(0); }
 const CHROME=process.env.CHROME||'/usr/bin/google-chrome';
-const q=process.argv[2]||'', tag=process.argv[3]||'';
+const q=((process.argv[2]||'')+((process.argv[2]||'').indexOf('?')<0?'?solitario':'&solitario')), tag=process.argv[3]||'';
 (async()=>{ const b=await pp.launch({executablePath:CHROME,headless:'new',args:['--no-sandbox','--allow-file-access-from-files','--window-size=1200,700']});
  const p=await b.newPage(); await p.setViewport({width:1200,height:700}); p.on('pageerror',e=>console.log('ERR',e.message));
  await p.goto('file://'+require('path').resolve(__dirname,'..','index.html')+q,{waitUntil:'load'}); await new Promise(r=>setTimeout(r,2500));

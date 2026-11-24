@@ -4,20 +4,21 @@ let pp; try{ pp=require('puppeteer-core'); }catch(e){ console.log('puppeteer-cor
 try{ require('../servidor/node_modules/ws'); }catch(e){ console.log('falta `npm install` dentro de servidor/: prueba omitida'); process.exit(0); }
 const fs=require('fs'), os=require('os'), path=require('path');
 const {iniciarServidor}=require('../servidor/red.js');
+const sesionAdmin=require('./sesion.js');
 const CHROME=process.env.CHROME||'/usr/bin/google-chrome';
 const INDEX='file://'+path.resolve(__dirname,'..','index.html');
-const ADMIN='clave-de-admin-de-chrome-0123456789';
+const ADMIN='clave-de-admin-de-chrome-0123456789', FIRMA='clave-de-firma-de-chrome-0123456789-abcdefghij';
 let bien=0,mal=0; const ok=(c,t)=>{ if(c) bien++; else { mal++; console.log('MAL:',t); } };
 const dormir=ms=>new Promise(r=>setTimeout(r,ms));
 (async()=>{
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'nativa-cj-'));
-let S=await iniciarServidor({dir,puerto:0,host:'127.0.0.1',adminTokens:[ADMIN]}); const PUERTO=S.puerto, WS='ws://127.0.0.1:'+PUERTO;
+let S=await iniciarServidor({dir,puerto:0,host:'127.0.0.1',adminTokens:[ADMIN],claveSesion:FIRMA,retrasoLoginMs:0}); const PUERTO=S.puerto, WS='ws://127.0.0.1:'+PUERTO;
 const br=await pp.launch({executablePath:CHROME,headless:'new',args:['--no-sandbox','--allow-file-access-from-files','--window-size=1000,650']});
 const errores=[];
 async function abrir(ctx,query,admin){
   const p=await ctx.newPage(); await p.setViewport({width:1000,height:650}); p.on('pageerror',e=>errores.push(e.message));
   await p.evaluateOnNewDocument(()=>{ const O=WebSocket; window.__nws=0; window.WebSocket=function(u,q){ window.__nws++; return new O(u,q); }; window.WebSocket.prototype=O.prototype; for(const k of ['CONNECTING','OPEN','CLOSING','CLOSED']) window.WebSocket[k]=O[k]; });
-  if(admin) await p.evaluateOnNewDocument(k=>{ try{ localStorage.setItem('nativa.admin.v1',k); }catch(e){} },ADMIN);
+  if(admin){ const ses=await sesionAdmin(PUERTO,ADMIN); await p.evaluateOnNewDocument((s,w)=>{ try{ sessionStorage.setItem('nativa.sesion.v1',JSON.stringify({s,u:w})); }catch(e){} },ses,WS); }
   await p.goto(INDEX+query,{waitUntil:'load'}); return p;
 }
 const listo=(p,n)=>p.waitForFunction(n=>window.NV&&NV.jugadores&&NV.jugadores.yo&&NV.oficial.estado==='en-linea'&&NV.oficial.listo&&NV.personajes.length===n,{timeout:15000},n).then(()=>true,()=>false);
@@ -29,7 +30,7 @@ const coincide=async(ps)=>{ const t=Date.now(); while(Date.now()-t<8000){ const 
 const caminar=async(p,tecla,ms)=>{ await p.keyboard.down(tecla); await dormir(ms); await p.keyboard.up(tecla); };
 
 /* ===== solitario: no hay jugadores ni conexiones ===== */
-const ctxS=await br.createBrowserContext(); const pS=await abrir(ctxS,'');
+const ctxS=await br.createBrowserContext(); const pS=await abrir(ctxS,'?solitario');
 await dormir(1200); const m0=await pS.evaluate(()=>({x:me.x,y:me.y}));
 await caminar(pS,'ArrowRight',700); await dormir(200); const m1=await pS.evaluate(()=>({x:me.x,y:me.y,act:NV.jugadores.activo,n:NV.personajes.length,ws:window.__nws}));
 ok(m1.x>m0.x&&m1.act===false&&m1.n===0&&m1.ws===0,'modo solitario: se camina como siempre, no hay jugadores ni conexiones');
@@ -43,7 +44,7 @@ const ya=await yo(pA), yb=await yo(pB), yc=await yo(pC);
 ok(new Set([ya.id,yb.id,yc.id]).size===3&&new Set([ya.nombre,yb.nombre,yc.nombre]).size===3&&[ya,yb,yc].every(j=>/^Viajero-/.test(j.nombre)),'cada uno tiene su personaje temporal, con id y nombre distintos');
 ok(new Set([ya,yb,yc].map(j=>j.x+','+j.y)).size===3,'nacieron en tres casillas distintas');
 ok(await coincide([pA,pB,pC]),'las tres pantallas muestran exactamente las posiciones que tiene el servidor');
-ok(await pA.evaluate(()=>NV.oficial.rol)==='admin'&&await pB.evaluate(()=>NV.oficial.rol)==='jugador','A es administrador (clave guardada en su dispositivo) y B, invitado');
+ok(await pA.evaluate(()=>NV.oficial.rol)==='admin'&&await pB.evaluate(()=>NV.oficial.rol)==='jugador','A es administrador (con su sesión) y B, invitado');
 ok(await pB.evaluate(()=>localStorage.getItem('nativa.guardado.v1'))===null,'el invitado no guarda progreso individual');
 
 /* ===== caminar de verdad (teclado), todos a la vez ===== */
@@ -99,7 +100,7 @@ ok((await yo(pB)).id!==idB&&await coincide([pA,pB,pC2]),'con personaje nuevo y t
 await S.cerrar();
 await pA.waitForFunction(()=>NV.oficial.estado!=='en-linea',{timeout:10000});
 ok(await pA.evaluate(()=>NV.personajes.length===0),'sin servidor, no quedan jugadores fantasma en la pantalla');
-S=await iniciarServidor({dir,puerto:PUERTO,host:'127.0.0.1',adminTokens:[ADMIN]});
+S=await iniciarServidor({dir,puerto:PUERTO,host:'127.0.0.1',adminTokens:[ADMIN],claveSesion:FIRMA,retrasoLoginMs:0});
 ok(await listo(pA,2)&&await listo(pB,2)&&await listo(pC2,2),'al volver el servidor, los tres se reconectan solos y se ven');
 ok(await coincide([pA,pB,pC2])&&S.presencia.cantidad()===3,'y todo coincide, con tres jugadores (los viejos ya no existen)');
 ok(errores.length===0,'ningún error de JavaScript'+(errores.length?': '+errores.slice(0,3).join(' | '):''));

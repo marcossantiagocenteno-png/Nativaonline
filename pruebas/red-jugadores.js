@@ -3,13 +3,15 @@
 let WebSocket; try{ WebSocket=require('../servidor/node_modules/ws'); }catch(e){ console.log('OMITIDA: falta `npm install` dentro de servidor/'); process.exit(0); }
 const fs=require('fs'), os=require('os'), path=require('path');
 const {iniciarServidor}=require('../servidor/red.js');
+const sesionAdmin=require('./sesion.js');
 let bien=0,mal=0; const ok=(c,t)=>{ if(c) bien++; else { mal++; console.log('MAL:',t); } };
 const dormir=ms=>new Promise(r=>setTimeout(r,ms));
 const ADMIN='clave-de-admin-de-prueba-0123456789';
 const tok=n=>'token-de-invitado-de-prueba-'+String(n).padStart(6,'0');
 const MIRA={'1,0':'este','-1,0':'oeste','0,1':'sur','0,-1':'norte'};
 
-function conectar(puerto,token){
+async function conectar(puerto,token){
+  const sesion=token===ADMIN?await sesionAdmin(puerto,ADMIN):undefined;      // el administrador entra con su sesión, no con la contraseña
   return new Promise((res,rej)=>{
     const ws=new WebSocket('ws://127.0.0.1:'+puerto);
     const C={ws,msgs:[],vista:new Map(),yo:null,epoca:0,mis:null,cerrado:null,pos:[],j_menos:[],saltos:0,esperas:[]};
@@ -29,7 +31,7 @@ function conectar(puerto,token){
       C.esperar=(f,ms)=>{ const ya=C.msgs.find(f); if(ya) return Promise.resolve(ya); return new Promise(r=>{ const e={f,r}; C.esperas.push(e); setTimeout(()=>{ const i=C.esperas.indexOf(e); if(i>=0){ C.esperas.splice(i,1); r(undefined); } },ms||3000); }); };
       /* un paso como lo manda el juego: se anticipa y se avisa al servidor con la época vigente */
       C.paso=(dx,dy)=>{ C.mis={x:C.mis.x+dx,y:C.mis.y+dy,mirando:MIRA[dx+','+dy]}; C.enviar({t:'mover',x:C.mis.x,y:C.mis.y,e:C.epoca}); };
-      C.enviar({t:'hola',v:1,token});
+      C.enviar({t:'hola',v:1,token:sesion?tok(0):token,sesion});
       C.esperar(m=>m.t==='bienvenida').then(()=>res(C));
     });
   });
@@ -38,7 +40,7 @@ const hasta=async(f,ms)=>{ const t=Date.now(); while(Date.now()-t<(ms||3000)){ i
 
 (async()=>{
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'nativa-jug-'));
-const S=await iniciarServidor({dir,puerto:0,host:'127.0.0.1',adminTokens:[ADMIN]});
+const S=await iniciarServidor({dir,puerto:0,host:'127.0.0.1',adminTokens:[ADMIN],retrasoLoginMs:0});
 const NV=S.mundo.NV, P=S.presencia, libre=(x,y)=>!!NV.sueloEn(x,y)&&!NV.solidoEn(x,y);
 const ini=NV.panel(0,0).inicio;
 const vistaOk=(C)=>{ const real=P.lista(C.yo.id); if(C.vista.size!==real.length) return false; return real.every(j=>{ const v=C.vista.get(j.id); return v&&v.x===j.x&&v.y===j.y&&v.mirando===j.mirando&&v.nombre===j.nombre; }); };
@@ -150,7 +152,7 @@ for(const c of [F1,F2,F3]) c.ws.close();
 
 /* ---- el servidor reiniciado empieza sin jugadores (no hay progreso que guardar) ---- */
 await S.cerrar();
-const S2=await iniciarServidor({dir,puerto:0,host:'127.0.0.1',adminTokens:[ADMIN]});
+const S2=await iniciarServidor({dir,puerto:0,host:'127.0.0.1',adminTokens:[ADMIN],retrasoLoginMs:0});
 ok(S2.presencia.cantidad()===0,'tras reiniciar, el servidor no recuerda jugadores: son temporales');
 const G=await conectar(S2.puerto,tok(1)); if(process.env.DEPURAR) console.log('inicio',ini,'libre',libre(ini.x,ini.y),'nace',G.yo.x,G.yo.y); ok(libre(G.yo.x,G.yo.y)&&Math.max(Math.abs(G.yo.x-ini.x),Math.abs(G.yo.y-ini.y))<=3&&(libre(ini.x,ini.y)?G.yo.x===ini.x&&G.yo.y===ini.y:true),'y el primero en entrar vuelve a nacer en el punto de partida (o junto a él si lo construido lo tapa)'); G.ws.close();
 await S2.cerrar();

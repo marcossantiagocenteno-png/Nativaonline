@@ -4,8 +4,9 @@
 
    Protocolo v1 (JSON, un mensaje por trama de texto):
      cliente → servidor
-       {t:'hola', v:1, token, desde?, huella?}   token = identidad temporal de prueba (ver identidad.js). Si trae `desde` (la versión que tiene)
-                                                  y `huella` (la que calculó), el servidor manda sólo lo que falta.
+       {t:'hola', v:1, token, sesion?, desde?, huella?}   token = identidad temporal de invitado (ver identidad.js): SIEMPRE rol 'jugador'.
+                                                  sesion = la sesión de administrador que dio POST /entrar: es lo único que da rol 'admin'.
+                                                  Si trae `desde` (la versión que tiene) y `huella` (la que calculó), el servidor manda sólo lo que falta.
        {t:'editar', n, op}                       una edición del Modo Dios. Sólo admin. `n` lo elige el cliente para reconocer la respuesta.
        {t:'restaurar', n, version}               sólo admin.
        {t:'ping', ts}
@@ -18,13 +19,14 @@
        {t:'ok', n, seq, huella, sinCambio?}      la edición se aceptó, se guardó y es la versión `seq`
        {t:'op', seq, op, autor, huella}          alguien más editó: aplicarla con NV.mundo.editar (en orden; un salto de seq = pedir el mundo de nuevo)
        {t:'mundo', seq, huella, mundo, motivo}   reemplazo completo (restauración o importación)
-       {t:'error', n?, codigo, motivo}           codigos: version, token, permiso, invalida, formato, desconocido, ritmo, orden
+       {t:'error', n?, codigo, motivo}           codigos: version, token, sesion, permiso, invalida, formato, desconocido, ritmo, orden
        {t:'pong', ts}
      presencia (ver servidor/presencia.js): `bienvenida` trae además yo:{id,nombre,x,y,mirando,e} y jugadores:[…]; después llegan
        {t:'j+', j:{id,nombre,x,y,mirando}} · {t:'j-', id} · {t:'mov', id, x, y, mirando, salto} (salto = teletransporte, sin animar el paso)
        {t:'pos', x, y, mirando, e, motivo}      sólo a quien se corrige: su posición verdadera y su época nueva (motivos: lejos, solido, rapido,
                                                 formato, obra, inicio, escena)
-   HTTP: GET /salud · GET /copia (admin, Authorization: Bearer <token>) · POST /importar (admin, cuerpo = la copia)
+   HTTP: GET /salud (dice también si hay clave de administrador configurada: sólo sí o no) · POST /entrar ({clave} → {sesion, vence}; con freno de intentos)
+         · POST /salir (revoca la sesión) · GET /copia (admin, Authorization: Bearer <sesión>) · POST /importar (admin, cuerpo = la copia)
    Seguridad: sólo el servidor decide qué se acepta (los clientes no imponen nada); un rol sin permiso recibe 'permiso' y no cambia nada;
    mensajes con tope de tamaño, tope de ritmo por conexión, latidos que cierran conexiones muertas, lista opcional de orígenes. */
 'use strict';
@@ -32,13 +34,20 @@ const http=require('http');
 const {WebSocketServer}=require('ws');
 const {abrirMundoOficial}=require('./mundo-oficial.js');
 const {crearIdentidad,puede}=require('./identidad.js');
+const {crearFreno}=require('./sesiones.js');
 const {crearPresencia}=require('./presencia.js');
 const VERSION=1;
 
 async function iniciarServidor(op){
   op=op||{};
   const mo=await abrirMundoOficial({dir:op.dir,cadaN:op.cadaN});
-  const ident=op.identidad||crearIdentidad({adminTokens:op.adminTokens});
+  const ident=op.identidad||crearIdentidad({adminTokens:op.adminTokens,claveSesion:op.claveSesion,ahora:op.ahora,vigenciaMs:op.vigenciaSesionMs});
+  const freno=crearFreno({maxFallos:op.maxIntentos,ventanaMs:op.ventanaIntentosMs,ahora:op.ahora});
+  const retrasoLogin=op.retrasoLoginMs===undefined?400:op.retrasoLoginMs;
+  /* de dónde viene una petición, para el freno de intentos. Detrás de un proxy (alojamiento) la dirección real viene en X-Forwarded-For:
+     sólo se lee si se pidió expresamente (NATIVA_CONFIAR_PROXY), porque de otro modo cualquiera podría falsearla para esquivar el freno. */
+  const ipDe=req=>{ if(op.confiarProxy){ const f=String(req.headers['x-forwarded-for']||'').split(',').map(x=>x.trim()).filter(Boolean); if(f.length) return f[f.length-1]; } return req.socket.remoteAddress||'?'; };
+  const pausa=ms=>new Promise(r=>setTimeout(r,ms));
   const lim={mensaje:op.maxMensaje||256*1024, copia:op.maxCopia||32*1024*1024, clientes:op.maxClientes||200, porSegundo:op.maxPorSegundo||60, lento:8*1024*1024};
   const pres=op.presencia||crearPresencia({NV:mo.NV,aleatorio:op.aleatorio,ahora:op.ahora});
   const log=op.log||(()=>{}), clientes=new Set(), porJugador=new Map();
@@ -94,14 +103,35 @@ async function iniciarServidor(op){
     if(o&&origenOk(o)){ res.setHeader('Access-Control-Allow-Origin',o); res.setHeader('Vary','Origin'); res.setHeader('Access-Control-Allow-Headers','authorization,content-type'); res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS'); }
   };
   const json=(res,code,o,extra)=>{ res.writeHead(code,Object.assign({'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'},extra||{})); res.end(JSON.stringify(o)); };
-  const adminDe=req=>{ const m=/^Bearer\s+(.+)$/.exec(req.headers.authorization||''); const id=m&&ident.autenticar(m[1]); return id&&puede(id.rol,'copia')?id:null; };
+  const sesionDe=req=>{ const m=/^Bearer\s+(.+)$/.exec(req.headers.authorization||''); return m?m[1]:null; };
+  const adminDe=req=>{ const s=sesionDe(req); const id=s&&ident.verificarSesion(s); return id&&puede(id.rol,'copia')?id:null; };
+  const cuerpoCorto=async(req,tope)=>{ const t=[]; let n=0; for await(const x of req){ n+=x.length; if(n>tope) return null; t.push(x); } return Buffer.concat(t).toString('utf8'); };
   const server=http.createServer(async(req,res)=>{
     cabecerasCors(req,res);
     try{
       const url=req.url.split('?')[0];
       if(req.method==='OPTIONS'){ res.writeHead(204); return res.end(); }
       if(req.headers.origin&&!origenOk(req.headers.origin)) return json(res,403,{error:'origen no permitido'});
-      if(req.method==='GET'&&url==='/salud') return json(res,200,{ok:true,version:VERSION,seq:mo.seq(),huella:mo.huella(),clientes:clientes.size,semilla:mo.NV.CONFIG.seed});
+      if(req.method==='GET'&&url==='/salud') return json(res,200,{ok:true,version:VERSION,seq:mo.seq(),huella:mo.huella(),clientes:clientes.size,semilla:mo.NV.CONFIG.seed,admin:ident.hayAdmins});
+      if(req.method==='POST'&&url==='/entrar'){
+        /* la contraseña de administrador se comprueba SÓLO acá, en el servidor. Nunca se registra ni se devuelve. */
+        if(!ident.hayAdmins) return json(res,503,{error:'sin-clave',motivo:'El servidor no tiene configurada la clave de administrador (variable NATIVA_ADMIN_TOKEN).'});
+        const ip=ipDe(req), f=freno.consultar(ip);
+        if(!f.ok) return json(res,429,{error:'demasiados-intentos',esperar:Math.ceil(f.esperarMs/1000)},{'Retry-After':String(Math.ceil(f.esperarMs/1000))});
+        const texto=await cuerpoCorto(req,2048); if(texto===null){ res.writeHead(413); return res.end(); }
+        let clave=null; try{ const j=JSON.parse(texto); clave=j&&j.clave; }catch(e){}
+        freno.fallo(ip);                                                            // el intento se cuenta ANTES de la demora: mil peticiones a la vez gastan los mismos cinco
+        await pausa(retrasoLogin);                                                  // misma demora con acierto o con fallo
+        const s=ident.entrar(clave);
+        if(!s){ log('intento de administrador fallido'); return json(res,401,{error:'clave-incorrecta'}); }
+        freno.acierto(ip); log('administrador entró (sesión '+s.id.slice(0,6)+')');
+        return json(res,200,{ok:true,sesion:s.sesion,vence:s.vence,rol:'admin'});
+      }
+      if(req.method==='POST'&&url==='/salir'){
+        const s=sesionDe(req), v=s&&ident.revocarSesion(s);
+        if(v) for(const c of clientes) if(c.sesionId===v.id){ try{ c.ws.close(4005,'sesión cerrada'); }catch(e){} }
+        return json(res,200,{ok:true});
+      }
       if(req.method==='GET'&&url==='/copia'){
         const id=adminDe(req); if(!id) return json(res,401,{error:'hace falta la clave de administrador'});
         const c=await mo.copiaCompleta();
@@ -109,9 +139,8 @@ async function iniciarServidor(op){
       }
       if(req.method==='POST'&&url==='/importar'){
         const id=adminDe(req); if(!id) return json(res,401,{error:'hace falta la clave de administrador'});
-        const trozos=[]; let n=0;
-        for await(const t of req){ n+=t.length; if(n>lim.copia){ res.writeHead(413); return res.end(); } trozos.push(t); }
-        let copia; try{ copia=JSON.parse(Buffer.concat(trozos).toString('utf8')); }catch(e){ return json(res,400,{error:'no es JSON'}); }
+        const texto=await cuerpoCorto(req,lim.copia); if(texto===null){ res.writeHead(413); return res.end(); }
+        let copia; try{ copia=JSON.parse(texto); }catch(e){ return json(res,400,{error:'no es JSON'}); }
         let r; try{ r=await mo.importarConEstado(copia,id.usuarioId); }catch(e){ return json(res,422,{error:e.message}); }
         difundir(mensajeMundo(r.estado,'importar'),null); revisarJugadores();
         log('importó una copia → versión '+r.r.seq+' ('+id.usuarioId+')');
@@ -149,12 +178,17 @@ async function iniciarServidor(op){
     });
   });
 
+  const vencida=c=>!!(c.vence&&(op.ahora||Date.now)()>=c.vence);
   async function manejar(c,m){
     if(m.t==='ping'){ enviar(c,{t:'pong',ts:m.ts}); return; }
     if(m.t==='hola'){
       if(c.estado!=='nuevo'){ error(c,undefined,'orden','ya saludaste'); return; }
       if(m.v!==VERSION){ error(c,undefined,'version','este servidor habla la versión '+VERSION); c.ws.close(4002,'versión'); return; }
-      const id=ident.autenticar(m.token); if(!id){ error(c,undefined,'token','identidad inválida'); c.ws.close(4003,'token'); return; }
+      let id;
+      if(m.sesion!==undefined){                    // administrador: la sesión firmada es lo único que cuenta
+        id=ident.verificarSesion(m.sesion); if(!id){ error(c,undefined,'sesion','la sesión de administrador no es válida o venció'); c.ws.close(4004,'sesión'); return; }
+        c.sesionId=id.id; c.vence=id.vence;
+      } else { id=ident.autenticar(m.token); if(!id){ error(c,undefined,'token','identidad inválida'); c.ws.close(4003,'token'); return; } }   // invitado: siempre 'jugador'
       c.usuarioId=id.usuarioId; c.rol=id.rol; c.estado='entrando';
       let inc=null; if(m.desde!==undefined) inc=await mo.operacionesDesde(m.desde,m.huella);
       const base={t:'bienvenida',v:VERSION,id:c.usuarioId,rol:c.rol,semilla:mo.NV.CONFIG.seed};
@@ -173,6 +207,7 @@ async function iniciarServidor(op){
     if(c.estado!=='listo'){ error(c,m.n,'orden','primero hay que saludar'); return; }
     if(m.t==='editar'){
       if(!puede(c.rol,'editar')){ error(c,m.n,'permiso','sólo un administrador puede editar el mundo oficial'); return; }
+      if(vencida(c)){ error(c,m.n,'sesion','la sesión de administrador venció: vuelve a entrar'); return; }
       let r; try{ r=await mo.aplicar(m.op,c.usuarioId); }catch(e){ error(c,m.n,'invalida',e.message); return; }
       if(r.sinCambio){ enviar(c,{t:'ok',n:m.n,seq:r.seq,huella:r.huella,sinCambio:true}); return; }
       c.seq=Math.max(c.seq,r.seq);
@@ -205,6 +240,7 @@ async function iniciarServidor(op){
     }
     if(m.t==='restaurar'){
       if(!puede(c.rol,'restaurar')){ error(c,m.n,'permiso','sólo un administrador puede restaurar versiones'); return; }
+      if(vencida(c)){ error(c,m.n,'sesion','la sesión de administrador venció: vuelve a entrar'); return; }
       let r; try{ r=await mo.restaurarConEstado(m.version,c.usuarioId); }catch(e){ error(c,m.n,'invalida',e.message); return; }
       log('restauró la versión '+m.version+' → '+r.r.seq+' ('+c.usuarioId+')');
       enviar(c,{t:'ok',n:m.n,seq:r.r.seq,huella:r.r.huella});

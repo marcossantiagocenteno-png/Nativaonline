@@ -3,7 +3,7 @@
 // Necesita puppeteer-core y Chrome (CHROME=/ruta); si no están, se salta. 'vacio' anula pasto, detalle, árboles y rocas.
 let pp; try{ pp=require('puppeteer-core'); }catch(e){ console.log('puppeteer-core no está instalado: prueba omitida'); process.exit(0); }
 const CHROME=process.env.CHROME||'/usr/bin/google-chrome';
-const q=process.argv[2]||'', tag=process.argv[3]||'', vacio=process.argv[4]!=='lleno';
+const q=((process.argv[2]||'')+((process.argv[2]||'').indexOf('?')<0?'?solitario':'&solitario')), tag=process.argv[3]||'', vacio=process.argv[4]!=='lleno';
 (async()=>{ const b=await pp.launch({executablePath:CHROME,headless:'new',args:['--no-sandbox','--allow-file-access-from-files','--window-size=1200,700']});
  const p=await b.newPage(); await p.setViewport({width:1200,height:700}); p.on('pageerror',e=>console.log('ERR',e.message));
  const thr=+(process.argv[5]||1); if(thr>1){ const c=await p.target().createCDPSession(); await c.send('Emulation.setCPUThrottlingRate',{rate:thr}); }

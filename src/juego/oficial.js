@@ -1,6 +1,7 @@
 /* Nativa Online — MODO OFICIAL: el cliente del mundo único y persistente.
-   Se activa SÓLO con ?oficial en el enlace (opcional: ?oficial=wss://servidor). Sin eso este módulo no hace nada y el juego es el
-   modo solitario de siempre: el mundo vive en el navegador, con su borrador, sin servidor.
+   Se activa SÓLO con ?oficial en el enlace (opcional: ?oficial=wss://servidor); la portada (juego/portada.js) es quien lleva ahí a Invitados
+   y Administradores. Sin eso este módulo no hace nada y el juego es el modo solitario de siempre: el mundo vive en el navegador, con su
+   borrador, sin servidor.
 
    En modo oficial la fuente de verdad es el servidor (servidor/red.js):
      · al entrar se baja el mundo oficial; el borrador local NO se lee ni se escribe;
@@ -10,17 +11,21 @@
      · sin conexión (o sin clave de administrador) el Modo Dios queda en SOLO LECTURA: nada se guarda para mandarlo después;
      · se guarda una réplica del último estado oficial para abrir rápido y para ver el mundo sin conexión. No es una fuente de verdad:
        al conectar el servidor comprueba su huella y, si no coincide, manda el mundo de nuevo.
-   La clave de administrador se escribe en el panel del Modo Dios (nunca viaja en el enlace ni está en el código). Se comprueba contra el
-   servidor y sólo se recuerda en este dispositivo si el servidor la acepta. Protocolo: ver servidor/red.js. */
+   El administrador entra por la portada: la contraseña se comprueba UNA vez en el servidor (POST /entrar) y lo que viaja después es una sesión
+   firmada, guardada sólo en sessionStorage de esta pestaña y sólo válida para el servidor que la dio. La contraseña no se guarda en ningún lado
+   ni viaja en el enlace. Un invitado manda únicamente su identidad temporal y el servidor siempre lo trata como jugador. Protocolo: servidor/red.js. */
 (function(NV){
   const O=NV.oficial={activo:false,estado:'apagado',rol:null,seq:0,url:null,listo:false,divergencias:0,resincronizaciones:0,reconexiones:0};
   let par=null; try{ par=/[?&]oficial(?:=([^&]*))?(?:&|$)/.exec(location.search||''); }catch(e){}
   if(!par) return;                                    // modo solitario: nada de esto existe
 
-  const CLAVE_ID='nativa.identidad.v1', CLAVE_ADMIN='nativa.admin.v1', CLAVE_CACHE='nativa.oficial.v1';
+  const CLAVE_ID='nativa.identidad.v1', CLAVE_SESION='nativa.sesion.v1', CLAVE_CACHE='nativa.oficial.v1', CLAVE_ADMIN_VIEJA='nativa.admin.v1';
   const leer=k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
   const escribir=(k,v)=>{ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } };
-  const borrar=k=>{ try{ localStorage.removeItem(k); }catch(e){} };
+  const borrarLocal=k=>{ try{ localStorage.removeItem(k); }catch(e){} };
+  /* la sesión de administrador (pestaña actual, sólo para este servidor) */
+  const leerSesion=()=>{ try{ const d=JSON.parse(sessionStorage.getItem(CLAVE_SESION)||'null'); return d&&typeof d.s==='string'&&d.u===url?d.s:''; }catch(e){ return ''; } };
+  const borrarSesion=()=>{ try{ sessionStorage.removeItem(CLAVE_SESION); }catch(e){} };
   const $o=id=>document.getElementById(id);
 
   /* ---------- a dónde se conecta ---------- */
@@ -31,7 +36,7 @@
   O.activo=true; O.url=url; O.http=url.replace(/^ws/,'http');
 
   let ws=null, seq=0, lastSeq=-1, lastHuella=null, baseValida=false, forzarCompleto=false, perdidos=0;
-  let claveAdmin=leer(CLAVE_ADMIN)||'', claveProbando='';
+  borrarLocal(CLAVE_ADMIN_VIEJA);                     // la contraseña ya no se guarda en este navegador: si una versión anterior la dejó, se borra
   let nSig=1; const pend=new Set();
   let retardo=500, tRec=null, tVer=null, tCache=null, latido=null, lastRx=0, pausado=false, primera=null, importando=null;
 
@@ -40,7 +45,6 @@
     if(!t||t.length<16){ const a=new Uint8Array(24); crypto.getRandomValues(a); t=Array.from(a,x=>x.toString(16).padStart(2,'0')).join(''); escribir(CLAVE_ID,t); }
     return t;
   }
-  const tokenActual=()=>claveProbando||claveAdmin||identidad();
   const huellaLocal=()=>NV.huella(NV.mundo.exportar());
   const mundoVacio=()=>({formato:NV.mundo.FORMATO,semilla:NV.CONFIG.seed,paneles:{},rasgos:[],caminos:[],terreno:[]});
 
@@ -55,7 +59,7 @@
     if(O.estado==='rechazado') return 'El mundo oficial no está disponible desde este navegador: solo lectura.';
     if(O.estado==='conectando') return 'Conectando con el mundo oficial… por ahora solo lectura.';
     if(O.estado!=='en-linea') return 'Sin conexión con el mundo oficial: el Modo Dios queda en solo lectura.';
-    return 'Solo un administrador puede editar el mundo oficial. Pon la clave de administrador en el panel del Modo Dios.';
+    return 'Solo un administrador puede editar el mundo oficial. Entra como administrador desde la pantalla de inicio.';
   };
   function actualizarUI(){
     const de=$o('ofEstado'); if(de){
@@ -71,8 +75,7 @@
       l.textContent=t;
     }
     const admin=O.estado==='en-linea'&&O.rol==='admin';
-    for(const id of ['ofCopia','ofImportar']){ const b=$o(id); if(b) b.style.display=admin?'':'none'; }
-    const ol=$o('ofClaveOlvidar'); if(ol) ol.style.display=claveAdmin?'':'none';
+    for(const id of ['ofCopia','ofImportar','ofSalir']){ const b=$o(id); if(b) b.style.display=admin?'':'none'; }
   }
 
   /* ---------- el mundo que se muestra ---------- */
@@ -125,7 +128,7 @@
     ws=s; O.ws=s; actualizarUI();
     s.onopen=()=>{
       lastRx=Date.now();
-      const h={t:'hola',v:1,token:tokenActual()};
+      const h={t:'hola',v:1,token:identidad()}; const ses=leerSesion(); if(ses) h.sesion=ses;     // el invitado manda sólo su identidad; el administrador, además, su sesión
       if(baseValida&&!forzarCompleto){ h.desde=seq; h.huella=huellaLocal(); }
       forzarCompleto=false; enviar(h);
     };
@@ -157,11 +160,6 @@
     switch(m.t){
       case 'bienvenida': {
         if(m.semilla!==NV.CONFIG.seed){ rechazar('Este navegador y el servidor no usan el mismo mundo base.'); return; }
-        if(claveProbando){
-          const ok=m.rol==='admin'; const k=claveProbando; claveProbando='';
-          if(ok){ claveAdmin=k; escribir(CLAVE_ADMIN,k); aviso('Clave de administrador aceptada en este dispositivo.'); }
-          else { aviso('Esa no es una clave de administrador.'); reiniciarConexion(); return; }
-        }
         const rolAntes=O.rol; O.rol=m.rol; O.id=m.id;
         if(NV.jugadores) NV.jugadores.bienvenida(m);          // su personaje temporal y los jugadores que ya estaban
         let cambio=false;
@@ -200,11 +198,10 @@
         return; }
       case 'error': {
         if(m.n!==undefined) pend.delete(m.n);
-        if(m.codigo==='version'||m.codigo==='token'){
-          if(claveProbando){ claveProbando=''; aviso('Esa clave no sirve.'); reiniciarConexion(); }
-          else rechazar('El servidor no aceptó esta conexión ('+m.codigo+').');
-          return;
+        if(m.codigo==='sesion'){                    // la sesión de administrador venció, se cerró o no vale: se vuelve a entrar como invitado (solo lectura)
+          borrarSesion(); aviso('La sesión de administrador terminó. Para seguir editando, vuelve a entrar desde la pantalla de inicio.'); reiniciarConexion(); return;
         }
+        if(m.codigo==='version'||m.codigo==='token'){ rechazar('El servidor no aceptó esta conexión ('+m.codigo+').'); return; }
         if(m.n!==undefined){
           aviso(m.codigo==='permiso'?m.motivo:'El servidor no aceptó el cambio ('+(m.motivo||m.codigo)+'). Se restaura el mundo oficial.');
           resync();
@@ -224,9 +221,9 @@
   };
 
   /* ---------- copia completa e importación (sólo administradores) ---------- */
-  const cabecera=()=>({Authorization:'Bearer '+claveAdmin});
+  const cabecera=()=>({Authorization:'Bearer '+leerSesion()});
   O.copia=async function(){
-    if(O.rol!=='admin'||!claveAdmin){ aviso('Para bajar la copia completa hace falta la clave de administrador.'); return false; }
+    if(O.rol!=='admin'||!leerSesion()){ aviso('Para bajar la copia completa hace falta entrar como administrador.'); return false; }
     try{
       const r=await fetch(O.http+'/copia',{headers:cabecera()});
       if(!r.ok) throw new Error('el servidor respondió '+r.status);
@@ -237,7 +234,7 @@
     }catch(e){ aviso('No pude bajar la copia: '+e.message); return false; }
   };
   O.importar=async function(texto){
-    if(O.rol!=='admin'||!claveAdmin){ aviso('Para importar hace falta la clave de administrador.'); return false; }
+    if(O.rol!=='admin'||!leerSesion()){ aviso('Para importar hace falta entrar como administrador.'); return false; }
     try{
       const r=await fetch(O.http+'/importar',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},cabecera()),body:texto});
       const j=await r.json().catch(()=>({}));
@@ -249,15 +246,12 @@
   /* ---------- panel del Modo Dios ---------- */
   function iniciarUI(){
     const b=id=>$o(id);
-    const inp=b('ofClaveTxt'), form=b('ofClaveForm');
-    if(inp){ for(const ev of ['keydown','keyup','keypress']) inp.addEventListener(ev,e=>{ e.stopPropagation(); if(ev==='keydown'&&e.key==='Enter'){ e.preventDefault(); entrarClave(); } }); }   // escribir la clave no mueve al personaje ni abre nada
-    function entrarClave(){
-      const v=(inp.value||'').trim(); if(v.length<16){ aviso('La clave de administrador tiene al menos 16 caracteres.'); return; }
-      inp.value=''; form.style.display='none'; claveProbando=v; reiniciarConexion();
-    }
-    if(b('ofClave')) b('ofClave').addEventListener('click',()=>{ const ver=form.style.display==='block'; form.style.display=ver?'none':'block'; if(!ver) inp.focus(); });
-    if(b('ofClaveOk')) b('ofClaveOk').addEventListener('click',entrarClave);
-    if(b('ofClaveOlvidar')) b('ofClaveOlvidar').addEventListener('click',()=>{ claveAdmin=''; claveProbando=''; borrar(CLAVE_ADMIN); aviso('Clave olvidada en este dispositivo.'); form.style.display='none'; reiniciarConexion(); });
+    /* cerrar sesión: el servidor revoca la sesión (y corta la conexión de administrador) y se vuelve a la portada */
+    if(b('ofSalir')) b('ofSalir').addEventListener('click',async()=>{
+      const ses=leerSesion(); borrarSesion();
+      try{ if(ses) await fetch(O.http+'/salir',{method:'POST',headers:{Authorization:'Bearer '+ses}}); }catch(e){}
+      try{ location.href=location.pathname; }catch(e){}
+    });
     if(b('ofCopia')) b('ofCopia').addEventListener('click',()=>O.copia());
     const arch=b('ofArchivo'), bi=b('ofImportar');
     if(bi) bi.addEventListener('click',()=>{

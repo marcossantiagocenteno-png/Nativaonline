@@ -518,4 +518,5 @@ NV.casillaEn=function(col,fil){
 }
 
 /* modo oficial (?oficial): primero se baja el mundo del servidor, después se arranca; sin eso, arranca igual que siempre */
-if(NV.oficial&&NV.oficial.activo) NV.oficial.arrancar(init); else init();
+if(NV.portada&&NV.portada.activa){ /* la portada está en pantalla: el juego arranca cuando se elige (se recarga con ?oficial o ?solitario) */ }
+else if(NV.oficial&&NV.oficial.activo) NV.oficial.arrancar(init); else init();

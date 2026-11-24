@@ -8,7 +8,7 @@ const NVi = window.NV;
 
 /* Sello de versión, puesto por sellar.sh al publicar. Se ve en el pie: así
    Marcos y yo sabemos al instante si está mirando la última versión. */
-NVi.VERSION='24/11 13:44';
+NVi.VERSION='24/11 14:20';
 
 NVi.MARCADO = `<div id="stage">
   <canvas id="cv"></canvas>
@@ -37,8 +37,7 @@ NVi.MARCADO = `<div id="stage">
     <div id="diosTit">Modo Dios</div>
     <div id="diosOficial">
       <div id="ofLinea"></div>
-      <div class="fila"><button id="ofClave" title="Clave de administrador del mundo oficial">clave</button><button id="ofCopia" title="Copia completa del mundo oficial">copia</button><button id="ofImportar" title="Reemplazar el mundo oficial por una copia">importar</button></div>
-      <div id="ofClaveForm"><input id="ofClaveTxt" type="password" autocomplete="off" spellcheck="false" placeholder="clave de administrador"><div class="fila"><button id="ofClaveOk">entrar</button><button id="ofClaveOlvidar" title="Olvidar la clave en este dispositivo">olvidar</button></div></div>
+      <div class="fila"><button id="ofCopia" title="Copia completa del mundo oficial">copia</button><button id="ofImportar" title="Reemplazar el mundo oficial por una copia">importar</button><button id="ofSalir" title="Cerrar la sesión de administrador y volver al inicio">cerrar sesión</button></div>
       <input id="ofArchivo" type="file" accept=".json,application/json">
     </div>
     <div class="pestanas"><button id="diosModoObj" class="on">Objetos</button><button id="diosModoCam">Caminos</button><button id="diosModoTer">Terreno</button><button id="diosModoAgu">Aguas</button><button id="diosModoFlu">Fluidez</button></div>
@@ -102,6 +101,52 @@ NVi.MARCADO = `<div id="stage">
 </div>
 
 <div id="toast"></div>`;
+
+/* La PORTADA: la pantalla de entrada (la dibuja y la maneja juego/portada.js; acá vive su marcado, como el del resto de la interfaz).
+   Los botones y el campo son elementos reales. El arte de fondo es un lienzo; el marco y el título son SVG. */
+NVi.MARCADO_PORTADA = `<div id="portada">
+  <canvas id="ptLienzo" aria-hidden="true"></canvas>
+  <div id="ptMarco" aria-hidden="true"></div>
+  <main id="ptCentro">
+    <h1 id="ptTitulo" aria-label="Nativa Online">
+      <svg id="ptLetras" viewBox="0 0 540 172" role="img" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="ptDegradado" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="172">
+            <stop offset="0" stop-color="#f6f1e7"/><stop offset=".55" stop-color="#e8dcc2"/><stop offset="1" stop-color="#c8a24a"/>
+          </linearGradient>
+          <filter id="ptRoto" x="-4%" y="-8%" width="108%" height="116%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="4" result="r"/>
+            <feDisplacementMap in="SourceGraphic" in2="r" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"/>
+            <feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="1" seed="9" result="g"/>
+            <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -16 11.9" result="m"/>
+            <feComposite in="d" in2="m" operator="in"/>
+          </filter>
+        </defs>
+        <g filter="url(#ptRoto)" fill="none" stroke="url(#ptDegradado)" stroke-width="21" stroke-linejoin="miter" stroke-miterlimit="2.2" stroke-linecap="butt">
+          <g transform="translate(6 16)"><polyline points="10,140 10,0 60,140 60,0"/></g>
+          <g transform="translate(92 16)"><polyline points="8,140 35,4 62,140"/><line x1="19" y1="102" x2="51" y2="102"/></g>
+          <g transform="translate(178 16)"><line x1="0" y1="10" x2="70" y2="10"/><line x1="35" y1="10" x2="35" y2="140"/></g>
+          <g transform="translate(264 16)"><line x1="35" y1="0" x2="35" y2="140"/><path d="M6 7H64M6 133H64" stroke-width="14"/></g>
+          <g transform="translate(350 16)"><polyline points="6,0 35,140 64,0"/></g>
+          <g transform="translate(436 16)"><polyline points="8,140 35,4 62,140"/><line x1="19" y1="102" x2="51" y2="102"/></g>
+        </g>
+      </svg>
+    </h1>
+    <div id="ptSub"><span>Online</span></div>
+    <div id="ptAccesos">
+      <button id="ptInvitado" class="ptBtn" type="button">Invitado</button>
+      <button id="ptAdmin" class="ptBtn" type="button" aria-expanded="false" aria-controls="ptClaveForm">Administrador</button>
+      <form id="ptClaveForm" autocomplete="off" novalidate>
+        <label for="ptClave">Contraseña de administrador</label>
+        <input id="ptClave" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="200">
+        <div class="ptFila"><button id="ptClaveOk" class="ptBtn" type="submit">Entrar</button><button id="ptClaveVolver" class="ptBtn ptSec" type="button">Volver</button></div>
+      </form>
+      <div id="ptMensaje" role="status" aria-live="polite"></div>
+    </div>
+    <div id="ptEstado"></div>
+    <a id="ptSolitario" href="?solitario">Modo solitario (sin servidor)</a>
+  </main>
+</div>`;
 
 /* Se inserta al principio del cuerpo, no se reemplaza: la página todavía se está
    leyendo y reemplazarla se llevaría puestos los módulos que faltan cargar. */
