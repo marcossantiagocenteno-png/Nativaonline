@@ -27,11 +27,13 @@ window.NV_MODULOS=[
   'juego/arbolado',          // motor de árboles (lo coloca y lo diseña el Modo Dios)
   'juego/rocoso',            // motor de rocas y formaciones (lo coloca y lo diseña el Modo Dios)
   'juego/estructuras',       // motor de estructuras y ruinas: muros, columnas, arcos, pozos (laboratorio; el juego aún no lo usa)
-  'juego/cuevas',            // motor de cuevas (interiores): corte con luces propias, bocas que lee Umbrales (laboratorio; el juego aún no lo usa)
-  'juego/umbrales',          // Umbrales: pasar de un mapa a otro (boca de cueva ↔ interior); no sabe dibujar nada (laboratorio; el juego aún no lo usa)
+  'juego/cuevas',            // motor de cuevas (interiores): corte con luces propias, bocas que lee Umbrales (el interior lo dibuja y camina juego/subescenas)
+  'juego/umbrales',          // Umbrales: pasar de un mapa a otro (boca de cueva ↔ interior); no sabe dibujar nada; lo cablea juego/subescenas
   'juego/aguas',             // motor de aguas continentales: charcos, lagos, ríos, cascadas (los coloca el Modo Dios)
   'juego/puente-motores',    // puente: dibuja en el juego los objetos {k:'rocoso'} y {k:'arbolnv'}
   'juego/topes',             // topes: casillas por las que nadie pasa (invisibles fuera del Modo Dios)
+  'juego/bocacueva',         // entradas de cueva vistas desde afuera: pared con arco y hueco libre (las coloca el Modo Dios)
+  'juego/subescenas',        // sub-mundos: el Umbral del Modo Dios, el interior de cueva caminable y el listado de mundos
   'juego/dibujar',
   'juego/particulas',
   'juego/editor',

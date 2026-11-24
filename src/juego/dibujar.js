@@ -37,6 +37,7 @@ function draw(){
 }
 function draw_(){
   if(!world||!ctx) return;
+  if(NV.escena){ NV.subescenas.dibujarEscena(); return; }      // adentro de un sub-mundo (una cueva): otro dibujo, ver subescenas.js
   const t0=performance.now();
   const colsM=Math.ceil(cols/CPM), rowsM=Math.ceil(rowsN/RPM);
   const LIM=NV.limites();
@@ -1385,6 +1386,8 @@ function drawObjeto(tr,haze,t){
   if(tr.k==='rocoso'){ NV.dibujarRocoso(tr,haze,t); return; }
   if(tr.k==='arbolnv'){ NV.dibujarArbolado(tr,haze,t); return; }
   if(tr.k==='tope'){ NV.dibujarTope(tr,haze,t); return; }
+  if(tr.k==='bocacueva'){ NV.dibujarBocaCueva(tr,haze,t); return; }
+  if(tr.k==='umbral'){ NV.dibujarUmbral(tr,haze,t); return; }
   if(false){
     const hgt=Math.max(3,Math.round(tr.h*HPM*0.85));
     const hw=Math.max(2,(tr.h*CPM*0.95)/2);

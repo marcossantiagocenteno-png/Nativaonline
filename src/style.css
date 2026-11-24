@@ -95,6 +95,25 @@ button.on{border-color:var(--oro);color:var(--oro)}
 #creaCampos .cval{color:var(--oro);text-align:right;font-size:9px}
 #creador .fila{display:flex;gap:4px;margin-top:5px}
 #creador .fila button{flex:1}
+#creaCampos .ccampo input[type=text]{grid-column:2/4;width:100%;background:#050607;color:var(--ink);border:1px solid var(--oroflojo);font:inherit;font-size:11px;padding:2px 4px}
+/* el Umbral pregunta cómo se llama el sub-mapa y de qué mundo es; el listado de mundos: negro, blanco y oro */
+#umbralAsk,#mundos{position:absolute;z-index:37;display:none;background:var(--velo);border:1px solid var(--oro);padding:8px 10px;font-size:11px}
+#umbralAsk{left:50%;top:18%;transform:translateX(-50%);width:min(340px,92vw)}
+#umbralAsk.show,#mundos.show{display:block}
+#umbTit,#mundosCab{color:var(--oro);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+#mundosCab{display:flex;justify-content:space-between;align-items:center}
+#mundosCab button{padding:0 7px;font-size:14px;line-height:1.2}
+#umbralAsk .umbCampo{display:grid;grid-template-columns:42% 1fr;align-items:center;gap:6px;margin-top:4px;color:var(--ink)}
+#umbralAsk input,#umbralAsk select{width:100%;background:#050607;color:var(--ink);border:1px solid var(--oroflojo);font:inherit;font-size:11px;padding:3px 5px}
+#umbralAsk .fila{display:flex;gap:4px;margin-top:8px}
+#umbralAsk .fila button{flex:1}
+#mundos{right:350px;top:8px;width:min(420px,60vw);max-height:calc(100% - 16px);overflow-y:auto}
+#mundosLista .mfila{display:block;padding:4px 6px;margin-top:3px;border:1px solid var(--oroflojo);color:var(--ink)}
+#mundosLista .mfila.sub{cursor:pointer}
+#mundosLista .mfila.sub:hover{background:#2a2412}
+#mundosLista .mfila b{display:block;color:var(--oro);font-weight:400}
+#mundosLista .mfila span{display:block;color:var(--dim);font-size:10px}
+#mundosLista .mvacio{color:var(--dim);margin-top:6px}
 #diosCaminos{display:none}
 #dios.camMode #diosPaleta,#dios.terMode #diosPaleta,#dios.fluMode #diosPaleta,#dios.aguMode #diosPaleta{display:none}
 #dios.camMode #diosCaminos{display:grid;grid-template-columns:1fr 1fr;gap:3px 6px}

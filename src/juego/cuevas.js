@@ -422,6 +422,9 @@ function pintar(S,ctx){
 
 /* el tamaño de la pantalla que necesita la cueva entera y dónde poner su origen (bc,br) para que quepa: lo usa quien la muestra completa */
 function marco(S,ctx){ ctx=ctx||{}; const CPM=ctx.CPM||13, HPM=ctx.HPM||6.8, RPM=ctx.RPM||HPM/1.7, det=ctx.detalle==null?(CPM<8?0:2):ctx.detalle, R=geometria(S,CPM,HPM,RPM,det); return {cols:R.cols,rows:R.rows,bc:R.c0,br:R.R0}; }
+/* dónde cae cada punto del plano en la pantalla: columna = bc - c0 + (x-u0)*CPM · fila (a ras de suelo) = br + z*RPM + 0,5. Lo usa quien camina por dentro para
+   centrar la cueva en el personaje: devuelve c0, u0 y R0 de la rejilla a esta resolución. */
+function proyeccion(S,ctx){ ctx=ctx||{}; const CPM=ctx.CPM||13, HPM=ctx.HPM||6.8, RPM=ctx.RPM||HPM/1.7, det=ctx.detalle==null?(CPM<8?0:2):ctx.detalle, R=geometria(S,CPM,HPM,RPM,det); return {c0:R.c0,u0:R.u0,R0:R.R0,cols:R.cols,rows:R.rows,CPM}; }
 if(NV.entorno) NV.entorno.conectar('cuevas',{viento:[],luz:false,sombra:false,contorno:false});
 const paraPaleta=TIPOS_ID.map(id=>({id:'cueva:'+id,nombre:TIPOS[id].nombre,k:'cueva',cat:TIPOS[id].cat,encaja:o=>o&&o.k==='cueva'&&o.c&&o.c.tipo===id}));
 if(NV.motores) NV.motores.registrar({id:'cuevas',nombre:'Cuevas (interiores)',estado:'pendiente',
@@ -433,6 +436,6 @@ if(NV.motores) NV.motores.registrar({id:'cuevas',nombre:'Cuevas (interiores)',es
       conexiones:['luces propias (bocas, cristales, las que pase quien llama)','bocas que lee Umbrales','sin viento'],
       herramientas:['editar (cambia sólo lo pedido)','regenerar forma / derrumbe / vegetación']}}});
 
-NV.cuevas={crear,limpiar,editar,regenerar,plantilla,nuevo,variar,aObjeto,deObjeto,pintar,marco,entradas,luces,suelo,libre,rejilla,paraPaleta,
+NV.cuevas={crear,limpiar,editar,regenerar,plantilla,nuevo,variar,aObjeto,deObjeto,pintar,marco,proyeccion,entradas,luces,suelo,libre,rejilla,paraPaleta,
   MATERIALES,MATS,TIPOS,TIPOS_ID,ESTADO0,estadisticas:()=>Object.assign({},ESTAD,{enCache:CACHE_G.size}),reiniciarCache:()=>{ CACHE_G.clear(); ESTAD.solidos=ESTAD.aciertos=ESTAD.rasters=ESTAD.bandas=ESTAD.pintados=0; }};
 })(window.NV);

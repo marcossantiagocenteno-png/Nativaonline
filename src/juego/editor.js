@@ -34,7 +34,7 @@
         if(it.oculto) continue;          // los genéricos siguen sabiendo regenerarse y borrarse, pero ya no se ofrecen
         const b=document.createElement('button'); b.textContent=it.nombre; b.dataset.id=it.id; b.className='diosItem';
         b.addEventListener('click',()=>{
-          if(it.disenar&&NV.creador){ NV.creador.abrir(NV.motorDeEntrada(it.id),it,null); return; }   // se diseña antes de colocar
+          if(it.disenar&&!it.alColocar&&NV.creador){ NV.creador.abrir(NV.motorDeEntrada(it.id),it,null); return; }   // se diseña antes de colocar
           elegir(E.sel&&E.sel.id===it.id?null:it);
         });
         cont.appendChild(b);
@@ -110,6 +110,7 @@
     const o=Object.assign({},E.fantasma);
     const no=porQueNo(x,y,o);
     if(no){ decir(no); return; }
+    if(E.sel.alColocar&&NV.subescenas){ NV.subescenas.preguntar(x,y,E.sel); return; }   // el Umbral pregunta antes de colocarse
     /* lo que se pone es EXACTAMENTE lo que se veía en la vista previa; después sale otra variante */
     if(hacer({t:'objeto+',x,y,objeto:o},(E.sel.etiqueta||E.sel.nombre)+' colocado.'))
       E.fantasma=NV.motorDeEntrada(E.sel.id).caras.objetos.crear(E.sel.id);
@@ -325,6 +326,7 @@
   /* ---------- entrar y salir ---------- */
   E.entrar=function(){
     if(E.activo) return;
+    if(NV.escena){ decir('Salí de la cueva para usar el Modo Dios.'); return; }
     E.activo=true; NV.pick(true); NV.zoomLibre(true);
     if(typeof dejarDeCaminar==='function') dejarDeCaminar();
     if(typeof detenerRuta==='function') detenerRuta();

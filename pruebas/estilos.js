@@ -19,7 +19,7 @@ const marcado=fs.readFileSync('src/juego/interfaz.js','utf8');
 const PROPIOS=['stage','cv','compass','bubble','map','mapTx',
                'bInfo','info','cuadro','fallo','toast','sello',
                /* los paneles de las esquinas, desde que el lienzo va a los bordes */
-               'hudTL','hudBL','wname','ayuda','dios','diosPaleta','diosEstado','diosCaminos','creador','creaVista'];
+               'hudTL','hudBL','wname','ayuda','dios','diosPaleta','diosEstado','diosCaminos','creador','creaVista','umbralAsk','mundos'];
 const sinRegla=PROPIOS.filter(i=>!css.includes('#'+i));
 console.log('piezas que se colocan solas:', PROPIOS.length, '· sin regla:', sinRegla.join(', ')||'ninguna');
 probar('cada pieza que se coloca sola tiene estilo', sinRegla.length===0);

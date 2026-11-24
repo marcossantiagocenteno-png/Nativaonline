@@ -8,7 +8,7 @@ const NVi = window.NV;
 
 /* Sello de versión, puesto por sellar.sh al publicar. Se ve en el pie: así
    Marcos y yo sabemos al instante si está mirando la última versión. */
-NVi.VERSION='24/11 08:44';
+NVi.VERSION='24/11 09:12';
 
 NVi.MARCADO = `<div id="stage">
   <canvas id="cv"></canvas>
@@ -56,7 +56,19 @@ NVi.MARCADO = `<div id="stage">
     <div id="diosFluidez"></div>
     <div id="diosEstado"></div>
     </div>
-    <div class="pie"><button id="diosDeshacer" title="Ctrl+Z">deshacer</button><button id="diosRehacer" title="Ctrl+Shift+Z">rehacer</button><button id="diosExportar">exportar</button><button id="diosSalir">salir</button></div>
+    <div class="pie"><button id="diosDeshacer" title="Ctrl+Z">deshacer</button><button id="diosRehacer" title="Ctrl+Shift+Z">rehacer</button><button id="diosMundos" title="El mundo y sus sub-mundos">mundos</button><button id="diosExportar">exportar</button><button id="diosSalir">salir</button></div>
+  </div>
+
+  <div id="umbralAsk">
+    <div id="umbTit">Nuevo Umbral</div>
+    <label class="umbCampo"><span>Nombre del sub-mapa</span><input id="umbNombre" type="text" maxlength="40" autocomplete="off"></label>
+    <label class="umbCampo"><span>Su mundo es</span><select id="umbMundo"></select></label>
+    <div class="fila"><button id="umbSeguir">crear</button><button id="umbCancelar">cancelar</button></div>
+  </div>
+
+  <div id="mundos">
+    <div id="mundosCab"><span>Mundos</span><button id="mundosCerrar" title="Cerrar">&times;</button></div>
+    <div id="mundosLista"></div>
   </div>
 
   <div id="creador">

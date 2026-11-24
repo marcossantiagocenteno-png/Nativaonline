@@ -72,6 +72,7 @@ function move(dx,dy,tIdeal){
          : gq==='P'?'El agua es honda. No se cruza.'
          : 'Algo sólido te corta el paso.');
     return; }
+  { const fr=NV.subescenas&&NV.subescenas.bloquea(nx,ny); if(fr){ bubble(fr); return; } }   // un umbral que no lleva a ningún lado frena el paso
   if(gq==='A') bubble('El agua te llega a los tobillos y arrastra.');
   else if(gq==='a') bubble('Pisás el arroyo; apenas te moja las botas.');
   /* De dónde viene y cuándo salió. El personaje se MUEVE POR CASILLAS de un
@@ -88,6 +89,7 @@ function move(dx,dy,tIdeal){
   NV.andado=(NV.andado||0)+1; NV.pasoMs=PASO_MS;
   NV.ultimoPaso=(tIdeal&&tIdeal<=ahora&&ahora-tIdeal<PASO_MS)?tIdeal:ahora;
   hide(); animarSuave(); drawMap(); guardar();
+  if(NV.subescenas) NV.subescenas.alPisar();            // ¿se pisó un umbral? (entrar a una cueva, volver a salir)
 }
 function look(){
   let n=0,near=null;
@@ -142,7 +144,7 @@ function guardar(forzar){
   ultGuardado=ahora; guardadoPendiente=false;
   try{
     localStorage.setItem(CLAVE, JSON.stringify({
-      semilla:NV.CONFIG.seed, x:me.x, y:me.y, mirando:facing,
+      semilla:NV.CONFIG.seed, x:(NV.escena&&NV.escena.afuera?NV.escena.afuera.x:me.x), y:(NV.escena&&NV.escena.afuera?NV.escena.afuera.y:me.y), mirando:facing,
       zoom:NV.metrosVista(), mapa:mapOn, ts:ahora
     }));
   }catch(e){}
@@ -303,6 +305,7 @@ function cerrarCuadro(){ $('cuadro').classList.remove('show'); }
 
 function tictac(){
   if(guardadoPendiente) guardar(true);            // nada se pierde por el freno
+  if(NV.escena) return;                           // adentro de un sub-mundo no hay paneles del mundo
   const p=NV.panelDe(me.x,me.y);
   if(p&&p!==world){ world=p; $('wname').textContent=p.nombre; NV.olvidarObjetos(); }
 }
@@ -355,7 +358,7 @@ function toggleMap(v){
    así el recuadro sale cuadrado. */
 const MAPW=26, MAPH=16;
 function drawMap(){
-  if(!mapOn||!world) return;
+  if(!mapOn||!world||NV.escena) return;
   const P=world, L=NV.LADO;
   const lx=((me.x%L)+L)%L, ly=((me.y%L)+L)%L;
   const el=$('mapTx');

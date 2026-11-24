@@ -146,13 +146,16 @@ function reindexar(){
 }
 
 /* ---------- aplicar las ediciones a un panel recién generado ---------- */
-const OCUPAN={arbol:1,roca:1,hoguera:1,rocoso:1,arbolnv:1,tope:1};
+const OCUPAN={arbol:1,roca:1,hoguera:1,rocoso:1,arbolnv:1,tope:1,bocacueva:1};
 /* las casillas (índices del panel) que ocupa un objeto: un tronco, len a lo largo; una roca grande, su ancho */
 function huella(t){
   const out=[];
   if(t.k==='caido'){ for(let q=0;q<(t.len||1);q++) if(t.x+q<L) out.push(t.y*L+t.x+q); return out; }
   const fx=t.fx||0, fy=t.fy||0;
-  for(let dy=-fy;dy<=fy;dy++) for(let dx=-fx;dx<=fx;dx++){ const x=t.x+dx, y=t.y+dy; if(x>=0&&y>=0&&x<L&&y<L) out.push(y*L+x); }
+  for(let dy=-fy;dy<=fy;dy++) for(let dx=-fx;dx<=fx;dx++){
+    if(t.hx!=null&&dy===fy&&Math.abs(dx)<=t.hx) continue;       // un hueco por el que se pasa (la boca de una cueva)
+    const x=t.x+dx, y=t.y+dy; if(x>=0&&y>=0&&x<L&&y<L) out.push(y*L+x);
+  }
   return out;
 }
 const ponerSuelo=(p,lx,ly,c)=>{ const f=p.ground[ly]; if(f[lx]===c) return false; p.ground[ly]=f.slice(0,lx)+c+f.slice(lx+1); return true; };
@@ -378,6 +381,8 @@ function descargar(nombre){
 const deltaAltura=(mx,my)=>idxAlt.size?(idxAlt.get(kAlt(mx,my))||0):0;
 const defDe=k=>{ const P=D&&D.pan.get(k); return P&&P.def||null; };
 const clavesDefinidas=()=>D?Array.from(D.pan.entries()).filter(([,P])=>P.def).map(([k])=>k):[];
+/* todos los objetos agregados de un tipo (k), con su posición: el listado de sub-mundos del Modo Dios sale de acá */
+const objetosDe=k=>{ const o=[]; if(D) for(const P of D.pan.values()) for(const a of P.agregar) if(a.k===k) o.push(Object.assign({},a)); return o.sort((a,b)=>a.y-b.y||a.x-b.x); };
 const alCambiar=f=>{ oyentes.push(f); return ()=>{ const i=oyentes.indexOf(f); if(i>=0) oyentes.splice(i,1); }; };
 const estadisticas=()=>{ const d=D||datosVacios(); let suelo=0,agregar=0,quitar=0,alt=0; for(const P of d.pan.values()){ suelo+=P.suelo.size; agregar+=P.agregar.length; quitar+=P.quitar.size; alt+=P.alturas.size; }
   return {paneles:d.pan.size,suelo,agregar,quitar,alturas:alt,rasgos:d.rasgos.length,caminos:d.caminos.length,aguas:(d.aguas||[]).length,version}; };
@@ -402,7 +407,7 @@ const margenAncho=()=>{
   return _mm>4?_mm:0;
 };
 NVe.mundo={FORMATO,aplicar,margenAncho,margenAlto,editar,cargar,exportar,texto,comoScript,importarTexto,vacio,descargar,
-  guardarBorrador,cargarBorrador,borrarBorrador,deltaAltura,defDe,clavesDefinidas,alCambiar,estadisticas,
+  guardarBorrador,cargarBorrador,borrarBorrador,deltaAltura,defDe,clavesDefinidas,alCambiar,objetosDe,estadisticas,
   validar:o=>{ validar(o); return true; },version:()=>version,
   caminosDatos:()=>D?D.caminos:[],
   terrenoDatos:()=>D?D.terreno:[],

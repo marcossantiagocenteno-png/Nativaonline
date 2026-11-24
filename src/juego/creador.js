@@ -86,9 +86,15 @@
       ctl=el('select'); for(const [v,t] of f.opciones){ const o=el('option',null,t); o.value=v; ctl.appendChild(o); }
       ctl.value=get(spec,f.ruta);
       ctl.onchange=()=>{ poner(spec,f.ruta,ctl.value);
+        if(f.alCambiar){ f.alCambiar(spec); perillas(); }
         if(f.ruta==='tipo') for(const k of ['alto','columnas','erosion','derrumbe','estrato']) delete spec[k];   // otro tipo: lo suyo por defecto
         if(f.ruta==='tipo') perillas();
         pronto(); };
+      fila.append(et,ctl); return fila;
+    }
+    if(f.tipo==='txt'){
+      ctl=el('input'); ctl.type='text'; ctl.maxLength=40; ctl.value=get(spec,f.ruta)||'';
+      ctl.oninput=()=>poner(spec,f.ruta,ctl.value);
       fila.append(et,ctl); return fila;
     }
     if(f.tipo==='chk'){
