@@ -1933,3 +1933,11 @@ tiene que estar detrás de TLS (wss://), lo que dan los alojamientos con HTTPS p
 **Pruebas.** `node pruebas/produccion.js` (clave fuera de los archivos; el servidor publicado exige orígenes) y `NODE_PATH=/tmp/pp/node_modules node pruebas/chrome-oficial.js`
 (Chrome real: solitario intacto, administrador y jugador, clave escrita con el teclado, edición/deshacer vía servidor, reconexión incremental, solo lectura sin conexión,
 reinicio del servidor, restaurar, importar con confirmación, copia, arranque sin servidor con y sin réplica, origen no permitido).
+
+### Decisiones tomadas tras la etapa 4 (para las etapas siguientes)
+- **Réplica local del último mundo oficial: se conserva.** Sirve para ver el mundo sin conexión. Es sólo de lectura: nunca modifica ni sustituye el mundo del servidor
+  (se verifica por huella al abrirla y el servidor la revisa al conectar). Cómo probar el modo oficial a ojo: `docs/PROBAR-OFICIAL.md`.
+- **Pantalla inicial (etapa futura, aún NO se desarrolla):** dos accesos. **Invitado**: entra al mundo compartido como jugador normal, sin permisos de administrador, con un
+  personaje temporal. **Administrador**: acceso protegido por contraseña, con permisos para usar el Modo Dios. Sin cuentas definitivas ni progreso individual guardado.
+  Esa pantalla sólo reemplazará lo que hoy hacen `?oficial` y el botón «clave» (la identidad ya llega al servidor por `identidad.autenticar`, que es lo único que cambiará).
+- **Orden de trabajo:** primero conexión y sincronización de jugadores; la pantalla inicial y las identidades después.
