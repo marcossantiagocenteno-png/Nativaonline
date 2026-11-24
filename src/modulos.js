@@ -44,3 +44,19 @@ window.NV_MODULOS=[
   'juego/creador',           // la ventana de diseño del Modo Dios: las perillas de los motores
   'juego/jugar'
 ];
+
+/* Los módulos que carga el SERVIDOR del mundo compartido (servidor/). El servidor no dibuja nada: sólo decide el estado
+   (colisión, alturas, ediciones, objetos sólidos), así que usa el MISMO código que el cliente para eso y ninguno de pantalla.
+   Todo módulo de NV_MODULOS tiene que estar en una de estas dos listas (servidor/ vigila que ninguno se pierda):
+   si un motor nuevo decide algo del estado del mundo, va en NV_MODULOS_SERVIDOR; si sólo dibuja, en NV_MODULOS_SOLO_CLIENTE.
+   index.html y pruebas/cargar.js no leen estas dos listas: el modo solitario no cambia. */
+window.NV_MODULOS_SERVIDOR=[
+  'motor/base','motor/registro','mundo/diccionario','mundo/mundo-datos','mundo/generar','mundo/paneles','mundo/ediciones','mundo/objetos',
+  'luz-de-lunas/luz','mundo/viento','motor/entorno','juego/terreno','juego/caminos','juego/arbolado','juego/rocoso','juego/estructuras',
+  'juego/cuevas','juego/umbrales','juego/aguas','juego/puente-motores','juego/topes','juego/bocacueva'
+];
+window.NV_MODULOS_SOLO_CLIENTE=[
+  'motor/fluidez','motor/pincel','motor/lienzo','arte/myrella','motor/sprites','juego/interfaz','juego/personajes','juego/pasto',
+  'juego/subescenas','juego/dibujar','juego/particulas','juego/editor','juego/editor-caminos','juego/editor-fluidez','juego/editor-aguas',
+  'juego/editor-terreno','juego/creador','juego/jugar'
+];

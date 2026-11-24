@@ -1852,3 +1852,16 @@ La entrada ya no es una pared dibujada de frente: es una masa de roca en 3D con 
 - **Umbral automático**: al colocar la entrada, el editor llama a `trasColocar` y se abre la pregunta del Umbral ya apuntando adentro del túnel, con el nombre por defecto y la dirección de entrada. Salir es el mismo punto.
 - **Dibujo**: la imagen se hornea por bandas de filas, sólo las visibles, con un presupuesto de ~18 ms por cuadro; lo que falta se ve en el cuadro siguiente. Lo que cae al sur del ancla sube su prioridad de dibujo para que el suelo de esas filas no lo tape.
 - Las entradas colocadas con la versión anterior (arco plano) hay que volver a colocarlas.
+
+## Multijugador (rama `multijugador`, 24/11)
+
+Decisiones aprobadas: servidor en la PC y la red local durante el desarrollo, preparado para mudarse a un alojamiento permanente; WebSocket con la librería `ws` (la única dependencia, sólo del servidor; el juego sigue sin dependencias); persistencia con diario de operaciones e instantáneas, escritura atómica y respaldos, fuera del código y detrás de una interfaz `almacen` (SQLite después); el modo solitario no cambia; escenas compartidas para las cuevas (la colisión interior multijugador se pospone, la arquitectura no). Cuentas y selección de personajes: al final; mientras, identidades temporales de prueba por el mismo apretón de manos que usará la autenticación.
+
+Punto de restauración: etiqueta `antes-multijugador` (= `6537e0e`, el último commit de `main` antes de esto) y un respaldo de datos y repositorio en `../respaldos/`.
+
+### Etapa 1 — el servidor carga el mundo sin pantalla
+- `servidor/cargar-mundo.js` evalúa los módulos de `NV_MODULOS_SERVIDOR` (declarada en `src/modulos.js`) con el mismo código del cliente. Cada llamada devuelve un mundo aparte. No usa DOM ni `window` global.
+- Todo módulo de `NV_MODULOS` está en `NV_MODULOS_SERVIDOR` (decide estado: terreno, rocas, agua, topes, ediciones…) o en `NV_MODULOS_SOLO_CLIENTE` (dibuja, personajes, editor, escenas, interfaz). `pruebas/servidor-mundo.js` falla si un módulo nuevo no está en una de las dos. `index.html` y `pruebas/cargar.js` no leen esas listas: el cliente no cambia.
+- Algunos motores (rocas, árboles, topes, entradas de cueva) traen sus funciones de dibujo en el mismo archivo que su estado; quedan cargadas pero sin lienzo nadie las llama. Separarlas es un trabajo de limpieza posible, no necesario.
+- Prueba de paridad: cliente completo y servidor reciben las mismas ediciones (suelo, altura, rocas, formaciones, entradas de cueva, topes, agua, caminos, quitar objeto) y dan la misma respuesta en 25 921 casillas, y el mundo exportado es idéntico.
+- Pendiente para la etapa de escenas: `NV.subescenas` (cuevas) es de cliente; el servidor necesitará su parte de estado (quién está en qué escena, colisión interior) separada del dibujo y de la interfaz.
