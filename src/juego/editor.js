@@ -198,20 +198,40 @@
   const hayTierraPanel=(pi,pj)=>NV.sueloEn(pi*NV.LADO+NV.LADO/2,pj*NV.LADO+NV.LADO/2)!==null;
   const kmTxt=()=>NV.LADO+' × '+NV.LADO+' m';
   function cerrarExpansion(){ E.expansion=null; const b=$e('expandir'); if(b) b.classList.remove('show'); programarCuadro(); }
-  function abrirExpansion(pi,pj){
-    E.expansion={pi,pj};
+  function abrirExpansion(pi,pj,quitar){
+    E.expansion={pi,pj,quitar:!!quitar};
     const t=$e('expTxt'), b=$e('expandir');
-    if(t) t.textContent='¿Expandir?\nTerreno '+NV.nombreDe(pi,pj)+' · '+kmTxt();
+    if(t) t.textContent=(quitar?'¿Quitar?\nParcela ':'¿Expandir?\nTerreno ')+NV.nombreDe(pi,pj)+' · '+kmTxt();
     if(b) b.classList.add('show'); programarCuadro();
   }
   function confirmarExpansion(si){
     const X=E.expansion; if(!X){ return; }
     cerrarExpansion();
-    if(si) hacer({t:'panel',pi:X.pi,pj:X.pj,def:{bioma:'pasto',nombre:'Terreno '+NV.nombreDe(X.pi,X.pj)}},'Terreno '+NV.nombreDe(X.pi,X.pj)+' agregado ('+kmTxt()+').'); else decir('No se amplió.');
+    if(si&&X.quitar){ hacer({t:'panel',pi:X.pi,pj:X.pj,def:{bioma:'vacio',nombre:'Quitada'}},'Parcela '+NV.nombreDe(X.pi,X.pj)+' quitada.'); return; }
+    if(si) hacer({t:'panel',pi:X.pi,pj:X.pj,def:{bioma:'pasto',nombre:'Terreno '+NV.nombreDe(X.pi,X.pj)}},'Terreno '+NV.nombreDe(X.pi,X.pj)+' agregado ('+kmTxt()+').'); else decir(X.quitar?'No se quitó.':'No se amplió.');
   }
   E.confirmarExpansion=confirmarExpansion;
   /* devuelve true si el clic era sobre el vacío (y ya se atendió) */
+  /* Parcela › Remover: clic sobre una parcela pregunta ¿Quitar? (no la última, ni la que pisa el personaje) */
+  E.parcelaModo='anadir';
+  function parcelaModo(m){
+    E.parcelaModo=m; cerrarExpansion();
+    const a=$e('parAdd'), q=$e('parQuit'); if(a) a.classList.toggle('on',m==='anadir'); if(q) q.classList.toggle('on',m==='quitar');
+    decir(m==='quitar'?'Remover: clic sobre la parcela que quieres quitar.':'Añadir: clic en el vacío junto al mapa.'); programarCuadro();
+  }
+  E.parcelaModoSet=parcelaModo;
+  function intentarQuitar(e){
+    apuntar(e); const h=E.hover; if(!h) return true;
+    if(NV.sueloEn(h.x,h.y)===null){ cerrarExpansion(); decir('Ahí no hay parcela.'); return true; }
+    const L=NV.LADO, pi=Math.floor(h.x/L), pj=Math.floor(h.y/L), b=NV.limites();
+    let n=0; for(let j=Math.floor(b.y0/L);j<Math.ceil(b.y1/L);j++) for(let i=Math.floor(b.x0/L);i<Math.ceil(b.x1/L);i++) if(hayTierraPanel(i,j)) n++;
+    if(n<=1){ cerrarExpansion(); decir('Es la última parcela: no se puede quitar.'); return true; }
+    const yo=(typeof me!=='undefined')?me:null;
+    if(yo&&Math.floor(yo.x/L)===pi&&Math.floor(yo.y/L)===pj){ cerrarExpansion(); decir('El personaje está en esa parcela: muévelo antes de quitarla.'); return true; }
+    abrirExpansion(pi,pj,true); return true;
+  }
   function intentarAmpliar(e){
+    if(E.parcelaModo==='quitar') return intentarQuitar(e);
     apuntar(e); const h=E.hover; if(!h) return false;
     if(NV.sueloEn(h.x,h.y)!==null){ if(E.expansion) cerrarExpansion(); return false; }
     const L=NV.LADO, pi=Math.floor(h.x/L), pj=Math.floor(h.y/L);
@@ -267,7 +287,7 @@
     if(typeof detenerRuta==='function') detenerRuta();
     const p=$e('dios'); if(p) p.classList.add('show');
     $e('cv').style.cursor='crosshair';
-    decir('<b>Modo Dios</b>\nElegí algo de la paleta y hacé clic en el terreno.\nRueda o + / − : zoom libre (hasta 200 m).\nEspacio + arrastrar: mover el mapa · Inicio: volver al personaje.\nClic en el vacío junto al mapa: agregar una parcela de 100 × 100 m.');
+    decir('<b>Modo Dios</b>\nElegí algo de la paleta y hacé clic en el terreno.\nRueda o + / − : zoom libre (hasta 200 m).\nEspacio + arrastrar: mover el mapa · Inicio: volver al personaje.\nParcela › Añadir: clic en el vacío junto al mapa. Remover: clic sobre la parcela.');
     refrescar(); programarCuadro();
   };
   E.salir=function(){
@@ -275,7 +295,7 @@
     const Mx=E.modos[E.modo]; if(Mx&&Mx.cerrar) Mx.cerrar();
     if(NV.creador) NV.creador.cerrar();
     clearTimeout(tGuardar); NV.mundo.guardarBorrador();   // lo editado ya está en el mundo; además queda guardado
-    cerrarExpansion(); NV.camLibre=null; NV.camDirecta=false; E.espacio=false; E.paneo=null;
+    cerrarExpansion(); E.parcelaModo='anadir'; { const a=$e('parAdd'), q=$e('parQuit'); if(a) a.classList.add('on'); if(q) q.classList.remove('on'); } NV.camLibre=null; NV.camDirecta=false; E.espacio=false; E.paneo=null;
     NV.zoomLibre(false); E.activo=false; E.sel=null; E.fantasma=null; E.hover=null; NV.pick(false);
     const p=$e('dios'); if(p) p.classList.remove('show');
     $e('cv').style.cursor='';
@@ -376,6 +396,8 @@
     addEventListener('pointerup',finPaneo); addEventListener('pointercancel',finPaneo);
     addEventListener('blur',()=>{ E.espacio=false; finPaneo(); });
     const b=id=>$e(id);
+    if(b('parAdd')) b('parAdd').addEventListener('click',()=>parcelaModo('anadir'));
+    if(b('parQuit')) b('parQuit').addEventListener('click',()=>parcelaModo('quitar'));
     if(b('expSi')) b('expSi').addEventListener('click',()=>confirmarExpansion(true));
     if(b('expNo')) b('expNo').addEventListener('click',()=>confirmarExpansion(false));
     b('diosModoObj').addEventListener('click',()=>E.cambiarModo('objetos'));

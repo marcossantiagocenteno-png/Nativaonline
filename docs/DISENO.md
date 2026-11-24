@@ -1617,3 +1617,15 @@ una ventana arrinconada y el resto de la pantalla quedaba vacío. Ahora `aplicar
 antes de pasarse del tope, así el tablero siempre cubre el escenario completo; encoger queda sólo como último recurso. Medido en
 Chrome a 1345 × 554: a 200 m, CPM 3, y el dibujo llega al borde inferior de la pantalla y hasta el borde de la parcela (a 200 m, 100 m
 de mundo ocupan la mitad del ancho).
+
+## Parcela: Añadir / Remover (Modo Dios)
+
+Bajo las pestañas hay una fila **Parcela** con dos botones (`#diosParcela`):
+- **Añadir** (el de siempre y el que está armado al entrar): clic en el vacío junto a una parcela → "¿Expandir?" Sí / No.
+- **Remover**: clic sobre una parcela → "¿Quitar? Parcela x:y · 100 × 100 m" Sí / No. No deja quitar la última parcela ni la que pisa el
+  personaje. Se puede deshacer y rehacer, y viaja en el archivo del mundo.
+
+Quitar es la operación `panel` con `def:{bioma:'vacio'}`. `panel()` devuelve null para un panel `vacio` (así `sueloEn`, `solidoEn` y el
+dibujo lo tratan como fuera del mundo) y `limites()` lo ignora. Lo que dice el archivo del mundo ahora **manda** sobre lo de fábrica
+(`defDe(k)||BIOMAS[k]`), por eso también se puede quitar el 0:0 y deshacerlo (`def:null` lo devuelve). Lo editado dentro de una parcela
+quitada no se borra: vuelve si la parcela se vuelve a añadir. Prueba: `pruebas/quitar.js`.

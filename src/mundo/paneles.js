@@ -42,8 +42,8 @@ function panel(pi,pj){
   const k=clave(pi,pj);
   let p=cache.get(k);
   if(p) return p;
-  const def=BIOMAS[k]||(NVp.mundo&&NVp.mundo.defDe(k));   // los paneles del editor vienen del archivo del mundo
-  if(!def) return null;
+  const def=(NVp.mundo&&NVp.mundo.defDe(k))||BIOMAS[k];   // lo que dice el archivo del mundo manda sobre lo de fábrica
+  if(!def||def.bioma==='vacio') return null;              // 'vacio' = parcela quitada en el editor
   p=NVp.generarPanel(pi,pj,def,LADO);
   p.pi=pi; p.pj=pj; p.clave=k; p.nombre=def.nombre; p.coord=nombreDe(pi,pj);
   if(NVp.mundo) NVp.mundo.aplicar(p);   // las ediciones del mundo, encima de lo generado (vacías = nada)
@@ -130,10 +130,13 @@ function recalcularSombras(){
 }
 
 function limites(){
-  let i0=0,i1=0,j0=0,j1=0;
-  const claves=Object.keys(BIOMAS).concat(NVp.mundo?NVp.mundo.clavesDefinidas():[]);
-  for(const k of claves){ const [i,j]=k.split(',').map(Number);
+  let i0=1e9,i1=-1e9,j0=1e9,j1=-1e9;
+  const claves=new Set(Object.keys(BIOMAS).concat(NVp.mundo?NVp.mundo.clavesDefinidas():[]));
+  for(const k of claves){
+    const d=(NVp.mundo&&NVp.mundo.defDe(k))||BIOMAS[k]; if(!d||d.bioma==='vacio') continue;      // una parcela quitada no cuenta
+    const [i,j]=k.split(',').map(Number);
     i0=Math.min(i0,i); i1=Math.max(i1,i); j0=Math.min(j0,j); j1=Math.max(j1,j); }
+  if(i0>i1) return {x0:0,x1:0,y0:0,y1:0};
   return {x0:i0*LADO, x1:(i1+1)*LADO, y0:j0*LADO, y1:(j1+1)*LADO};
 }
 NVp.limites=limites;

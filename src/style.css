@@ -200,3 +200,9 @@ button.on{border-color:var(--oro);color:var(--oro)}
 #expandir .fila{display:flex;gap:8px;justify-content:center}
 #expandir button{min-width:70px;font-size:12px;padding:4px 10px;background:#0b0d10;color:var(--ink);border:1px solid var(--oro)}
 #expandir button:hover{background:#17140b}
+
+/* Parcela: añadir / remover (Modo Dios) */
+#dios #diosParcela{display:flex;gap:3px;align-items:center;padding:5px 6px;border:1px solid var(--oro);border-top:0;background:#0b0d10}
+#dios #diosParcela span{flex:0 0 auto;font-size:11px;color:var(--dim);margin-right:4px}
+#dios #diosParcela button{flex:1;font-size:11px;padding:3px 6px;background:#0b0d10;color:var(--dim);border:1px solid var(--oroflojo)}
+#dios #diosParcela button.on{color:var(--ink);border-color:var(--oro);background:#17140b}
