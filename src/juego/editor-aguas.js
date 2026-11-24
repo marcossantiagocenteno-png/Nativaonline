@@ -4,7 +4,8 @@
    también el deshacer, el guardado en el borrador y la exportación del mundo.
 
      · elegir el tipo (charco, lago, laguna, arroyo, riachuelo, río, río profundo, cascada)
-     · lagos, lagunas y charcos: clic para poner los puntos del contorno; Intro, doble clic o clic en el primer punto lo cierra
+     · MODO LÁPIZ (botón "lápiz"): se dibuja a mano alzada, arrastrando; al soltar el trazo se suaviza y se vuelve contorno o recorrido
+     · MODO PUNTOS: lagos, lagunas y charcos: clic para poner los puntos del contorno; Intro, doble clic o clic en el primer punto lo cierra
      · arroyos y ríos: clic para trazar el recorrido; Intro o doble clic lo termina
      · cascada: un clic en el punto donde cae
      · clic en un cuerpo: lo elige · arrastrar un punto: lo mueve (contorno o recorrido) · arrastrar el cuerpo: lo desplaza
@@ -25,7 +26,7 @@
   const ESTANCADAS=['charco','lago','laguna'], CURSOS=['arroyo','riachuelo','rio','rio-profundo'];
   const esEst=t=>ESTANCADAS.indexOf(t)>=0, esCur=t=>CURSOS.indexOf(t)>=0;
 
-  let sel=null, tipo='lago', trazo=null, drag=null, cur=null, ultClic=0, pincel={};
+  let sel=null, tipo='lago', trazo=null, drag=null, cur=null, ultClic=0, pincel={}, modoTrazo='puntos', lapiz=null, tVistaL=0;
   const datos=()=>NV.mundo.aguasDatos();
   const datosDe=id=>datos().find(d=>d.id===id)||null;
   function libre(t){ const u=new Set(datos().map(d=>d.id)); let n=1; while(u.has(t+'-'+n)) n++; return t+'-'+n; }
@@ -59,6 +60,39 @@
     const col=Math.floor((e.clientX-r.left-(NV.desplaceX||0))/cw), fil=Math.floor((e.clientY-r.top-(NV.desplaceY||0))/chh);
     if(col<0||fil<0||col>=cols||fil>=rowsN) return null;
     const q=NV.casillaEn(col,fil); return {wx:q.wx,wy:q.wy};
+  }
+
+  /* ---------- el lápiz: a mano alzada ---------- */
+  /* Douglas-Peucker: deja los puntos que de verdad cambian la forma (tol en metros) */
+  function simplificar(P,tol){
+    if(P.length<3) return P.slice();
+    const keep=new Uint8Array(P.length); keep[0]=keep[P.length-1]=1; const pila=[[0,P.length-1]];
+    while(pila.length){
+      const [a,b]=pila.pop(); let mx=0,mi=-1; const A0=P[a], B0=P[b], dx=B0[0]-A0[0], dy=B0[1]-A0[1], l2=dx*dx+dy*dy;
+      for(let i=a+1;i<b;i++){ let t=l2>0?((P[i][0]-A0[0])*dx+(P[i][1]-A0[1])*dy)/l2:0; t=clamp(t,0,1); const d=Math.hypot(P[i][0]-(A0[0]+dx*t),P[i][1]-(A0[1]+dy*t)); if(d>mx){ mx=d; mi=i; } }
+      if(mx>tol&&mi>0){ keep[mi]=1; pila.push([a,mi],[mi,b]); }
+    }
+    return P.filter((_,i)=>keep[i]);
+  }
+  function puntosDeLapiz(){
+    if(!lapiz) return null;
+    let P=lapiz.pts, tol=0.35, R=simplificar(P,tol);
+    while(R.length>70&&tol<4){ tol*=1.4; R=simplificar(P,tol); }
+    /* un contorno cerrado a mano casi nunca cierra justo: se quita el último punto si queda pegado al primero */
+    if(esEst(tipo)&&R.length>3&&Math.hypot(R[0][0]-R[R.length-1][0],R[0][1]-R[R.length-1][1])<1.2) R.pop();
+    return R.map(p=>[Math.round(p[0]*8)/8,Math.round(p[1]*8)/8]);
+  }
+  function vistaLapiz(){
+    const R=puntosDeLapiz(); if(!R) return;
+    try{
+      if(esEst(tipo)){ if(R.length<3){ limpiar(); return; } A().vista(A().aDatos(A().crear(tipo,Object.assign(paramsNuevos(),{id:'__vista',poligono:R,sem:1})))); }
+      else { if(R.length<2){ limpiar(); return; } A().vista(A().aDatos(A().crear(tipo,Object.assign(paramsNuevos(),{id:'__vista',curso:{puntos:R,anchos:null},sem:1})))); }
+    }catch(err){ limpiar(); }
+  }
+  function terminarLapiz(){
+    const R=puntosDeLapiz(), largo=lapiz?lapiz.pts.reduce((a,p,i,q)=>i?a+Math.hypot(p[0]-q[i-1][0],p[1]-q[i-1][1]):0,0):0; lapiz=null; limpiar();
+    if(!R||largo<2||R.length<(esEst(tipo)?3:2)){ E.decir('El trazo quedó muy corto: dibujá más largo.'); refrescar(); return; }
+    trazo=R; crearDesdeTrazo();
   }
 
   /* ---------- trazar un cuerpo nuevo ---------- */
@@ -120,10 +154,16 @@
       if(escribir(id,A().aDatos(c2),'Cascada creada.')){ sel=id; cargarUI(); }
       refrescar(); return;
     }
+    if(modoTrazo==='lapiz'){ lapiz={pts:[[p.wx,p.wy]]}; tVistaL=0; refrescar(); return; }
     trazo=[[p.wx,p.wy]]; vistaTrazo(); refrescar();
   }
   function moverRaton(e){
     const p=puntero(e); cur=p;
+    if(lapiz&&p){
+      const u=lapiz.pts[lapiz.pts.length-1];
+      if(Math.hypot(u[0]-p.wx,u[1]-p.wy)>=0.45){ lapiz.pts.push([p.wx,p.wy]); const t=Date.now(); if(t-tVistaL>90){ tVistaL=t; vistaLapiz(); } }
+      refrescar(); return;
+    }
     if(drag&&p){
       const d=drag.orig;
       if(drag.tipo==='punto'){
@@ -137,6 +177,7 @@
     refrescar();
   }
   function soltar(){
+    if(lapiz){ terminarLapiz(); return; }
     if(!drag) return; const d0=drag; drag=null;
     if(!d0.movido){ limpiar(); refrescar(); return; }
     const d=datosDe(d0.id); if(!d){ limpiar(); return; }
@@ -164,7 +205,7 @@
   function borrar(id){ limpiar(); if(escribir(id,null,'Cuerpo de agua borrado.')&&sel===id){ sel=null; cargarUI(); } refrescar(); }
   function tecla(e,k){
     if(e.ctrlKey||e.metaKey) return false;
-    if(k==='escape'){ if(trazo){ trazo=null; limpiar(); refrescar(); return true; } if(drag){ drag=null; limpiar(); refrescar(); return true; } if(sel){ sel=null; cargarUI(); refrescar(); return true; } return false; }
+    if(k==='escape'){ if(lapiz){ lapiz=null; limpiar(); refrescar(); return true; } if(trazo){ trazo=null; limpiar(); refrescar(); return true; } if(drag){ drag=null; limpiar(); refrescar(); return true; } if(sel){ sel=null; cargarUI(); refrescar(); return true; } return false; }
     if((k==='enter')&&trazo){ crearDesdeTrazo(); return true; }
     if(k==='delete'&&sel){ borrar(sel); return true; }
     return false;
@@ -182,13 +223,16 @@
     ['ondas','Intensidad de las ondas',0,2,0.01,'a'],
     ['viento','Respuesta al viento',0,1.5,0.01,'a'],
     ['reflejo','Reflejo',0,1.5,0.01,'a'],
+    ['Forma y orilla',null,'a'],
+    ['suave','Curvatura (0 = recto)',0,1,0.01,'a'],
+    ['sinuosidad','Sinuosidad del cauce',0,3,0.01,'c'],
+    ['irreg','Irregularidad de bordes',0,3,0.01,'a'],
+    ['entierro','Entierro en el terreno (m)',0,3,0.05,'a'],
+    ['humedad','Humedad de la orilla (m)',0.1,2,0.05,'a'],
+    ['talud','Pendiente de la orilla (m)',0.1,8,0.05,'e'],
     ['Corriente',null,'c'],
     ['vel','Velocidad (m/s; 0 = reposo)',0,3,0.01,'c'],
     ['ancho','Ancho (m)',0.3,20,0.1,'c'],
-    ['Orilla',null,'a'],
-    ['irreg','Irregularidad',0,2,0.01,'a'],
-    ['humedad','Humedad de la orilla (m)',0.1,2,0.05,'a'],
-    ['talud','Pendiente de la orilla (m)',0.1,8,0.05,'e'],
     ['Cascada',null,'k'],
     ['alto','Altura (m)',0.8,20,0.1,'k'],
     ['anchoK','Ancho de la caída (m)',0.8,10,0.1,'k'],
@@ -200,6 +244,7 @@
     const fila=(et,ctl,solo)=>'<div class="trow" data-solo="'+(solo||'t')+'"><span class="tet">'+et+'</span><span class="tctl">'+ctl+'</span></div>';
     const cab=(x,solo)=>'<div class="tcab" data-solo="'+(solo||'t')+'">'+x+'</div>';
     let izq=cab('Tipo de agua')+fila('Tipo','<select id="aguTipo">'+A().TIPOS_ID.map(t=>opt(t,A().NOMBRES[t])).join('')+'</select>');
+    izq+='<div class="fila"><button id="aguPuntos" class="on" title="Clic para cada punto">puntos</button><button id="aguLapiz" title="Dibujar a mano alzada, arrastrando">lápiz</button></div>';
     izq+='<div class="tnota" id="aguAyuda"></div>';
     izq+='<div class="fila"><button id="aguRegen" title="Otra semilla: sólo cambia este cuerpo">regenerar sector</button><button id="aguInvertir" title="Invierte el sentido de la corriente">invertir corriente</button></div>';
     izq+='<div class="fila"><button id="aguBorrar" title="Supr o clic derecho">borrar</button><button id="aguSoltar" title="Esc">soltar</button></div>';
@@ -234,17 +279,18 @@
   function ayuda(){
     const el=raiz()&&raiz().querySelector?raiz().querySelector('#aguAyuda'):null; if(!el) return;
     const t=tipoActual();
+    if(!sel&&modoTrazo==='lapiz'&&tipo!=='cascada'){ el.textContent='Lápiz: arrastrá sobre el suelo dibujando '+(esEst(tipo)?'el contorno (se cierra solo al soltar)':'el recorrido (corre en el sentido en que lo dibujás)')+'. Se suaviza solo.'; return; }
     el.textContent=sel?'Elegido: '+sel+'. Arrastrá un punto del contorno para cambiarlo; Mayús + clic en el borde agrega uno; clic derecho en un punto lo quita.'
       :(t==='cascada'?'Un clic en el punto donde cae el agua.':esEst(t)?'Clic para poner el contorno. Intro, doble clic o clic en el primer punto lo cierra.':'Clic para trazar el recorrido (corre en el sentido del trazo). Intro o doble clic lo termina.');
   }
   function mostrarVal(el){
     const v=raiz()&&raiz().querySelector?raiz().querySelector('[data-v="'+el.dataset.k+'"]'):null; if(!v) return;
-    const x=+el.value; v.textContent=(el.dataset.k==='opacidad'||el.dataset.k==='tono'||el.dataset.k==='ondas'||el.dataset.k==='viento'||el.dataset.k==='reflejo'||el.dataset.k==='irreg'||el.dataset.k==='intensidad'||el.dataset.k==='espuma')?Math.round(x*100)+'%':x.toFixed(2);
+    const x=+el.value; v.textContent=(el.dataset.k==='opacidad'||el.dataset.k==='tono'||el.dataset.k==='ondas'||el.dataset.k==='viento'||el.dataset.k==='reflejo'||el.dataset.k==='irreg'||el.dataset.k==='intensidad'||el.dataset.k==='espuma'||el.dataset.k==='suave'||el.dataset.k==='sinuosidad')?Math.round(x*100)+'%':x.toFixed(2);
   }
   /* un cambio {campo:valor} sobre los datos de un cuerpo */
   function parchar(d,k,v){
     const n=copia(d);
-    const propio=k==='ancho'?!!n.curso:(k==='alto'||k==='anchoK'||k==='intensidad'||k==='espuma')?n.tipo==='cascada':(k==='vel')?!!n.curso:(k==='talud')?!!n.poligono:n.tipo!=='cascada';
+    const propio=k==='ancho'?!!n.curso:(k==='alto'||k==='anchoK'||k==='intensidad'||k==='espuma')?n.tipo==='cascada':(k==='vel'||k==='sinuosidad')?!!n.curso:(k==='talud')?!!n.poligono:n.tipo!=='cascada';
     if(!propio) return null;               // un control que no es de este tipo de agua no hace nada
     if(n.tipo==='cascada'){ if(k==='anchoK') n.ancho=v; else n[k]=v; return recrear(n); }
     if(k==='ancho'){
@@ -276,10 +322,11 @@
   /* ---------- lo que se ve ---------- */
   function estado(){
     if(sel&&!datosDe(sel)) sel=null;
+    if(lapiz) return '<b>Lápiz</b> · '+A().NOMBRES[tipo]+'\nSoltá el clic para terminar el trazo · Esc cancela';
     if(trazo){ const n=trazo.length; return '<b>'+A().NOMBRES[tipo]+'</b> · '+n+' punto'+(n===1?'':'s')+'\n'+(esEst(tipo)?'Intro, doble clic o clic en el primer punto: cerrar':'Intro o doble clic: terminar')+'\nClic derecho: quita el último · Esc cancela'; }
     const d=sel&&datosDe(sel);
     if(d){ const n=puntosDe(d).length; return '<b>'+A().NOMBRES[d.tipo]+'</b> · '+d.id+(d.tipo==='cascada'?' · '+d.alto+' m de caída':' · '+n+' puntos')+'\nLos controles lo editan · arrastrá un punto o el cuerpo\nSupr o clic derecho: borrar · Esc: soltar'; }
-    return '<b>Aguas continentales</b> · '+A().NOMBRES[tipo]+'\n'+(tipo==='cascada'?'Clic: coloca una cascada':esEst(tipo)?'Clic: pone el contorno':'Clic: traza el recorrido')+'\nClic en un cuerpo de agua: lo elige';
+    return '<b>Aguas continentales</b> · '+A().NOMBRES[tipo]+(modoTrazo==='lapiz'&&tipo!=='cascada'?' · lápiz':'')+'\n'+(tipo==='cascada'?'Clic: coloca una cascada':modoTrazo==='lapiz'?'Arrastrá: dibuja a mano alzada':esEst(tipo)?'Clic: pone el contorno':'Clic: traza el recorrido')+'\nClic en un cuerpo de agua: lo elige';
   }
   const cruz=(x,y,color)=>{
     const c0=Math.round((x-camX)*CPM), r0=Math.floor((y-camY)*RPM);
@@ -300,6 +347,7 @@
   function pintar(){
     const oro=packc(ORO[0],ORO[1],ORO[2]), vivo=packc(ORO_VIVO[0],ORO_VIVO[1],ORO_VIVO[2]);
     for(const d of datos()) if(d.id!==sel){ if(d.tipo==='cascada') punto(d.x,d.y,oro); else linea(puntosDe(d),esEst(d.tipo),oro); }
+    if(lapiz){ linea(lapiz.pts,false,vivo); return; }
     if(trazo){ const P=trazo.concat(cur?[[cur.wx,cur.wy]]:[]); linea(P,false,vivo); for(const q of trazo) punto(q[0],q[1],vivo); return; }
     const d=sel&&datosDe(sel);
     if(d){
@@ -313,7 +361,7 @@
   E.modos.aguas={
     bajar,mover:moverRaton,soltar,tecla,estado,pintar,
     abrir(){ cargarUI(); },
-    cerrar(){ drag=null; trazo=null; limpiar(); sel=null; cur=null; },
+    cerrar(){ drag=null; trazo=null; lapiz=null; limpiar(); sel=null; cur=null; },
     iniciar(){
       const r=raiz(); if(!r) return;
       r.innerHTML=html();
@@ -324,6 +372,8 @@
       const q=id=>r.querySelector?r.querySelector('#'+id):null;
       const bind=(id,f)=>{ const b=q(id); if(b) b.addEventListener('click',f); };
       const st=q('aguTipo'); if(st) st.addEventListener('change',()=>cambiarTipo(st.value));
+      const ponerModo=m=>{ modoTrazo=m; trazo=null; lapiz=null; limpiar(); const a=q('aguPuntos'), l=q('aguLapiz'); if(a) a.classList.toggle('on',m==='puntos'); if(l) l.classList.toggle('on',m==='lapiz'); ayuda(); refrescar(); };
+      bind('aguPuntos',()=>ponerModo('puntos')); bind('aguLapiz',()=>ponerModo('lapiz'));
       bind('aguRegen',()=>{ const d=sel&&datosDe(sel); if(!d){ E.decir('Elegí un cuerpo de agua.'); return; } const n=copia(d); n.sem=((n.sem||0)+1+(Date.now()&0x3ff))|0; escribir(d.id,recrear(n),'Sector regenerado: sólo cambió este cuerpo.'); refrescar(); });
       bind('aguInvertir',()=>{ const d=sel&&datosDe(sel); if(!d||!d.curso){ E.decir('Elegí un río o un arroyo.'); return; } const n=copia(d); n.curso.puntos.reverse(); if(n.curso.anchos) n.curso.anchos.reverse(); escribir(d.id,recrear(n),'Corriente invertida.'); refrescar(); });
       bind('aguBorrar',()=>{ if(sel) borrar(sel); else E.decir('Elegí un cuerpo de agua.'); });
@@ -332,7 +382,7 @@
       cargarUI();
     },
     /* para las pruebas */
-    _estado:()=>({sel,tipo,trazo:trazo&&trazo.length,drag:!!drag,pincel}), _elegir:id=>{ sel=id; if(id){ const d=datosDe(id); if(d) tipo=d.tipo; } }, _tipo:t=>{ tipo=t; pincel={}; trazo=null; },
+    _estado:()=>({sel,tipo,trazo:trazo&&trazo.length,drag:!!drag,pincel,modoTrazo,lapiz:lapiz&&lapiz.pts.length}), _modo:m=>{ modoTrazo=m; }, _elegir:id=>{ sel=id; if(id){ const d=datosDe(id); if(d) tipo=d.tipo; } }, _tipo:t=>{ tipo=t; pincel={}; trazo=null; },
     _cambio:(k,v)=>{ const d=sel&&datosDe(sel); if(!d) return false; const n=parchar(d,k,v); if(!n) return false; escribir(d.id,n); return true; }, _tipoCambio:cambiarTipo
   };
 })(window.NV);

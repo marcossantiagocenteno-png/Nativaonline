@@ -1690,3 +1690,11 @@ a laguna o charco (y un arroyo a río), pero no a un río: eso se traza nuevo. P
 cascada se pinta sobre lo que haya detrás (incluido un personaje parado detrás). Un lago o charco no tiene corriente propia (sólo
 arroyos y ríos). Si hay varios cuerpos con alturas de terreno distintas se pintan en grupos por altura. El costo se midió sólo en un
 Chrome sin GPU.
+
+### Forma, lápiz y entierro
+
+- **Los puntos son de control, no la forma.** `suave` (0–1) pasa una curva Catmull-Rom por los puntos del contorno o del recorrido; 0 es poligonal. Los cuerpos guardados antes de esto no tienen `suave` y siguen poligonales.
+- **Sinuosidad** (`sinuosidad`, sólo cursos): desplaza el recorrido de lado con ruido lento a lo largo del cauce. Se apaga en los extremos para que el río empiece y termine donde se lo puso.
+- **Irregularidad de bordes** (`irreg`): ruido de tres escalas (grande y sinuoso, medio, fino) sobre la orilla; la escala grande crece con el tamaño del cuerpo.
+- **Entierro** (`entierro`, metros): el agua queda hundida; en la orilla norte se pinta una barranca de tierra que baja hasta el agua. No toca `NV.alturaEn` ni el terreno: es sólo el dibujo.
+- **Lápiz** (Modo Dios > Aguas > "lápiz"): se arrastra sobre el suelo; al soltar, el trazo se simplifica (Douglas-Peucker) y se vuelve contorno (cuerpos quietos, se cierra solo) o recorrido (cursos, corre en el sentido en que se dibujó). Esc cancela. "puntos" sigue disponible.

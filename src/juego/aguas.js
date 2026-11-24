@@ -60,13 +60,13 @@ const MEMR=[{},{},{},{},{},{}];
 /* ------------------------------------------------------------------ tipos ----
    lam: largos de onda del viento en metros; amp: altura de la ola de viento a tope (m); ramp: glifos de menos a más cresta */
 const TIPOS={
-  charco:      {estancada:true, prof:0.12, claridad:0.35, opacidad:0.12, tono:0.30, ondas:1, viento:1, reflejo:1.00, irreg:1.0, humedad:0.55, talud:0.22, lam:[0.30,0.52,0.18], amp:0.010, ramp:[' ','.','-','~','-'], fondoVis:1},
-  lago:        {estancada:true, prof:4.5,  claridad:2.4,  opacidad:0.30, tono:0.72, ondas:1, viento:1, reflejo:1.00, irreg:0.8, humedad:0.9,  talud:5.0,  lam:[2.8,1.2,0.55],    amp:0.030, ramp:['_','_','-','-','~'], fondoVis:1},
-  laguna:      {estancada:true, prof:2.4,  claridad:1.6,  opacidad:0.25, tono:0.55, ondas:1, viento:1, reflejo:1.00, irreg:1.0, humedad:0.8,  talud:3.2,  lam:[2.0,0.9,0.45],    amp:0.024, ramp:['_','-','-','~','-'], fondoVis:1},
-  arroyo:      {estancada:false,prof:0.22, claridad:0.8,  opacidad:0.10, tono:0.40, ondas:1, viento:0.5, reflejo:0.55, irreg:0.7, humedad:0.45, vel:0.55, ancho:1.4, lam:[0.40,0.22,0.15], amp:0.008, ramp:['.','-','~','~','='], fondoVis:1},
-  riachuelo:   {estancada:false,prof:0.45, claridad:1.0,  opacidad:0.14, tono:0.46, ondas:1, viento:0.55,reflejo:0.60, irreg:0.7, humedad:0.55, vel:0.80, ancho:2.8, lam:[0.55,0.30,0.18], amp:0.011, ramp:['.','-','~','~','='], fondoVis:1},
-  rio:         {estancada:false,prof:1.6,  claridad:1.3,  opacidad:0.28, tono:0.62, ondas:1, viento:0.65,reflejo:0.75, irreg:0.8, humedad:0.8,  vel:1.00, ancho:7.0, lam:[1.3,0.7,0.35],    amp:0.017, ramp:['-','~','~','=','='], fondoVis:1},
-  'rio-profundo':{estancada:false,prof:5.5,claridad:0.7,  opacidad:0.55, tono:0.90, ondas:1, viento:0.75,reflejo:0.95, irreg:0.7, humedad:0.9,  vel:0.80, ancho:9.0, lam:[2.2,1.0,0.5],    amp:0.022, ramp:['_','_','=','=','~'], fondoVis:1}
+  charco:      {estancada:true, suave:0.75, entierro:0.04, prof:0.12, claridad:0.35, opacidad:0.12, tono:0.30, ondas:1, viento:1, reflejo:1.00, irreg:1.0, humedad:0.55, talud:0.22, lam:[0.30,0.52,0.18], amp:0.010, ramp:[' ','.','-','~','-'], fondoVis:1},
+  lago:        {estancada:true, suave:0.8, entierro:0.7, prof:4.5,  claridad:2.4,  opacidad:0.30, tono:0.72, ondas:1, viento:1, reflejo:1.00, irreg:1.1, humedad:0.9,  talud:5.0,  lam:[2.8,1.2,0.55],    amp:0.030, ramp:['_','_','-','-','~'], fondoVis:1},
+  laguna:      {estancada:true, suave:0.8, entierro:0.5, prof:2.4,  claridad:1.6,  opacidad:0.25, tono:0.55, ondas:1, viento:1, reflejo:1.00, irreg:1.0, humedad:0.8,  talud:3.2,  lam:[2.0,0.9,0.45],    amp:0.024, ramp:['_','-','-','~','-'], fondoVis:1},
+  arroyo:      {estancada:false,suave:0.85, sinuosidad:0.7, entierro:0.15, prof:0.22, claridad:0.8,  opacidad:0.10, tono:0.40, ondas:1, viento:0.5, reflejo:0.55, irreg:0.7, humedad:0.45, vel:0.55, ancho:1.4, lam:[0.40,0.22,0.15], amp:0.008, ramp:['.','-','~','~','='], fondoVis:1},
+  riachuelo:   {estancada:false,suave:0.85, sinuosidad:0.7, entierro:0.25, prof:0.45, claridad:1.0,  opacidad:0.14, tono:0.46, ondas:1, viento:0.55,reflejo:0.60, irreg:0.7, humedad:0.55, vel:0.80, ancho:2.8, lam:[0.55,0.30,0.18], amp:0.011, ramp:['.','-','~','~','='], fondoVis:1},
+  rio:         {estancada:false,suave:0.85, sinuosidad:0.6, entierro:0.55, prof:1.6,  claridad:1.3,  opacidad:0.28, tono:0.62, ondas:1, viento:0.65,reflejo:0.75, irreg:0.8, humedad:0.8,  vel:1.00, ancho:7.0, lam:[1.3,0.7,0.35],    amp:0.017, ramp:['-','~','~','=','='], fondoVis:1},
+  'rio-profundo':{estancada:false,suave:0.85, sinuosidad:0.5, entierro:0.9, prof:5.5,claridad:0.7,  opacidad:0.55, tono:0.90, ondas:1, viento:0.75,reflejo:0.95, irreg:0.7, humedad:0.9,  vel:0.80, ancho:9.0, lam:[2.2,1.0,0.5],    amp:0.022, ramp:['_','_','=','=','~'], fondoVis:1}
 };
 const TIPOS_ID=Object.keys(TIPOS).concat(['cascada']);
 const CASCADA0={tipo:'cascada',x:0,y:0,ancho:2.5,alto:4,intensidad:0.8,espuma:1,tono:0.2,sem:1,viento:0.3};
@@ -106,6 +106,7 @@ function validar(c){
   if(c.tipo==='cascada'){ for(const k of ['x','y','ancho','alto','intensidad']) if(!num(c[k])) throw new Error('cascada '+c.id+': '+k+' inválido'); if(!(c.ancho>0)||!(c.alto>0)) throw new Error('cascada '+c.id+': sin tamaño'); return c; }
   for(const k of ['prof','claridad','opacidad','tono','ondas','viento','reflejo','irreg','humedad']) if(!num(c[k])) throw new Error('agua '+c.id+': '+k+' inválido');
   if(!(c.prof>0)) throw new Error('agua '+c.id+': profundidad inválida');
+  for(const k of ['suave','sinuosidad','entierro']) if(c[k]!==undefined&&!num(c[k])) throw new Error('agua '+c.id+': '+k+' inválido');
   if(TIPOS[c.tipo].estancada){
     if(!Array.isArray(c.poligono)||c.poligono.length<3) throw new Error('agua '+c.id+': el contorno necesita al menos tres puntos');
     for(const p of c.poligono) if(!num(p[0])||!num(p[1])) throw new Error('agua '+c.id+': punto inválido');
@@ -132,16 +133,58 @@ function segDist(px,py,ax,ay,bx,by){ const dx=bx-ax, dy=by-ay, l2=dx*dx+dy*dy; l
 function enPoligono(px,py,P){ let dentro=false; for(let i=0,j=P.length-1;i<P.length;j=i++){ const xi=P[i][0], yi=P[i][1], xj=P[j][0], yj=P[j][1]; if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi)) dentro=!dentro; } return dentro; }
 
 function tangentes(Q){ const n=Q.length, T=[]; for(let i=0;i<n;i++){ const a=Q[Math.max(0,i-1)], b=Q[Math.min(n-1,i+1)]; let dx=b[0]-a[0], dy=b[1]-a[1]; const l=Math.hypot(dx,dy)||1; T.push([dx/l,dy/l]); } return T; }
-/* punto más cercano del cauce: devuelve s (arco), n (lado izquierdo +), tangente interpolada y el ancho en ese punto */
+
+/* ---- curvas: los puntos que se dan son de CONTROL; la forma real es una curva suave que pasa por ellos ----
+   suave 0 = poligonal (firme, vectorial); 1 = curva completa (Catmull-Rom). Devuelve puntos [x,y] y, si hay, el valor w
+   (ancho) interpolado en cada uno. Poco a poco: se subdivide cada tramo en pasos de ~0,5 m. */
+function curvar(P,W,cerrado,k){
+  const n=P.length; if(n<2) return {P:P.map(q=>[q[0],q[1]]),W:W?W.slice():null};
+  const g=i=>cerrado?P[((i%n)+n)%n]:P[clamp(i,0,n-1)];
+  const out=[], ow=W?[]:null, tramos=cerrado?n:n-1;
+  for(let i=0;i<tramos;i++){
+    const p0=g(i-1), p1=g(i), p2=g(i+1), p3=g(i+2), L=Math.hypot(p2[0]-p1[0],p2[1]-p1[1]), m=k<=0.01?1:clamp(Math.ceil(L/0.5),2,24);
+    for(let j=0;j<m;j++){
+      const u=j/m, u2=u*u, u3=u2*u;
+      const cx=0.5*((2*p1[0])+(-p0[0]+p2[0])*u+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*u2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*u3);
+      const cy=0.5*((2*p1[1])+(-p0[1]+p2[1])*u+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*u2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*u3);
+      out.push([mix(p1[0]+(p2[0]-p1[0])*u,cx,k),mix(p1[1]+(p2[1]-p1[1])*u,cy,k)]);
+      if(ow) ow.push(mix(W[i],W[Math.min(i+1,n-1)],u));
+    }
+  }
+  if(!cerrado){ out.push([P[n-1][0],P[n-1][1]]); if(ow) ow.push(W[n-1]); }
+  return {P:out,W:ow};
+}
+/* el recorrido de un río: curva + meandros. Los meandros desplazan cada punto de lado con un ruido lento a lo largo del cauce;
+   la amplitud crece con el ancho y se apaga en los extremos para que el río empiece y termine donde se lo puso. */
+function meandrar(Q,W,sinu,sem){
+  const n=Q.length; if(n<3||sinu<=0.01) return Q;
+  const arco=[0]; for(let i=1;i<n;i++) arco.push(arco[i-1]+Math.hypot(Q[i][0]-Q[i-1][0],Q[i][1]-Q[i-1][1]));
+  const total=arco[n-1], T=tangentes(Q), out=[];
+  for(let i=0;i<n;i++){
+    const w=W?W[i]:2, lam=clamp(w*7,5,32), amp=sinu*(0.45*w+0.25);
+    const ex=clamp(Math.min(arco[i],total-arco[i])/Math.max(2,w*2),0,1), e=ex*ex*(3-2*ex);
+    const off=(ruido(sem+21,arco[i]/lam,0.5)-0.5)*2*amp*e+(ruido(sem+22,arco[i]/(lam*0.35),1.5)-0.5)*0.5*amp*e;
+    out.push([Q[i][0]-T[i][1]*off,Q[i][1]+T[i][0]*off]);
+  }
+  return out;
+}
+/* ---- punto más cercano del cauce (con poda: casi todos los tramos se descartan por su caja) ---- */
 function sobreCauce(c,F,px,py,o){
-  const Q=c.curso.puntos, A=F.anchos, Lc=F.arco, Tv=F.tang;
-  let best=1e18, bi=0, bt=0;
-  for(let i=0;i<Q.length-1;i++){
+  const Q=F.P, A=F.anchos, Lc=F.arco, Tv=F.tang, N=Q.length-1, bx=F.segBox;
+  let best=1e18, bi=F.ult||0, bt=0;
+  const probar=i=>{
     const ax=Q[i][0], ay=Q[i][1], dx=Q[i+1][0]-ax, dy=Q[i+1][1]-ay, l2=dx*dx+dy*dy;
-    let t=l2>0?((px-ax)*dx+(py-ay)*dy)/l2:0; t=clamp(t,0,1);
+    let t=l2>0?((px-ax)*dx+(py-ay)*dy)/l2:0; t=t<0?0:t>1?1:t;
     const qx=ax+dx*t-px, qy=ay+dy*t-py, d2=qx*qx+qy*qy;
     if(d2<best){ best=d2; bi=i; bt=t; }
+  };
+  const i0=Math.max(0,Math.min(N-1,bi)); for(let i=Math.max(0,i0-6);i<=Math.min(N-1,i0+6);i++) probar(i);
+  let r=Math.sqrt(best);
+  for(let i=0;i<N;i++){
+    const q=i*4; if(px<bx[q]-r||px>bx[q+2]+r||py<bx[q+1]-r||py>bx[q+3]+r) continue;
+    probar(i); r=Math.sqrt(best);
   }
+  F.ult=bi;
   const a=Q[bi], b=Q[bi+1], dx=b[0]-a[0], dy=b[1]-a[1], ls=Math.hypot(dx,dy)||1;
   let tx=mix(Tv[bi][0],Tv[bi+1][0],bt), ty=mix(Tv[bi][1],Tv[bi+1][1],bt); const tl=Math.hypot(tx,ty)||1; tx/=tl; ty/=tl;
   const qx=a[0]+dx*bt, qy=a[1]+dy*bt;
@@ -152,55 +195,64 @@ function sobreCauce(c,F,px,py,o){
 function prepararCampo(c){
   if(c._f&&c._fv===c.v) return c._f;
   const T=TIPOS[c.tipo], F={ppm:PPM}, sem=c.sem|0;
-  /* caja de la forma + margen para la orilla húmeda */
+  const suave=clamp(c.suave==null?0:c.suave,0,1), irreg=clamp(c.irreg==null?1:c.irreg,0,3);
+  /* la forma real: los puntos dados, curvados y (los cursos) con meandros */
+  let pts, area=0, esc=0;
+  if(T.estancada){
+    pts=curvar(c.poligono,null,true,suave).P;
+    for(let i=0,j=pts.length-1;i<pts.length;j=i++) area+=pts[j][0]*pts[i][1]-pts[i][0]*pts[j][1]; area=Math.abs(area)/2;
+    esc=irreg*clamp(0.085*Math.sqrt(area),0.25,3.2);                // metros de lado a lado en la orilla
+  } else {
+    const An=(c.curso.anchos||c.curso.puntos.map(()=>c.ancho)).map(v=>Math.max(0.2,v));
+    const cu=curvar(c.curso.puntos,An,false,suave);
+    F.P=meandrar(cu.P,cu.W,clamp(c.sinuosidad==null?0:c.sinuosidad,0,3),sem); F.anchos=cu.W;
+    pts=F.P; esc=irreg*0.32*Math.max(0.5,F.anchos.reduce((a,b)=>a+b,0)/F.anchos.length)*0.5;
+  }
+  /* caja de la forma + margen para la orilla húmeda y lo que se mueve la orilla */
   let x0=1e18,y0=1e18,x1=-1e18,y1=-1e18;
-  const pts=T.estancada?c.poligono:c.curso.puntos;
   for(const p of pts){ x0=Math.min(x0,p[0]); x1=Math.max(x1,p[0]); y0=Math.min(y0,p[1]); y1=Math.max(y1,p[1]); }
-  const anchoMax=T.estancada?0:Math.max.apply(null,(c.curso.anchos||pts.map(()=>c.ancho)).concat([c.ancho||1]))*0.9;
-  const mg=(c.humedad||0.5)+1.2+anchoMax*0.5;
+  const anchoMax=T.estancada?0:Math.max.apply(null,F.anchos)*0.9;
+  const ent=Math.max(0,c.entierro||0), mg=(c.humedad||0.5)+1.2+anchoMax*0.5+esc*1.5+ent*1.7+0.5;
   x0-=mg; y0-=mg; x1+=mg; y1+=mg;
   F.x0=x0; F.y0=y0; F.w=Math.ceil((x1-x0)*PPM)+1; F.h=Math.ceil((y1-y0)*PPM)+1;
   const n=F.w*F.h;
   F.prof=new Float32Array(n); F.d=new Float32Array(n).fill(-99); F.fx=new Float32Array(n); F.fy=new Float32Array(n); F.s=new Float32Array(n); F.n=new Float32Array(n);
-  let area=0;
+  /* la orilla no es de regla: tres escalas de ruido (grande y sinuosa, media, fina). Mismas funciones para cursos y cuerpos quietos. */
+  const lam1=T.estancada?clamp(0.45*Math.sqrt(area),2.5,18):clamp(esc*9+2,3,14);
+  const bordeRuido=(px,py)=>((ruido(sem,px/lam1,py/lam1)-0.5)*2+(ruido(sem+1,px*3/lam1,py*3/lam1)-0.5)*0.8+(ruido(sem+2,px*9/lam1,py*9/lam1)-0.5)*0.35)*esc;
   if(T.estancada){
-    for(let i=0,j=pts.length-1;i<pts.length;j=i++) area+=pts[j][0]*pts[i][1]-pts[i][0]*pts[j][1]; area=Math.abs(area)/2;
-    const esc=clamp(0.14*Math.sqrt(area),0.14,2.4)*c.irreg;
-    const talud=Math.max(0.12,c.talud);
-    const lagunar=c.tipo==='laguna';
+    const talud=Math.max(0.12,c.talud), lagunar=c.tipo==='laguna', nP=pts.length;
     for(let j=0;j<F.h;j++) for(let i=0;i<F.w;i++){
       const px=x0+i/PPM, py=y0+j/PPM;
-      let dm=1e18; for(let k=0,l=pts.length-1;k<pts.length;l=k++){ const d=segDist(px,py,pts[l][0],pts[l][1],pts[k][0],pts[k][1]); if(d<dm) dm=d; }
-      let d=enPoligono(px,py,pts)?dm:-dm;
-      /* la orilla no es de regla: ruido grande y fino */
-      d+=((ruido(sem,px*0.8,py*0.8)-0.5)*2*esc+(ruido(sem+1,px*3.1,py*3.1)-0.5)*0.7*esc);
+      let dm=1e18; for(let k=0,l=nP-1;k<nP;l=k++){ const d=segDist(px,py,pts[l][0],pts[l][1],pts[k][0],pts[k][1]); if(d<dm) dm=d; }
+      let d=(enPoligono(px,py,pts)?dm:-dm)+bordeRuido(px,py);
       const q=j*F.w+i; F.d[q]=d;
       if(d>0){
         const u=sm(d/talud);
-        let p=c.prof*Math.pow(u,0.9)*(0.84+0.32*ruido(sem+7,px*0.35,py*0.35));
-        if(lagunar) p*=0.45+1.1*ruido(sem+9,px*0.13,py*0.13);
-        F.prof[q]=p;
+        let pf=c.prof*Math.pow(u,0.9)*(0.84+0.32*ruido(sem+7,px*0.35,py*0.35));
+        if(lagunar) pf*=0.45+1.1*ruido(sem+9,px*0.13,py*0.13);
+        F.prof[q]=pf;
       }
     }
   } else {
-    const Q=c.curso.puntos, N=Q.length;
-    F.anchos=(c.curso.anchos||Q.map(()=>c.ancho)).map(v=>Math.max(0.2,v));
+    const Q=F.P, N=Q.length;
     F.arco=[0]; for(let i=1;i<N;i++) F.arco.push(F.arco[i-1]+Math.hypot(Q[i][0]-Q[i-1][0],Q[i][1]-Q[i-1][1]));
     F.tang=tangentes(Q);
+    F.segBox=new Float32Array((N-1)*4); for(let i=0;i<N-1;i++){ F.segBox[i*4]=Math.min(Q[i][0],Q[i+1][0]); F.segBox[i*4+1]=Math.min(Q[i][1],Q[i+1][1]); F.segBox[i*4+2]=Math.max(Q[i][0],Q[i+1][0]); F.segBox[i*4+3]=Math.max(Q[i][1],Q[i+1][1]); }
     F.largo=F.arco[N-1]; F.anchoMedio=F.anchos.reduce((a,b)=>a+b,0)/N;
-    const o={}, esc=0.18*c.irreg;
+    const o={};
     for(let j=0;j<F.h;j++) for(let i=0;i<F.w;i++){
       const px=x0+i/PPM, py=y0+j/PPM; sobreCauce(c,F,px,py,o);
       /* anchura natural: estrechamientos y ensanchamientos a lo largo */
       const w=o.w*(0.82+0.36*ruido(sem+3,o.s*0.11,3.3)), half=w/2;
-      let d=half-Math.abs(o.n)+(ruido(sem+4,px*1.1,py*1.1)-0.5)*2*esc*Math.min(1.5,half);
+      let d=half-Math.abs(o.n)+bordeRuido(px,py)*Math.min(1.5,Math.max(0.35,half*0.5));
       const q=j*F.w+i; F.d[q]=d; F.s[q]=o.s; F.n[q]=o.n; F.fx[q]=o.tx; F.fy[q]=o.ty;
       if(d>-0.001){
         const u=clamp(o.n/half,-1,1);
         /* hondo al centro, poco hondo en las orillas; con pozas y bajíos a lo largo */
-        let p=c.prof*Math.pow(Math.max(0,1-u*u),0.7)*(0.68+0.64*ruido(sem+5,o.s*0.17,u*1.4));
-        p*=sm(d/Math.max(0.15,Math.min(half*0.6,0.9)));
-        F.prof[q]=p;
+        let pf=c.prof*Math.pow(Math.max(0,1-u*u),0.7)*(0.68+0.64*ruido(sem+5,o.s*0.17,u*1.4));
+        pf*=sm(d/Math.max(0.15,Math.min(half*0.6,0.9)));
+        F.prof[q]=pf;
         /* más rápido al centro y donde se angosta */
         const v=c.vel*(0.30+0.70*(1-u*u))*Math.sqrt(F.anchoMedio/Math.max(0.3,w))*(0.86+0.28*ruido(sem+6,o.s*0.3,0.5));
         F.fx[q]*=v; F.fy[q]*=v;
@@ -477,7 +529,7 @@ const scr={n:0,body:null,H:null,SX:null,SY:null,TU:null,PR:null,D:null,RG:null,R
 function asegurar(n){
   if(scr.n>=n) return;
   scr.n=n; scr.body=new Uint8Array(n); scr.H=new Float32Array(n); scr.SX=new Float32Array(n); scr.SY=new Float32Array(n); scr.TU=new Float32Array(n);
-  scr.PR=new Float32Array(n); scr.D=new Float32Array(n); scr.RG=new Uint16Array(n); scr.RC=new Int32Array(n); scr.RA=new Float32Array(n); scr.FX=new Float32Array(n); scr.FY=new Float32Array(n);
+  scr.PR=new Float32Array(n); scr.D=new Float32Array(n); scr.RG=new Uint16Array(n); scr.RC=new Int32Array(n); scr.RA=new Float32Array(n); scr.FX=new Float32Array(n); scr.FY=new Float32Array(n); scr.WL=new Float32Array(n); scr.WL=new Float32Array(n);
 }
 const pack=(r,g,b)=>((r<0?0:r>255?255:r|0)<<16)|((g<0?0:g>255?255:g|0)<<8)|(b<0?0:b>255?255:b|0);
 function esc(c){ return c; }
@@ -488,7 +540,7 @@ function pintar(sc,cuerpos){
   const luz=(NV.entorno&&NV.entorno.luz)?NV.entorno.luz(0,0,t):{amb:1,r:1,g:1,b:1,L:{x:-0.8,y:-0.2,z:0.55}};
   const cl=clima(), L=luz.L||{x:-0.8,y:-0.2,z:0.55};
   const body=scr.body, H=scr.H, SX=scr.SX, SY=scr.SY, TU=scr.TU, PR=scr.PR, D=scr.D;
-  body.fill(0); D.fill(-99);
+  body.fill(0); D.fill(-99); scr.WL.fill(-1);
   const op=sc.opciones||{}, gR=op.reflejo==null?1:op.reflejo, gDef=op.deformacion==null?1:op.deformacion;
   const mascara=sc.mascara||null;                      // celdas que ya tienen un objeto o un personaje: no se tocan
   const lista=cuerpos.filter(c=>c.tipo!=='cascada');
@@ -517,6 +569,16 @@ function pintar(sc,cuerpos){
           superficie(c,S,m,wx,wy,t,_o);
           body[i]=bi+1; H[i]=_o.h; SX[i]=_o.sx; SY[i]=_o.sy; TU[i]=_o.turb; PR[i]=m.prof; D[i]=m.d; scr.FX[i]=m.fx; scr.FY[i]=m.fy;
           if(cc<bc0) bc0=cc; if(cc>bc1) bc1=cc; if(r<br0) br0=r; if(r>br1) br1=r;
+          /* la barranca: el agua está hundida en el terreno. Desde la cámara (al sur, mirando al norte) se ve la pared de la orilla
+             NORTE bajando hasta el agua: ocupa, hacia el sur, entierro·HPM filas desde el borde. Se sabe que la orilla está al
+             norte porque la distancia a la orilla crece hacia el sur (ny>0). */
+          if(c.entierro>0.02&&m.d<c.entierro*HPM/RPM+0.5){
+            const gi=((wx-F.x0)*PPM)|0, gj=((wy-F.y0)*PPM)|0;
+            if(gi>0&&gj>0&&gi<F.w-1&&gj<F.h-1){
+              const q=gj*F.w+gi, gx=F.d[q+1]-F.d[q-1], gy=F.d[q+F.w]-F.d[q-F.w], gl=Math.sqrt(gx*gx+gy*gy)||1, ny=gy/gl;
+              if(ny>0.2){ const alto=c.entierro*HPM/RPM, u=m.d/(ny*alto); if(u>=0&&u<1) scr.WL[i]=u; }
+            }
+          }
         } else if(m.d>-hum&&body[i]===0){
           D[i]=m.d;                      // tierra mojada
           if(cc<bc0) bc0=cc; if(cc>bc1) bc1=cc; if(r<br0) br0=r; if(r>br1) br1=r;
@@ -566,6 +628,18 @@ function pintar(sc,cuerpos){
         continue;
       }
       const c=lista[bi-1], T=TIPOS[c.tipo], wx=x0+(cc+0.5)/CPM;
+      const wl=scr.WL[i];
+      if(wl>=0){
+        /* pared de tierra: clara arriba (al nivel del suelo), oscura y mojada donde toca el agua */
+        const hq=h3((wx*7)|0,(wy*7)|0,23)%100, v0=C[i], k=1-0.62*wl*(0.7+0.3*wl);
+        let R1=(112+((v0>>16)&255)*0.18)*k, G1=(88+((v0>>8)&255)*0.20)*k, B1=(64+(v0&255)*0.16)*k;
+        if(wl>0.72){ const w2=(wl-0.72)/0.28; R1=mix(R1,30,w2*0.5); G1=mix(G1,48,w2*0.5); B1=mix(B1,62,w2*0.55); }
+        let code=wl<0.14?(hq<50?39:44):wl<0.55?(hq<45?124:hq<75?58:33):(hq<50?58:hq<80?108:46);
+        if(wl<0.1&&hq<30){ R1=mix(R1,((v0>>16)&255),0.6); G1=mix(G1,((v0>>8)&255),0.6); B1=mix(B1,(v0&255),0.6); }
+        let fr=luz.r, fg=luz.g, fb=luz.b;
+        if(sombras) for(const sh of sombras){ const sc2=cc-sh.c0, sr=r-sh.r0; if(sc2>=0&&sr>=0&&sc2<sh.w&&sr<sh.h){ const kk=sh.k[sr*sh.w+sc2]; if(kk>0){ const f=1-0.5*kk; fr*=f; fg*=f; fb*=f; } } }
+        G[i]=code; C[i]=pack(R1*fr,G1*fg,B1*fb); pintadas++; continue;
+      }
       const prof=PR[i], sx=SX[i], sy=SY[i], tu=TU[i], h=H[i];
       /* color por profundidad y fondo visible (con refracción: se mira un poco corrido por la pendiente) */
       colorProf(prof,c.tono,dc);

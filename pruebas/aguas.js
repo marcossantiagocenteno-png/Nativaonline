@@ -163,6 +163,19 @@ VI=0;
   const cuenta=c=>{ const s=escena(3); A.pintar(s,[c]); const g=new Set('Oo:,'.split('').map(x=>x.charCodeAt(0))); let n=0; for(let i=0;i<s.G.length;i++) if(g.has(s.G[i])) n++; return n; };
   ok(cuenta(clara)>cuenta(honda),'el fondo se ve en agua clara y se pierde en agua honda'); }
 
+/* curvatura, sinuosidad, irregularidad y entierro */
+{ VI=0; const P=[[10,5],[30,4],[42,10],[40,22],[24,26],[8,20]];
+  const recto=A.crear('lago',{poligono:P,sem:7,suave:0}), curvo=A.crear('lago',{poligono:P,sem:7,suave:1});
+  const a=A.prepararCampo(recto), b=A.prepararCampo(curvo); let na=0,nb=0; for(let i=0;i<a.d.length;i++) if(a.d[i]>0) na++; for(let i=0;i<b.d.length;i++) if(b.d[i]>0) nb++;
+  ok(na>0&&nb>0&&na!==nb,'la curvatura cambia la forma del cuerpo');
+  const dat=A.aDatos(curvo); ok(dat.suave===1&&dat.entierro!==undefined,'suave y entierro viajan en los datos'); ok(A.deDatos(dat).suave===1,'y vuelven');
+  const dv=A.aDatos(recto); delete dv.suave; delete dv.entierro; const viejo=A.deDatos(dv); ok(!viejo.suave,'un cuerpo guardado sin curvatura queda poligonal');
+  const RP=[[5,5],[20,10],[35,6],[50,14],[62,10]], r0=A.crear('rio',{curso:{puntos:RP,anchos:null},sem:3,sinuosidad:0,suave:0}), r1=A.crear('rio',{curso:{puntos:RP,anchos:null},sem:3,sinuosidad:2,suave:0.9});
+  const f0=A.prepararCampo(r0), f1=A.prepararCampo(r1); let m0=0,m1=0; for(let i=0;i<f0.P.length;i++) m0=Math.max(m0,Math.abs(f0.P[i][1]-10)); for(let i=0;i<f1.P.length;i++) m1=Math.max(m1,Math.abs(f1.P[i][1]-10));
+  ok(f1.P.length>f0.P.length,'curvar subdivide el recorrido'); ok(f1.P[0][0]===5&&f1.P[f1.P.length-1][0]===62,'el río empieza y termina donde se lo puso');
+  const i0=A.crear('lago',{poligono:P,sem:7,irreg:0}), i1=A.crear('lago',{poligono:P,sem:7,irreg:2.5}); const c0=A.prepararCampo(i0), c1=A.prepararCampo(i1); let dif=0; for(let i=0;i<Math.min(c0.d.length,c1.d.length);i++) dif+=Math.abs(c0.d[i]-c1.d[i]); ok(dif>50,'la irregularidad de bordes mueve la orilla');
+  const e0=A.crear('lago',{poligono:P,sem:7,entierro:0}), e1=A.crear('lago',{poligono:P,sem:7,entierro:1.2}); const s0=escena(4), s1=escena(4); A.pintar(s0,[e0]); A.pintar(s1,[e1]); ok(hash(s0)!==hash(s1),'el entierro dibuja la barranca'); }
+
 /* registro */
 const reg=NV.motores&&NV.motores.lista?NV.motores.lista().find(m=>m.id==='aguas'):null;
 ok(!reg||reg.estado==='integrado','registrado como integrado');
