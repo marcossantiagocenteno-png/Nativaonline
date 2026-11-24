@@ -130,7 +130,7 @@ const TIPN=ES.TIPOS_ID.reduce((a,k)=>(a[k]=ES.TIPOS[k].nombre,a),{});
 const GRPN=ES.GRUPOS_ID.reduce((a,k)=>(a[k]=ES.GRUPOS[k].nombre,a),{});
 
 /* Dimensiona la escena con la estructura real: ancho = su caja, alto = altura × 1,7 filas por metro + su fondo */
-function dimsDe(S){ const B=S.box; return {mw:Math.max(5,Math.ceil(B.umax*2)+2), mh:Math.ceil(B.vmax*1.7+B.zmax*2)+4, py:B.zmax+0.8}; }
+function dimsDe(S){ const B=S.box; return {mw:Math.max(3,Math.ceil(B.umax*2+1.6)), mh:Math.max(3,Math.ceil(B.vmax*1.7+B.zmax*2+1.4)), py:B.zmax+0.5}; }
 function una(spec,extra){
   const S=ES.crear(spec), D=dimsDe(S), z=(extra&&extra.z)||1;
   const f=()=>escena({mw:D.mw,mh:D.mh,z,items:[estIt(S,D.mw/2,D.mh-D.py)]}); f.S=S; return f;
