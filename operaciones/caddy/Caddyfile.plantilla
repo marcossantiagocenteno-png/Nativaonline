@@ -1,0 +1,8 @@
+# Plantilla del proxy. instalar.sh sustituye __DOMINIO__ por el nombre real (--dominio) y escribe /etc/caddy/Caddyfile.
+# Caddy obtiene y renueva solo el certificado HTTPS (necesita los puertos 80 y 443 abiertos) y reenvía al juego, que sólo escucha en 127.0.0.1:8787.
+# Sin verificar: que Caddy deje la cabecera X-Forwarded-For como NATIVA_CONFIAR_PROXY necesita (el último elemento = quien se conectó de verdad).
+# Se comprueba con operaciones/despliegue/probar-proxy.js ANTES de dejar el servidor en marcha; ver docs/DESPLIEGUE.md.
+__DOMINIO__ {
+	encode gzip
+	reverse_proxy 127.0.0.1:8787
+}
