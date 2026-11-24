@@ -1,11 +1,12 @@
 # Nativa Online — estado del proyecto
 
-> Foto del estado al **cierre de la etapa 6** (24/11/2026). El detalle de cada decisión vive en `DISENO.md`, que manda sobre el código;
+> Foto del estado tras la **etapa 7 (respaldos) y la preparación de la etapa 8 (despliegue)** (24/11/2026). El detalle de cada decisión vive en `DISENO.md`, que manda sobre el código;
 > este documento es el mapa para orientarse rápido. Si algo de aquí contradice a `DISENO.md`, gana `DISENO.md`.
 
 ## 1. Ramas y puntos de restauración
 - **`main`**: intacta, en `6537e0e` (el juego solitario de antes del multijugador). Es lo que publica GitHub Pages hoy.
-- **`multijugador`**: la base de desarrollo, subida a GitHub (`origin/multijugador`). Cierre de la etapa 6 = commit `12213e7`.
+- **`multijugador`**: la base de desarrollo, subida a GitHub (`origin/multijugador`). Cierre de la etapa 6 = commit `12213e7`; etapa 7 (respaldos) = `1658ac5` (subido). Lo posterior (preparación de la etapa 8) está sólo en local hasta que se autorice el push.
+- El repositorio en GitHub ahora se llama `…/Nativaonline` (GitHub redirige el nombre antiguo); ver `docs/PUBLICACION.md` §4.
 - Etiqueta **`antes-multijugador`** = `6537e0e`: punto de restauración.
 - Nada se integra a `main` sin una decisión expresa.
 
@@ -20,6 +21,8 @@
 | 5 | Jugadores conectados y sincronizados (presencia temporal, el servidor valida cada paso) | `69bbf27` |
 | 6 | Portada, acceso Invitado / Administrador, sesiones firmadas | `826b2a4` |
 | 6 (cierre) | Revocaciones persistentes, freno por /64, destino único de conexión, servidor oficial pendiente | `12213e7` |
+| 7 | Estudio de alojamientos y **sistema de respaldos automáticos** (B2 con tres buckets, cifrado `age`, vigilancia, ensayo, restauración) | `1658ac5` |
+| 8 (preparación) | `NATIVA_HOST`, unidad corregida, guion de despliegue, verificaciones y manual; investigación de publicación y Actions. **Nada contratado ni desplegado.** | (local) |
 
 ## 3. Arquitectura actual
 ```
@@ -50,12 +53,12 @@
 - **Modo Dios** sobre el mundo oficial (solo administrador): terreno, objetos, caminos, aguas, rocas, estructuras, cuevas y Umbrales, ampliar parcelas; cada edición se guarda y se reparte a todos.
 - **Jugadores simultáneos:** presencia en vivo, personaje temporal por conexión, corrección de pasos por el servidor, reubicación ante obras. Sin progreso permanente.
 - **Seguridad:** contraseña mínima de 16 caracteres, clave de firma ≥ 32 y distinta, sesiones no falsificables ni reutilizables tras cerrarlas, revocaciones persistentes, freno de intentos, orígenes permitidos, registros sin secretos, producción con arranque exigente.
-- **Pruebas:** `node pruebas/<archivo>.js` (cada una se corre sola). Las de Chrome real necesitan `NODE_PATH=/tmp/pp/node_modules` (`puppeteer-core`). `dorado.js` vigila que la imagen no cambie. Ver `PROBAR-OFICIAL.md` para probarlo en la PC y el teléfono.
+- **Pruebas:** `node pruebas/<archivo>.js` (cada una se corre sola; las nuevas: `respaldos.js`, `host.js`, `despliegue.js`). Las de Chrome real necesitan `NODE_PATH=/tmp/pp/node_modules` (`puppeteer-core`). `dorado.js` vigila que la imagen no cambie. Ver `PROBAR-OFICIAL.md` para probarlo en la PC y el teléfono.
 
 ## 5. Configuraciones pendientes
 - **`NV.SERVIDOR_OFICIAL`** (`src/juego/destino.js`): vacía a propósito. Se rellena con `wss://…` al publicar. Mientras tanto la página publicada dice que el servidor oficial todavía no está disponible y no se conecta a nada.
 - **Variables del servidor** que hay que fijar en el alojamiento (nunca en el repositorio): `NATIVA_ADMIN_TOKEN`, `NATIVA_SESION_CLAVE`, `NATIVA_ORIGENES`, `NATIVA_DATOS`, `NODE_ENV=production`, y `NATIVA_CONFIAR_PROXY` solo si se cumplen sus tres condiciones. `node servidor/generar-claves.js` genera dos valores al azar sin guardarlos. La contraseña provisional la cambia Marcos al publicar.
-- **Alojamiento:** sin elegir, sin contratar y sin desplegar nada.
+- **Alojamiento:** **elegido en principio Oracle Always Free + DuckDNS + Caddy + Backblaze B2**, pero **sin contratar, sin desplegar y sin configurar DNS**. Manual en `docs/DESPLIEGUE.md`.
 - **Aún no hecho (etapas futuras):** cuentas definitivas y nombre propio del personaje; filtrar a quién se avisa por zona de interés; cuevas compartidas entre jugadores; aplicar la dirección artística de la portada a personajes, criaturas y escenarios; decidir cuándo (y si) `multijugador` se integra a `main`.
 
 ## 6. Requisitos para publicar el servidor
@@ -75,13 +78,14 @@ Lo que el alojamiento tiene que ofrecer (la etapa siguiente consiste en comparar
 
 Pasos posteriores a elegir proveedor (no antes): desplegar con variables, rellenar `NV.SERVIDOR_OFICIAL`, publicar el cliente desde la rama que se decida, probar desde GitHub Pages con un teléfono, y verificar las condiciones del proxy.
 
-## 7. Próxima etapa: elegir proveedor de alojamiento
-**Etapa 7 — estudio y elección del alojamiento permanente del servidor multijugador**, con almacenamiento persistente y WSS.
-- Empieza con una **comparación de alternativas**: costos, ventajas y limitaciones frente a los requisitos de la sección 6.
-- **No se implementa, contrata, despliega ni configura nada** hasta que Marcos revise las opciones y decida.
-- Después de la decisión: despliegue y pruebas contra el servidor real (etapa propia).
+## 7. Próxima etapa: etapa 8 — despliegue (preparado, sin ejecutar)
+- **Hecho:** estudio de alojamiento (etapa 7), respaldos, `NATIVA_HOST=127.0.0.1`, unidad corregida, guion de instalación repetible, verificaciones de despliegue y del proxy, manual (`docs/DESPLIEGUE.md`), propuesta de publicación del cliente y de vigilancia sin fusionar ramas (`docs/PUBLICACION.md`). Probado **en local y en simulación**.
+- **Sigue sin hacerse:** crear cuentas, la VM, el DNS, Caddy real, B2 real, los secretos, publicar el cliente y rellenar `NV.SERVIDOR_OFICIAL`. Cada paso manual está en `docs/DESPLIEGUE.md` (fases 1 a 7).
+- **Decisiones abiertas** antes de contratar: tipo de VM (AMD Micro de 1 GB frente a Ampere A1) y región de Oracle; cómo publicar el cliente (recomendado: rama `publicado`); dónde correr la vigilancia (recomendado: repositorio aparte + aviso externo); Pay As You Go sí o no.
 
 ## 8. Sistema de respaldos (etapa 7, implementado; sin contratar nada)
+- **Decisión aprobada:** tres buckets de B2 (2 / 7 / 28 días) en lugar de los dos de la propuesta inicial, para conservar exactamente los periodos de retención (`docs/RESPALDOS.md`).
 - Código en `operaciones/respaldos/`, unidades en `operaciones/systemd/`, vigilancia en `.github/workflows/vigilancia-respaldos.yml` (apagada hasta `RESPALDOS_ACTIVOS=true`), pruebas en `pruebas/respaldos.js`.
 - Diseño, claves, retención, restauración, pasos manuales y riesgos: `docs/RESPALDOS.md`. Cambio de nombre del servidor (DuckDNS → dominio propio): `docs/DOMINIO.md`.
-- **No se modificó** el servidor, los motores, el sistema de jugadores ni el almacén oficial. Pendiente: configurar Oracle y Backblaze a mano y correr `verificar-b2.js` contra el B2 real.
+- La etapa 7 **no modificó** el servidor, los motores, el sistema de jugadores ni el almacén oficial. Pendiente: configurar Oracle y Backblaze a mano y correr `verificar-b2.js` contra el B2 real.
+- La preparación de la etapa 8 sólo tocó `servidor/iniciar.js` (variable `NATIVA_HOST`, con `pruebas/host.js`).
