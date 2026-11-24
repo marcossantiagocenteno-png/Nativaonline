@@ -1706,3 +1706,11 @@ Chrome sin GPU.
 - **Rocas dentro del agua.** `NV.aguas.nivelEn(x,y)` da hasta dónde llega el agua a una roca metida en ella; `puente-motores` se lo pasa al motor de rocas (`nivelAgua`), que la moja hasta ahí. El agua no pinta sobre las casillas con objeto, y la roca se refleja como las demás.
 - **Pastos, juncos y lirios los dibuja el agua** (`plantaDe`, `pintarPlanta`, `hojaLirio`): la franja de tierra junto a la orilla (humedad + 1,6 m) lleva briznas `\ | /` y juncos `! j` en matas (ruido por metro, no parejo), que se inclinan con el viento; los lirios son hojas `o`/`O` verdes y algún `*` de flor en matas sobre agua quieta y somera, sólo en cuerpos estancados.
 - Cuerpos guardados antes de esto: no tienen `marcas` ni las perillas nuevas; toman los valores del tipo (pastos y lirios aparecen; las rocas sólo si se pulsa "regenerar orilla").
+
+### Fondo propio del agua (23/11)
+
+- **El agua tiene color de fondo.** Quien dibuja pasa `sc.fondo(col,fila,color)` (en el juego es `NV.fondoArte`, el mismo que usan los sprites; en el laboratorio, un búfer). El motor pone un fondo por celda de agua y **los glifos quedan sólo para lo que se ve de verdad**: crestas y valles de las olas, destellos, espuma, reflejos, piedras del fondo, lirios. El resto de la celda va vacío (`32`). Si quien dibuja no pasa `fondo`, se pinta como antes (todo con glifos): así las pruebas y cualquier otro llamador siguen igual.
+- **Perillas** (por cuerpo, en el panel): `fondo` (0 azul marino ↔ 1 azul claro) y `fondoInt` (0 casi gris ↔ 1,5 muy saturado). El tono verde↔azul (`tono`) mueve el matiz del fondo y la profundidad lo oscurece (`claridad` decide con qué rapidez). Sólo toma una parte del color de lo reflejado y de la luz: el fondo no es el cielo. La niebla y el día/noche sí lo afectan.
+- **Piedras y rocas dentro del agua** también llevan fondo (el color promedio del cuerpo), para que no queden huecos negros alrededor de sus glifos.
+- Un glifo nunca es más oscuro que su propio fondo (se sube hasta que se lea).
+- Costo: el fondo es un rectángulo por celda de agua en pantalla (`fArte`); un lago que llena la pantalla son decenas de miles. Medir antes de agrandar.

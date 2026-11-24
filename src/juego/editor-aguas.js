@@ -252,6 +252,8 @@
     ['claridad','Claridad (m)',0.1,8,0.05,'a'],
     ['opacidad','Opacidad',0,1,0.01,'a'],
     ['tono','Tono (verde ↔ azul)',0,1,0.01,'a'],
+    ['fondo','Fondo del agua (oscuro ↔ claro)',0,1,0.01,'a'],
+    ['fondoInt','Intensidad del fondo',0,1.5,0.01,'a'],
     ['Oleaje y reflejo',null,'a'],
     ['ondas','Intensidad de las ondas',0,2,0.01,'a'],
     ['viento','Respuesta al viento',0,1.5,0.01,'a'],
@@ -326,7 +328,7 @@
   }
   function mostrarVal(el){
     const v=raiz()&&raiz().querySelector?raiz().querySelector('[data-v="'+el.dataset.k+'"]'):null; if(!v) return;
-    const x=+el.value; v.textContent=(el.dataset.k==='opacidad'||el.dataset.k==='tono'||el.dataset.k==='ondas'||el.dataset.k==='viento'||el.dataset.k==='reflejo'||el.dataset.k==='irreg'||el.dataset.k==='intensidad'||el.dataset.k==='espuma'||el.dataset.k==='suave'||el.dataset.k==='sinuosidad')?Math.round(x*100)+'%':x.toFixed(2);
+    const x=+el.value; v.textContent=(el.dataset.k==='opacidad'||el.dataset.k==='tono'||el.dataset.k==='ondas'||el.dataset.k==='viento'||el.dataset.k==='reflejo'||el.dataset.k==='irreg'||el.dataset.k==='intensidad'||el.dataset.k==='espuma'||el.dataset.k==='suave'||el.dataset.k==='fondo'||el.dataset.k==='fondoInt'||el.dataset.k==='sinuosidad')?Math.round(x*100)+'%':x.toFixed(2);
   }
   /* un cambio {campo:valor} sobre los datos de un cuerpo */
   function parchar(d,k,v){

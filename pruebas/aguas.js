@@ -190,6 +190,22 @@ VI=0;
   const pl=A.crear('lago',{poligono:lago().poligono,sem:7,pasto:0,lirios:0}), pl2=A.crear('lago',{poligono:lago().poligono,sem:7,pasto:2,lirios:2});
   const sa=escena(4), sb=escena(4); A.pintar(sa,[pl]); A.pintar(sb,[pl2]); ok(hash(sa)!==hash(sb),'pastos y lirios cambian lo que se dibuja');
 }
+/* fondo propio del agua: color de fondo por celda; los glifos quedan para olas, destellos y reflejos */
+{ VI=0; const mk=c=>A.crear('lago',Object.assign({poligono:lago().poligono,sem:7},c));
+  const corre=(c,fondo)=>{ const s=escena(4), F=new Map(); if(fondo) s.fondo=(cc,r,col)=>F.set(r*COLS+cc,col); A.pintar(s,[c]); return {s,F}; };
+  const base=corre(mk({}),true), sin=corre(mk({}),false);
+  ok(base.F.size>200,'con fondo, cada celda de agua pone su color de fondo ('+base.F.size+')');
+  const vacias=(r)=>{ let n=0,t=0; for(const k of r.F.keys()){ t++; if(r.s.G[k]===32) n++; } return n/t; };
+  ok(vacias(base)>0.5,'con fondo, la mayoría de las celdas de agua no lleva glifo ('+(vacias(base)*100|0)+' %)');
+  let nSin=0; for(let i=0;i<sin.s.G.length;i++) if(sin.s.G[i]!==46&&sin.s.G[i]!==0&&sin.s.G[i]!==32) nSin++; ok(nSin>base.F.size*0.4,'sin quien ponga el fondo, el agua se pinta como antes (con glifos)');
+  const lum=r=>{ let a=0; for(const v of r.F.values()) a+=((v>>16)&255)+((v>>8)&255)+(v&255); return a/r.F.size/3; };
+  const osc=corre(mk({fondo:0.05}),true), cla=corre(mk({fondo:0.95}),true); ok(lum(cla)>lum(osc)*2,'el fondo va de oscuro a claro ('+lum(osc).toFixed(0)+' → '+lum(cla).toFixed(0)+')');
+  const azul=r=>{ let a=0; for(const v of r.F.values()) a+=(v&255)-((v>>16)&255); return a/r.F.size; };
+  ok(azul(base)>8,'el fondo es azul (azul menos rojo: '+azul(base).toFixed(0)+')');
+  const gris=corre(mk({fondoInt:0}),true), vivo=corre(mk({fondoInt:1.5}),true); ok(azul(vivo)>azul(gris)+4,'la intensidad del fondo satura el color');
+  ok(!!A.TIPOS.lago.fondo&&!!A.TIPOS.rio.fondoInt,'cada tipo trae su fondo y su intensidad');
+  const dd=A.aDatos(mk({fondo:0.7})); ok(A.deDatos(dd).fondo===0.7,'el fondo viaja en los datos');
+}
 /* registro */
 const reg=NV.motores&&NV.motores.lista?NV.motores.lista().find(m=>m.id==='aguas'):null;
 ok(!reg||reg.estado==='integrado','registrado como integrado');

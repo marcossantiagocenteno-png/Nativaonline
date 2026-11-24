@@ -80,7 +80,7 @@ function dibujarMontana(ctx,ancho,alto,sem){
 function Escena(def){
   this.def=def; this.cols=Math.round(def.mw*CPM); this.rows=Math.round(def.mh*RPM);
   this.G=new Uint16Array(this.cols*this.rows); this.C=new Int32Array(this.cols*this.rows);
-  this.OG=new Uint16Array(this.cols*this.rows); this.OC=new Int32Array(this.cols*this.rows);
+  this.FB=new Int32Array(this.cols*this.rows); this.OG=new Uint16Array(this.cols*this.rows); this.OC=new Int32Array(this.cols*this.rows);
   this.SK=new Float32Array(this.cols*this.rows);
   this.rec=new Int32Array(5*60000); this.nrec=0;
   this.est=null; this.jug={x:def.jugador?def.jugador.x:0,y:def.jugador?def.jugador.y:0,fase:0,mov:false};
@@ -88,7 +88,7 @@ function Escena(def){
 Escena.prototype.render=function(t,opt){
   const d=this.def, cols=this.cols, rows=this.rows, s=suelo(d);
   const G=this.G, C=this.C, OG=this.OG, OC=this.OC, SK=this.SK, self=this;
-  G.set(s.G); C.set(s.C); OG.fill(0); SK.fill(0); this.nrec=0;
+  this.FB.fill(0); G.set(s.G); C.set(s.C); OG.fill(0); SK.fill(0); this.nrec=0;
   const rec=this.rec;
   let grabar=false, baseR=0;
   const put=(c,r,code,col)=>{
@@ -111,14 +111,14 @@ Escena.prototype.render=function(t,opt){
   }
   /* sombras proyectadas: sobre el suelo y, pasadas al motor, sobre el agua */
   for(let i=0;i<SK.length;i++){ const k=SK[i]; if(k>0&&G[i]){ const f=1-k, v=C[i]; C[i]=pack(((v>>16)&255)*f,((v>>8)&255)*(f+0.02),(v&255)*(f+0.05)); } }
-  const sc={G,C,cols,rows,CPM,RPM,HPM,x0:0,y0:0,t:t,reflejables:{n:this.nrec,B:rec},sombras:[{c0:0,r0:0,w:cols,h:rows,k:SK}],opciones:opt||{}};
+  const sc={G,C,cols,rows,CPM,RPM,HPM,x0:0,y0:0,t:t,reflejables:{n:this.nrec,B:rec},sombras:[{c0:0,r0:0,w:cols,h:rows,k:SK}],opciones:opt||{},fondo:(c,r,col)=>{ self.FB[r*cols+c]=col; }};
   const cuerpos=d.cuerpos, nc=cuerpos.length;
   A.pintar(sc,cuerpos);
   for(const c of cuerpos) if(c.tipo==='cascada') A.pintarEspumaCascada(sc,c);
   /* lo que está en pie se pinta por encima del agua; el acantilado de las cascadas, también (la lámina cae delante) */
   for(let i=0;i<OG.length;i++) if(OG[i]){ G[i]=OG[i]; C[i]=OC[i]; }
   for(const c of cuerpos) if(c.tipo==='cascada') A.pintarCascada(sc,c);
-  return {cols,rows,G,C};
+  return {cols,rows,G,C,FB:this.FB};
 };
 function acantilado(ctx,o){
   const put=ctx.put, bc=ctx.bc, br=ctx.br, w=Math.round(o.ancho*CPM), h=Math.round(o.alto*HPM);
@@ -194,6 +194,7 @@ function pintarGrid(cv,g,cw){
   if(cv.width!==Math.floor(W*dpr)||cv.height!==Math.floor(H*dpr)){ cv.width=Math.floor(W*dpr); cv.height=Math.floor(H*dpr); cv.style.width=W+'px'; cv.style.height=H+'px'; }
   const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.fillStyle='rgb(5,9,8)'; ctx.fillRect(0,0,W,H);
+  if(g.FB) for(let r=0;r<g.rows;r++) for(let c=0;c<g.cols;c++){ const f=g.FB[r*g.cols+c]; if(f){ ctx.fillStyle='rgb('+((f>>16)&255)+','+((f>>8)&255)+','+(f&255)+')'; ctx.fillRect(c*cw,r*chh,cw+0.6,chh+0.6); } }
   ctx.font=(cw*FONT_K).toFixed(2)+'px '+NV.MONO; ctx.textBaseline='middle';
   const adv=ctx.measureText('W').width, canRun=('letterSpacing' in ctx);
   if(canRun){ ctx.textAlign='left'; ctx.letterSpacing=(cw-adv).toFixed(2)+'px'; } else ctx.textAlign='center';

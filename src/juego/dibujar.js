@@ -1595,7 +1595,7 @@ function pintarAguas(pp){
   const rf={n:NV.grabadosAgua.n(),B:NV.grabadosAgua.B};
   for(const [alza,g] of grupos){
     const sc={G:fbG,C:fbC,cols,rows:rowsN,CPM,RPM,HPM,x0:camX,y0:camY-(liftR-alza)/RPM,t:tt,reflejables:rf,
-      sombras:[{c0:0,r0:0,w:cols,h:rowsN,k:NV.aguaSombra}],mascara:fbL,opciones:NV.aguasOpciones||null};
+      sombras:[{c0:0,r0:0,w:cols,h:rowsN,k:NV.aguaSombra}],mascara:fbL,opciones:NV.aguasOpciones||null,fondo:NV.fondoArte};
     AG.pintar(sc,g);
     for(const c of g) if(c.tipo==='cascada'){ AG.pintarEspumaCascada(sc,c); AG.pintarCascada(sc,c); }
   }
