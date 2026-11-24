@@ -55,23 +55,30 @@ let metrosVista=ZOOM_INI, metrosDestino=ZOOM_INI;
 const TILT=ASPECTO/3;          // píxeles verticales por metro, respecto de los horizontales
 const HIST=0.18;               // cuánto hay que pasarse para que CPM cambie
 /* Tope de celdas del tablero. Antes, al pasarse, el tablero se ENCOGÍA y quedaba una ventana arrinconada con el resto de la
-   pantalla vacía (zoom 200 m en Modo Dios). Ahora, si el zoom pide más celdas, se escribe con menos caracteres por metro
-   (CPM baja de 6 hasta 3): el tablero sigue cubriendo toda la pantalla. */
-const MAX_CELDAS=150000, CPM_MIN_LEJOS=3;
-const celdasCon=(c,pxm,w,h)=>(Math.floor(w*c/pxm)+2)*(Math.floor(h*Math.max(2,Math.round(c/3))/(pxm*TILT))+2);
+   pantalla vacía (zoom lejano del Modo Dios). Ahora, si el zoom pide más celdas, se escribe más grueso hasta que quepa:
+   primero menos caracteres por metro (CPM baja de 6 hasta 3), después una sola fila por metro (RPM 1) y, en pantallas
+   enormes, CPM 2 o 1. Así el tablero cubre siempre el escenario completo. Encoger queda sólo como último recurso. */
+const MAX_CELDAS=150000, CPM_MIN_LEJOS=1;
+const rpmDe=c=>Math.max(2,Math.round(c/3));
+const celdasCon=(c,r,pxm,w,h)=>(Math.floor(w*c/pxm)+2)*(Math.floor(h*r/(pxm*TILT))+2);
+let rpmLejos=0;                // 0 = el de siempre; 1 = una sola fila por metro (sólo muy lejos)
 function aplicarEscala(anchoPx,altoPx){
   const tope=metrosMaximos(anchoPx);
   if(metrosDestino>tope) metrosDestino=tope;
   if(metrosVista>tope) metrosVista=tope;
   const pxm=anchoPx/metrosVista;                       // píxeles por metro
-  let ideal=clamp(pxm/3.2,6,48);
-  if(altoPx&&celdasCon(Math.round(ideal),pxm,anchoPx,altoPx)>MAX_CELDAS){
-    let c=Math.round(ideal); while(c>CPM_MIN_LEJOS&&celdasCon(c,pxm,anchoPx,altoPx)>MAX_CELDAS) c--;
+  let ideal=clamp(pxm/3.2,6,48); rpmLejos=0;
+  if(altoPx&&celdasCon(Math.round(ideal),rpmDe(Math.round(ideal)),pxm,anchoPx,altoPx)>MAX_CELDAS){
+    let c=Math.round(ideal);
+    while(c>3&&celdasCon(c,rpmDe(c),pxm,anchoPx,altoPx)>MAX_CELDAS) c--;
+    if(celdasCon(c,rpmDe(c),pxm,anchoPx,altoPx)>MAX_CELDAS){        // ni con 3: una fila por metro
+      rpmLejos=1; while(c>CPM_MIN_LEJOS&&celdasCon(c,1,pxm,anchoPx,altoPx)>MAX_CELDAS) c--;
+    }
     ideal=c;
   }
   if(!CPM || ideal<CPM-0.5-HIST || ideal>CPM+0.5+HIST) CPM=clamp(Math.round(ideal),CPM_MIN_LEJOS,48);
   cw=pxm/CPM;
-  RPM=Math.max(2,Math.round(CPM/3));                   // la inclinación de la cámara
+  RPM=rpmLejos||rpmDe(CPM);                            // la inclinación de la cámara
   chh=pxm*TILT/RPM;
   HPM=RPM*1.7;
   fontSize=cw/(0.6*OVX);
@@ -240,7 +247,7 @@ NV.fondoArte=function(c,r,col){
 /* Para las pruebas: cuántos píxeles ocupa un metro a lo ancho y a lo alto. Son
    las dos cifras que tienen que moverse sin saltos cuando se hace zoom. */
 NV.medidas=()=>({metros:metrosVista,CPM:CPM,RPM:RPM,cw:cw,chh:chh,
-                 pxmX:CPM*cw, pxmY:RPM*chh, letra:fontSize});
+                 pxmX:CPM*cw, pxmY:RPM*chh, letra:fontSize, cols:cols, rows:rowsN});
 NV.metrosMaximos=metrosMaximos;
 /* El zoom se acerca a su destino de a poco: nunca salta. */
 /* El acercamiento se amortigua en escala logarítmica, no en metros: pasar de 40

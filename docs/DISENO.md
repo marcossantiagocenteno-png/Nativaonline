@@ -1613,10 +1613,13 @@ Pruebas: `pruebas/ampliar.js`, `pruebas/limpio.js`.
 ## Zoom lejano: el tablero cubre toda la pantalla
 
 Con el zoom libre del Modo Dios (hasta 200 m) el tablero pedía más de 150 000 celdas y `layout()` lo **encogía**: el mundo se dibujaba en
-una ventana arrinconada y el resto de la pantalla quedaba vacío. Ahora `aplicarEscala` baja los caracteres por metro (CPM de 6 hasta 3)
-antes de pasarse del tope, así el tablero siempre cubre el escenario completo; encoger queda sólo como último recurso. Medido en
-Chrome a 1345 × 554: a 200 m, CPM 3, y el dibujo llega al borde inferior de la pantalla y hasta el borde de la parcela (a 200 m, 100 m
-de mundo ocupan la mitad del ancho).
+una ventana arrinconada y el resto de la pantalla quedaba vacío. `aplicarEscala` ahora escribe más grueso hasta que quepa, en este orden:
+menos caracteres por metro (CPM de 6 hasta 3), luego **una sola fila por metro (RPM 1)** y, en pantallas enormes, CPM 2 o 1. Encoger queda
+sólo como último recurso. La primera versión (sólo bajar CPM a 3) no alcanzaba: a 200 m el tablero cubría el 80% del ancho y el alto.
+
+Medido en Chrome a 200 m en cuatro tamaños de ventana (1345×554, 1920×950, 2560×1300, 3840×2000): CPM 3, RPM 1 y el tablero cubre el
+escenario completo; recorriendo todo el zoom a 2560×1300 no hubo un solo cuadro sin cubrir. A zoom normal nada cambia (la huella dorada
+sigue igual). Sin GPU, a 200 m el juego va de ~18 FPS (1345×554) a ~9 (3840×2000): pinta mucha superficie.
 
 ## Parcela: Añadir / Remover (Modo Dios)
 
