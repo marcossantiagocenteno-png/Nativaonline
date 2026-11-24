@@ -104,24 +104,48 @@
   function opsQuitarOrilla(d){
     return (d.marcas||[]).filter(m=>{ const o=NV.objetosEn(m[0],m[1],m[0],m[1]).find(q=>q.x===m[0]&&q.y===m[1]); return o&&o.k==='rocoso'; }).map(m=>({t:'objeto-',x:m[0],y:m[1]}));
   }
-  /* las rocas nuevas: salta las casillas donde ya hay otra cosa (un árbol, una roca puesta a mano) */
-  function opsOrilla(d,semO,libres){
+  /* Pone las rocas del cuerpo `n` (datos ya con las perillas nuevas) comparándolas con las que `d` ya tiene puestas:
+     las que siguen en su hueco se cambian sólo si cambió su receta, las que sobran se quitan, las que faltan se agregan.
+     Así subir "Rocas en la orilla" agrega, bajarla quita, y el tamaño o el musgo cambian las que ya están, sin moverlas. */
+  const mismaReceta=(r,s)=>r&&r.mat===s.mat&&r.tam===s.tam&&r.forma===s.forma&&(r.sem|0)===(s.sem|0)&&Math.abs((r.escala||1)-s.escala)<0.004&&['musgo','liquen','humedad','erosion','enterrada'].every(k=>Math.abs(((r.estado||{})[k]||0)-((s.estado||{})[k]||0))<0.004);
+  function opsRocas(d,n){
     const R=NV.rocoso; if(!R||!A().decorar) return {ops:[],marcas:[]};
-    let lst; try{ lst=A().decorar(A().deDatos(d),semO); }catch(err){ return {ops:[],marcas:[]}; }
-    const ops=[], marcas=[], usados=new Set((libres||[]).map(m=>m[0]+','+m[1]));
+    let lst; try{ lst=A().decorar(A().deDatos(n)); }catch(err){ return {ops:[],marcas:d.marcas||[]}; }
+    const antes=new Map(); for(const m of (d.marcas||[])){ const o=NV.objetosEn(m[0],m[1],m[0],m[1]).find(q=>q.x===m[0]&&q.y===m[1]); if(o&&o.k==='rocoso') antes.set(m[0]+','+m[1],o); }
+    const ops=[], marcas=[], vistos=new Set();
     for(const e of lst){
-      const k=e.x+','+e.y; if(hayObjeto(e.x,e.y)&&!usados.has(k)) continue;
+      const k=e.x+','+e.y; if(vistos.has(k)) continue;
+      const prev=antes.get(k);
+      if(prev){ vistos.add(k); marcas.push([e.x,e.y]); if(!mismaReceta(prev.r,e.spec)){ let ob; try{ ob=R.aObjeto(e.spec); }catch(err){ continue; } ops.push({t:'objeto-',x:e.x,y:e.y},{t:'objeto+',x:e.x,y:e.y,objeto:ob}); } continue; }
+      if(hayObjeto(e.x,e.y)) continue;                      // ahí hay otra cosa: no se pisa
       let ob; try{ ob=R.aObjeto(e.spec); }catch(err){ continue; }
-      usados.add(k); ops.push({t:'objeto+',x:e.x,y:e.y,objeto:ob}); marcas.push([e.x,e.y]);
+      vistos.add(k); ops.push({t:'objeto+',x:e.x,y:e.y,objeto:ob}); marcas.push([e.x,e.y]);
     }
+    for(const [k,o] of antes) if(!vistos.has(k)) ops.unshift({t:'objeto-',x:o.x,y:o.y});
     return {ops,marcas};
   }
+  const opsOrilla=(d)=>opsRocas({marcas:[]},d);
   function regenerarOrilla(){
     const d=sel&&datosDe(sel); if(!d||d.tipo==='cascada'){ E.decir('Elegí un cuerpo de agua.'); return; }
-    const quitar=opsQuitarOrilla(d), nuevo=opsOrilla(d,(Date.now()&0xffff)+1,d.marcas);
-    const n=copia(d); n.marcas=nuevo.marcas;
-    if(E.hacer({t:'lote',ops:quitar.concat([{t:'agua',id:d.id,datos:n}],nuevo.ops)},'Orilla regenerada.')) cargarUI();
+    const n=copia(d); n.semOrilla=(Date.now()&0xffff)+1;
+    const r=opsRocas(d,n); n.marcas=r.marcas;
+    if(E.hacer({t:'lote',ops:[{t:'agua',id:d.id,datos:n}].concat(r.ops)},'Orilla regenerada.')) cargarUI();
     refrescar();
+  }
+  /* las perillas de rocas trabajan en vivo: se aplican a poco de moverlas, y al soltar queda UN solo paso de deshacer */
+  const PERILLAS_ROCAS=['orillaRocas','orillaDentro','musgoRocas','rocasTam','rocasVar'];
+  let tRoca=0, ultRoca=0, marcaPila=null;
+  function rocasEnVivo(el,fijar){
+    const run=()=>{
+      tRoca=0; ultRoca=Date.now(); const d=sel&&datosDe(sel); if(!d) return;
+      let n; try{ n=parchar(d,el.dataset.k,+el.value); }catch(err){ return; } if(!n) return;
+      const r=opsRocas(d,n); n.marcas=r.marcas;
+      if(marcaPila==null) marcaPila=E.pilaLargo();
+      E.hacer({t:'lote',ops:[{t:'agua',id:d.id,datos:n}].concat(r.ops)},null); refrescar();
+    };
+    clearTimeout(tRoca);
+    if(fijar){ run(); if(marcaPila!=null){ E.colapsarPila(marcaPila); marcaPila=null; } return; }
+    tRoca=setTimeout(run,Date.now()-ultRoca>500?0:170);
   }
   function quitarOrilla(){
     const d=sel&&datosDe(sel); if(!d) return;
@@ -136,7 +160,7 @@
       if(esEst(t)){ if(P.length<3){ E.decir('Un contorno necesita al menos tres puntos.'); return; } c=A().crear(t,Object.assign(paramsNuevos(),{id,poligono:P,sem:(Date.now()&0xffff)})); }
       else { if(P.length<2){ E.decir('Un recorrido necesita al menos dos puntos.'); return; } c=A().crear(t,Object.assign(paramsNuevos(),{id,curso:{puntos:P,anchos:null},sem:(Date.now()&0xffff)})); }
     }catch(err){ E.decir('No se pudo crear: '+err.message); return; }
-    const dat=A().aDatos(c), or=t==='cascada'?{ops:[],marcas:[]}:opsOrilla(dat,dat.sem,null); dat.marcas=or.marcas;
+    const dat=A().aDatos(c), or=t==='cascada'?{ops:[],marcas:[]}:opsOrilla(dat); dat.marcas=or.marcas;
     if(E.hacer({t:'lote',ops:[{t:'agua',id,datos:dat}].concat(or.ops)},A().NOMBRES[t]+' creado'+(or.ops.length?' con '+or.ops.length+' rocas en la orilla.':'.'))){ sel=id; cargarUI(); }
     refrescar();
   }
@@ -264,12 +288,14 @@
     ['irreg','Irregularidad de bordes',0,3,0.01,'a'],
     ['entierro','Entierro en el terreno (m)',0,3,0.05,'a'],
     ['humedad','Humedad de la orilla (m)',0.1,2,0.05,'a'],
-    ['Orilla: plantas y rocas (* se aplica con "regenerar orilla")',null,'a'],
+    ['Orilla: plantas y rocas',null,'a'],
     ['pasto','Pastos y juncos',0,2,0.05,'a'],
     ['lirios','Lirios en el agua',0,2,0.05,'e'],
-    ['orillaRocas','Rocas en la orilla*',0,2,0.05,'a'],
-    ['orillaDentro','Rocas dentro del agua*',0,2,0.05,'a'],
-    ['musgoRocas','Musgo en las rocas*',0,1,0.05,'a'],
+    ['orillaRocas','Rocas en la orilla',0,3,0.05,'a'],
+    ['orillaDentro','Rocas dentro del agua',0,3,0.05,'a'],
+    ['rocasTam','Tamaño de las rocas (m)',0.15,3,0.05,'a'],
+    ['rocasVar','Variedad de tamaños',0,1,0.01,'a'],
+    ['musgoRocas','Musgo en las rocas',0,1,0.05,'a'],
     ['talud','Pendiente de la orilla (m)',0.1,8,0.05,'e'],
     ['Corriente',null,'c'],
     ['vel','Velocidad (m/s; 0 = reposo)',0,3,0.01,'c'],
@@ -344,6 +370,7 @@
   }
   function cambio(el,fijar){
     const k=el.dataset.k, v=+el.value, d=sel&&datosDe(sel);
+    if(d&&PERILLAS_ROCAS.indexOf(k)>=0){ rocasEnVivo(el,fijar); return; }
     if(d){
       let n; try{ n=parchar(d,k,v); }catch(err){ E.decir('No se pudo: '+err.message); return; }
       if(!n) return;

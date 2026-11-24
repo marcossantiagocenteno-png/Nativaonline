@@ -206,6 +206,30 @@ VI=0;
   ok(!!A.TIPOS.lago.fondo&&!!A.TIPOS.rio.fondoInt,'cada tipo trae su fondo y su intensidad');
   const dd=A.aDatos(mk({fondo:0.7})); ok(A.deDatos(dd).fondo===0.7,'el fondo viaja en los datos');
 }
+/* confluencias y desembocaduras */
+{ VI=0; const R1=A.crear('rio',{id:'r1',curso:{puntos:[[0,40],[20,40],[40,42],[60,40]],anchos:null},sem:3}), T1=A.crear('arroyo',{id:'t1',curso:{puntos:[[28,20],[27,30],[27.5,41]],anchos:null},sem:4});
+  A.unir([R1,T1]); ok(!!T1._uni&&T1._uni.post.length===2,'un arroyo que muere en un río se prolonga hacia su corriente'); ok(!R1._uni,'el río principal no cambia');
+  const sin=A.crear('arroyo',{id:'t2',curso:{puntos:[[28,20],[27,30],[27.5,41]],anchos:null},sem:4}), f0=A.prepararCampo(sin), f1=A.prepararCampo(T1);
+  ok(f1.P.length>f0.P.length&&f1.P[f1.P.length-1][0]>f0.P[f0.P.length-1][0]+1,'el cauce prolongado sigue el sentido del río ('+f1.P[f1.P.length-1][0].toFixed(1)+' vs '+f0.P[f0.P.length-1][0].toFixed(1)+')');
+  const lejos=A.crear('arroyo',{id:'t3',curso:{puntos:[[28,0],[27,8],[27.5,15]],anchos:null},sem:4}); A.unir([R1,lejos]); ok(!lejos._uni,'un arroyo que no toca a nadie no se prolonga');
+  const LG=A.crear('lago',{id:'l1',poligono:[[60,34],[75,32],[78,46],[62,48]],sem:3}), T2=A.crear('arroyo',{id:'t4',curso:{puntos:[[40,45],[50,41],[61,41]],anchos:null},sem:4});
+  A.unir([LG,T2]); ok(!!T2._uni&&T2._uni.post.length===2,'un arroyo que desemboca en un lago se abre en abanico');
+  const T3=A.crear('arroyo',{id:'t5',curso:{puntos:[[62,40],[52,42],[44,46]],anchos:null},sem:4}); A.unir([LG,T3]); ok(!!T3._uni&&T3._uni.pre.length===2,'un arroyo que nace en un lago tiene su salida');
+  /* mezcla: la celda donde se superponen no queda partida en dos */
+  const s1=escena(4); s1.unido=false; A.pintar(s1,[R1,T1]); ok(pintadasOK(s1),'dibujar la confluencia no falla y pinta agua');
+  function pintadasOK(sc){ let n=0; for(let i=0;i<sc.G.length;i++) if(sc.G[i]!==46) n++; return n>200; }
+}
+/* rocas: huecos estables y tamaño */
+{ VI=0; const B=A.crear('lago',{poligono:[[10,5],[30,4],[42,10],[40,22],[24,26],[8,20]],sem:7,orillaRocas:1,orillaDentro:1});
+  const mk=o=>A.decorar(A.crear('lago',Object.assign({poligono:B.poligono,sem:7},o)),5);
+  const pocas=mk({orillaRocas:0.5,orillaDentro:0}), muchas=mk({orillaRocas:1.5,orillaDentro:0});
+  ok(muchas.length>pocas.length,'más perilla, más rocas ('+pocas.length+' → '+muchas.length+')');
+  ok(pocas.every((e,i)=>muchas[i]&&muchas[i].x===e.x&&muchas[i].y===e.y),'las que ya estaban no se mueven al pedir más');
+  const chicas=mk({orillaRocas:1,rocasTam:0.25}), grandes=mk({orillaRocas:1,rocasTam:1.8});
+  ok(chicas.length===grandes.length&&chicas.every((e,i)=>e.x===grandes[i].x&&e.y===grandes[i].y),'cambiar el tamaño no mueve las rocas');
+  const med=L=>L.reduce((a,e)=>a+e.spec.escala*(({pequena:0.385,media:1.2,grande:2.85})[e.spec.tam]),0)/L.length; ok(med(grandes)>med(chicas)*3,'el tamaño pedido se nota en la altura ('+med(chicas).toFixed(2)+' → '+med(grandes).toFixed(2)+' m)');
+  const igual=mk({orillaRocas:1,rocasTam:0.6,rocasVar:0}), varia=mk({orillaRocas:1,rocasTam:0.6,rocasVar:1}); const sd=L=>{ const h=L.map(e=>e.spec.escala*(({pequena:0.385,media:1.2,grande:2.85})[e.spec.tam])), m=h.reduce((a,b)=>a+b,0)/h.length; return Math.sqrt(h.reduce((a,b)=>a+(b-m)*(b-m),0)/h.length); };
+  ok(sd(varia)>sd(igual)*2,'la variedad reparte tamaños chicos y grandes'); ok(!mk({}).some(e=>e.spec.tam==='grande'),'por defecto no hay rocas gigantes en un lago chico'); }
 /* registro */
 const reg=NV.motores&&NV.motores.lista?NV.motores.lista().find(m=>m.id==='aguas'):null;
 ok(!reg||reg.estado==='integrado','registrado como integrado');

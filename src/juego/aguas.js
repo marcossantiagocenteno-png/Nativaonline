@@ -60,13 +60,13 @@ const MEMR=[{},{},{},{},{},{}];
 /* ------------------------------------------------------------------ tipos ----
    lam: largos de onda del viento en metros; amp: altura de la ola de viento a tope (m); ramp: glifos de menos a más cresta */
 const TIPOS={
-  charco:      {fondo:0.34, fondoInt:0.6, estancada:true, suave:0.75, entierro:0.04, pasto:0.6, lirios:0, orillaRocas:0.5, orillaDentro:0.2, musgoRocas:0.5, prof:0.12, claridad:0.35, opacidad:0.12, tono:0.30, ondas:1, viento:1, reflejo:1.00, irreg:1.0, humedad:0.55, talud:0.22, lam:[0.30,0.52,0.18], amp:0.010, ramp:[' ','.','-','~','-'], fondoVis:1},
-  lago:        {fondo:0.30, fondoInt:0.95, estancada:true, suave:0.8, entierro:0.7, pasto:1.0, lirios:0.8, orillaRocas:1.0, orillaDentro:0.8, musgoRocas:0.6, prof:4.5,  claridad:2.4,  opacidad:0.30, tono:0.72, ondas:1, viento:1, reflejo:1.00, irreg:1.1, humedad:0.9,  talud:5.0,  lam:[2.8,1.2,0.55],    amp:0.030, ramp:['_','_','-','-','~'], fondoVis:1},
-  laguna:      {fondo:0.33, fondoInt:0.9, estancada:true, suave:0.8, entierro:0.5, pasto:1.2, lirios:1.2, orillaRocas:0.9, orillaDentro:0.6, musgoRocas:0.7, prof:2.4,  claridad:1.6,  opacidad:0.25, tono:0.55, ondas:1, viento:1, reflejo:1.00, irreg:1.0, humedad:0.8,  talud:3.2,  lam:[2.0,0.9,0.45],    amp:0.024, ramp:['_','-','-','~','-'], fondoVis:1},
-  arroyo:      {fondo:0.40, fondoInt:0.8, estancada:false,suave:0.85, sinuosidad:0.7, entierro:0.15, pasto:1.0, lirios:0, orillaRocas:1.2, orillaDentro:1.0, musgoRocas:0.5, prof:0.22, claridad:0.8,  opacidad:0.10, tono:0.40, ondas:1, viento:0.5, reflejo:0.55, irreg:0.7, humedad:0.45, vel:0.55, ancho:1.4, lam:[0.40,0.22,0.15], amp:0.008, ramp:['.','-','~','~','='], fondoVis:1},
-  riachuelo:   {fondo:0.40, fondoInt:0.85, estancada:false,suave:0.85, sinuosidad:0.7, entierro:0.25, pasto:1.0, lirios:0, orillaRocas:1.2, orillaDentro:1.2, musgoRocas:0.5, prof:0.45, claridad:1.0,  opacidad:0.14, tono:0.46, ondas:1, viento:0.55,reflejo:0.60, irreg:0.7, humedad:0.55, vel:0.80, ancho:2.8, lam:[0.55,0.30,0.18], amp:0.011, ramp:['.','-','~','~','='], fondoVis:1},
-  rio:         {fondo:0.38, fondoInt:0.9, estancada:false,suave:0.85, sinuosidad:0.6, entierro:0.55, pasto:0.8, lirios:0, orillaRocas:1.0, orillaDentro:1.0, musgoRocas:0.5, prof:1.6,  claridad:1.3,  opacidad:0.28, tono:0.62, ondas:1, viento:0.65,reflejo:0.75, irreg:0.8, humedad:0.8,  vel:1.00, ancho:7.0, lam:[1.3,0.7,0.35],    amp:0.017, ramp:['-','~','~','=','='], fondoVis:1},
-  'rio-profundo':{fondo:0.24, fondoInt:1.0, estancada:false,suave:0.85, sinuosidad:0.5, entierro:0.9, pasto:0.6, lirios:0, orillaRocas:0.8, orillaDentro:0.5, musgoRocas:0.5, prof:5.5,claridad:0.7,  opacidad:0.55, tono:0.90, ondas:1, viento:0.75,reflejo:0.95, irreg:0.7, humedad:0.9,  vel:0.80, ancho:9.0, lam:[2.2,1.0,0.5],    amp:0.022, ramp:['_','_','=','=','~'], fondoVis:1}
+  charco:      {rocasTam:0.3, rocasVar:0.5, fondo:0.34, fondoInt:0.6, estancada:true, suave:0.75, entierro:0.04, pasto:0.6, lirios:0, orillaRocas:0.5, orillaDentro:0.2, musgoRocas:0.5, prof:0.12, claridad:0.35, opacidad:0.12, tono:0.30, ondas:1, viento:1, reflejo:1.00, irreg:1.0, humedad:0.55, talud:0.22, lam:[0.30,0.52,0.18], amp:0.010, ramp:[' ','.','-','~','-'], fondoVis:1},
+  lago:        {rocasTam:0.55, rocasVar:0.6, fondo:0.30, fondoInt:0.95, estancada:true, suave:0.8, entierro:0.7, pasto:1.0, lirios:0.8, orillaRocas:1.0, orillaDentro:0.8, musgoRocas:0.6, prof:4.5,  claridad:2.4,  opacidad:0.30, tono:0.72, ondas:1, viento:1, reflejo:1.00, irreg:1.1, humedad:0.9,  talud:5.0,  lam:[2.8,1.2,0.55],    amp:0.030, ramp:['_','_','-','-','~'], fondoVis:1},
+  laguna:      {rocasTam:0.5, rocasVar:0.6, fondo:0.33, fondoInt:0.9, estancada:true, suave:0.8, entierro:0.5, pasto:1.2, lirios:1.2, orillaRocas:0.9, orillaDentro:0.6, musgoRocas:0.7, prof:2.4,  claridad:1.6,  opacidad:0.25, tono:0.55, ondas:1, viento:1, reflejo:1.00, irreg:1.0, humedad:0.8,  talud:3.2,  lam:[2.0,0.9,0.45],    amp:0.024, ramp:['_','-','-','~','-'], fondoVis:1},
+  arroyo:      {rocasTam:0.45, rocasVar:0.6, fondo:0.40, fondoInt:0.8, estancada:false,suave:0.85, sinuosidad:0.7, entierro:0.15, pasto:1.0, lirios:0, orillaRocas:1.2, orillaDentro:1.0, musgoRocas:0.5, prof:0.22, claridad:0.8,  opacidad:0.10, tono:0.40, ondas:1, viento:0.5, reflejo:0.55, irreg:0.7, humedad:0.45, vel:0.55, ancho:1.4, lam:[0.40,0.22,0.15], amp:0.008, ramp:['.','-','~','~','='], fondoVis:1},
+  riachuelo:   {rocasTam:0.55, rocasVar:0.6, fondo:0.40, fondoInt:0.85, estancada:false,suave:0.85, sinuosidad:0.7, entierro:0.25, pasto:1.0, lirios:0, orillaRocas:1.2, orillaDentro:1.2, musgoRocas:0.5, prof:0.45, claridad:1.0,  opacidad:0.14, tono:0.46, ondas:1, viento:0.55,reflejo:0.60, irreg:0.7, humedad:0.55, vel:0.80, ancho:2.8, lam:[0.55,0.30,0.18], amp:0.011, ramp:['.','-','~','~','='], fondoVis:1},
+  rio:         {rocasTam:0.6, rocasVar:0.6, fondo:0.38, fondoInt:0.9, estancada:false,suave:0.85, sinuosidad:0.6, entierro:0.55, pasto:0.8, lirios:0, orillaRocas:1.0, orillaDentro:1.0, musgoRocas:0.5, prof:1.6,  claridad:1.3,  opacidad:0.28, tono:0.62, ondas:1, viento:0.65,reflejo:0.75, irreg:0.8, humedad:0.8,  vel:1.00, ancho:7.0, lam:[1.3,0.7,0.35],    amp:0.017, ramp:['-','~','~','=','='], fondoVis:1},
+  'rio-profundo':{rocasTam:0.6, rocasVar:0.6, fondo:0.24, fondoInt:1.0, estancada:false,suave:0.85, sinuosidad:0.5, entierro:0.9, pasto:0.6, lirios:0, orillaRocas:0.8, orillaDentro:0.5, musgoRocas:0.5, prof:5.5,claridad:0.7,  opacidad:0.55, tono:0.90, ondas:1, viento:0.75,reflejo:0.95, irreg:0.7, humedad:0.9,  vel:0.80, ancho:9.0, lam:[2.2,1.0,0.5],    amp:0.022, ramp:['_','_','=','=','~'], fondoVis:1}
 };
 const TIPOS_ID=Object.keys(TIPOS).concat(['cascada']);
 const CASCADA0={tipo:'cascada',x:0,y:0,ancho:2.5,alto:4,intensidad:0.8,espuma:1,tono:0.2,sem:1,viento:0.3};
@@ -106,7 +106,7 @@ function validar(c){
   if(c.tipo==='cascada'){ for(const k of ['x','y','ancho','alto','intensidad']) if(!num(c[k])) throw new Error('cascada '+c.id+': '+k+' inválido'); if(!(c.ancho>0)||!(c.alto>0)) throw new Error('cascada '+c.id+': sin tamaño'); return c; }
   for(const k of ['prof','claridad','opacidad','tono','ondas','viento','reflejo','irreg','humedad']) if(!num(c[k])) throw new Error('agua '+c.id+': '+k+' inválido');
   if(!(c.prof>0)) throw new Error('agua '+c.id+': profundidad inválida');
-  for(const k of ['suave','sinuosidad','entierro','pasto','lirios','orillaRocas','orillaDentro','musgoRocas','fondo','fondoInt']) if(c[k]!==undefined&&!num(c[k])) throw new Error('agua '+c.id+': '+k+' inválido');
+  for(const k of ['suave','sinuosidad','entierro','pasto','lirios','orillaRocas','orillaDentro','musgoRocas','rocasTam','rocasVar','fondo','fondoInt']) if(c[k]!==undefined&&!num(c[k])) throw new Error('agua '+c.id+': '+k+' inválido');
   if(TIPOS[c.tipo].estancada){
     if(!Array.isArray(c.poligono)||c.poligono.length<3) throw new Error('agua '+c.id+': el contorno necesita al menos tres puntos');
     for(const p of c.poligono) if(!num(p[0])||!num(p[1])) throw new Error('agua '+c.id+': punto inválido');
@@ -192,6 +192,47 @@ function sobreCauce(c,F,px,py,o){
   o.s=Lc[bi]+ls*bt; o.n=lado; o.tx=tx; o.ty=ty; o.w=mix(A[bi],A[bi+1],bt); o.dist=Math.sqrt(best);
   return o;
 }
+/* ---- uniones: dónde un curso muere en otra agua ----
+   Cuando el final de un arroyo o río cae en otro río (confluencia) o en un lago (desembocadura), o su principio nace en uno (salida), el cauce
+   se prolonga con dos puntos de más que lo hacen girar hacia la corriente del otro y abrirse en abanico. Es sólo forma: no toca los datos
+   guardados (se recalcula del conjunto de cuerpos). Las celdas donde dos aguas se superponen las mezcla `pintar` (ver "confluencia"). */
+const UNI_SIG={s:''}; let _uid=0;
+function anchoMedio(c){ const a=c.curso.anchos; return Math.max(0.4,a&&a.length?a.reduce((x,y)=>x+y,0)/a.length:c.ancho); }
+function cercaDeCurso(B,x,y){
+  const P=B.curso.puntos; let best=1e18,bt=[1,0];
+  for(let i=0;i<P.length-1;i++){ const d=segDist(x,y,P[i][0],P[i][1],P[i+1][0],P[i+1][1]); if(d<best){ best=d; const dx=P[i+1][0]-P[i][0], dy=P[i+1][1]-P[i][1], l=Math.hypot(dx,dy)||1; bt=[dx/l,dy/l]; } }
+  return {d:best,t:bt};
+}
+function unir(lista){
+  const sig=lista.map(c=>(c._u||(c._u=++_uid))+':'+(c.v||0)).join('|');
+  if(UNI_SIG.s===sig&&UNI_SIG.n===lista.length) return; UNI_SIG.s=sig; UNI_SIG.n=lista.length;
+  for(const c of lista){
+    if(c.tipo==='cascada'||TIPOS[c.tipo].estancada) continue;
+    const P=c.curso.puntos, n=P.length, wc=anchoMedio(c), pre=[], post=[];
+    for(const fin of [false,true]){
+      const E=fin?P[n-1]:P[0], A2=fin?P[n-2]:P[1]; if(!E||!A2) continue;
+      let dx=E[0]-A2[0], dy=E[1]-A2[1]; const l=Math.hypot(dx,dy)||1; dx/=l; dy/=l;       // hacia afuera del cauce, por la punta
+      for(const B of lista){
+        if(B===c||B.tipo==='cascada') continue;
+        let ext=null;
+        if(TIPOS[B.tipo].estancada){
+          if(!(enPoligono(E[0],E[1],B.poligono)||distPoli(E[0],E[1],B.poligono)<wc*0.8+0.4)) continue;
+          ext=fin?[[E[0]+dx*wc*1.4,E[1]+dy*wc*1.4,wc*2.0],[E[0]+dx*wc*2.8,E[1]+dy*wc*2.8,wc*2.6]]:[[E[0]+dx*wc*2.6,E[1]+dy*wc*2.6,wc*2.4],[E[0]+dx*wc*1.3,E[1]+dy*wc*1.3,wc*1.9]];
+        } else {
+          const q=cercaDeCurso(B,E[0],E[1]), wb=anchoMedio(B);
+          if(q.d>wb*0.55+wc*0.4+0.3) continue;
+          const t=q.t, mx=fin?dx*0.35+t[0]*0.65:-dx*0.35-t[0]*0.65, my=fin?dy*0.35+t[1]*0.65:-dy*0.35-t[1]*0.65, ml=Math.hypot(mx,my)||1, ux=mx/ml, uy=my/ml;
+          ext=fin?[[E[0]+ux*wc*1.3,E[1]+uy*wc*1.3,wc*1.5],[E[0]+ux*wc*3.0+t[0]*wc*0.8,E[1]+uy*wc*3.0+t[1]*wc*0.8,wc*1.9]]
+                 :[[E[0]+ux*wc*2.8,E[1]+uy*wc*2.8,wc*1.9],[E[0]+ux*wc*1.3,E[1]+uy*wc*1.3,wc*1.5]];
+        }
+        if(ext){ (fin?post:pre).push.apply(fin?post:pre,ext); break; }
+      }
+    }
+    const u=pre.length||post.length?{pre,post}:null, f=JSON.stringify(u);
+    if(c._uniF!==f){ c._uniF=f; c._uni=u; tocar(c); }
+  }
+}
+function distPoli(x,y,P){ let m=1e18; for(let i=0,j=P.length-1;i<P.length;j=i++){ const d=segDist(x,y,P[j][0],P[j][1],P[i][0],P[i][1]); if(d<m) m=d; } return m; }
 function prepararCampo(c){
   if(c._f&&c._fv===c.v) return c._f;
   const T=TIPOS[c.tipo], F={ppm:PPM}, sem=c.sem|0;
@@ -203,8 +244,10 @@ function prepararCampo(c){
     for(let i=0,j=pts.length-1;i<pts.length;j=i++) area+=pts[j][0]*pts[i][1]-pts[i][0]*pts[j][1]; area=Math.abs(area)/2;
     esc=irreg*clamp(0.085*Math.sqrt(area),0.25,3.2);                // metros de lado a lado en la orilla
   } else {
-    const An=(c.curso.anchos||c.curso.puntos.map(()=>c.ancho)).map(v=>Math.max(0.2,v));
-    const cu=curvar(c.curso.puntos,An,false,suave);
+    let An=(c.curso.anchos||c.curso.puntos.map(()=>c.ancho)).map(v=>Math.max(0.2,v)), Pc=c.curso.puntos;
+    const U=c._uni;                                           // la prolongación hacia la otra agua (ver unir)
+    if(U){ if(U.pre.length){ Pc=U.pre.map(q=>[q[0],q[1]]).concat(Pc); An=U.pre.map(q=>q[2]).concat(An); } if(U.post.length){ Pc=Pc.concat(U.post.map(q=>[q[0],q[1]])); An=An.concat(U.post.map(q=>q[2])); } }
+    const cu=curvar(Pc,An,false,suave);
     F.P=meandrar(cu.P,cu.W,clamp(c.sinuosidad==null?0:c.sinuosidad,0,3),sem); F.anchos=cu.W;
     pts=F.P; esc=irreg*0.32*Math.max(0.5,F.anchos.reduce((a,b)=>a+b,0)/F.anchos.length)*0.5;
   }
@@ -212,7 +255,7 @@ function prepararCampo(c){
   let x0=1e18,y0=1e18,x1=-1e18,y1=-1e18;
   for(const p of pts){ x0=Math.min(x0,p[0]); x1=Math.max(x1,p[0]); y0=Math.min(y0,p[1]); y1=Math.max(y1,p[1]); }
   const anchoMax=T.estancada?0:Math.max.apply(null,F.anchos)*0.9;
-  const ent=Math.max(0,c.entierro||0), mg=(c.humedad||0.5)+1.2+anchoMax*0.5+esc*1.5+ent*1.7+0.5+(c.pasto>0?1.7:0);
+  const ent=Math.max(0,c.entierro||0), mg=(c.humedad||0.5)+1.2+anchoMax*0.5+esc*1.5+ent*1.7+0.5+(c.pasto>0?2.1:0);
   x0-=mg; y0-=mg; x1+=mg; y1+=mg;
   F.x0=x0; F.y0=y0; F.w=Math.ceil((x1-x0)*PPM)+1; F.h=Math.ceil((y1-y0)*PPM)+1;
   const n=F.w*F.h;
@@ -558,6 +601,7 @@ function pintar(sc,cuerpos){
   /* si quien dibuja sabe poner el color de FONDO de una celda (sc.fondo(col,fila,color)), el agua es un fondo azul y los glifos quedan para lo que
      de verdad se ve: crestas de ola, destellos, espuma, reflejos, piedras del fondo. Sin eso, se pinta como antes (todo con glifos). */
   const conFondo=typeof sc.fondo==='function', mk=[];                      // celdas que ya tienen un objeto o un personaje: no se tocan
+  if(!sc.unido) unir(cuerpos);
   const lista=cuerpos.filter(c=>c.tipo!=='cascada');
   /* sólo los cuerpos que tocan lo que se ve: si ninguno, no se gasta nada */
   const vx0=x0-1, vx1=x0+cols/CPM+1, vy0=y0-1, vy1=y0+rows/RPM+1, vis=[];
@@ -565,6 +609,7 @@ function pintar(sc,cuerpos){
   if(!vis.length){ pintar.ult=0; return 0; }
   lista.length=0; for(const c of vis) lista.push(c);
   const estados=lista.map(c=>actualizar(c,t,cuerpos));
+  _VP=0; for(const S of estados) if(S&&S.W&&S.W.est) _VP=Math.max(_VP,Math.max.apply(null,S.W.est)); _VP=clamp(_VP,0,1.2);
   const m={};
   let bc0=cols, bc1=-1, br0=rows, br1=-1;
   /* ---- pasada 1: superficie de cada celda de agua y la banda húmeda de la orilla ---- */
@@ -582,6 +627,19 @@ function pintar(sc,cuerpos){
         if(mascara&&mascara[i]){ if(conFondo&&m.d>0&&m.prof>0.004) mk.push(i,bi); continue; }
         if(m.d>0&&m.prof>0.004){
           superficie(c,S,m,wx,wy,t,_o);
+          if(body[i]){
+            /* CONFLUENCIA: dos aguas se superponen. Se mezclan por profundidad (la más honda manda, con un borde salpicado, no una raya),
+               las corrientes se suman y donde chocan en ángulo se agita. */
+            const pa=PR[i], pb=m.prof, w=pb/(pa+pb), dj=(h3((wx*11)|0,(wy*5)|0,61)%100)/100;
+            const fax=scr.FX[i], fay=scr.FY[i], la=Math.hypot(fax,fay), lb=Math.hypot(m.fx,m.fy);
+            let ag=0; if(la>0.02&&lb>0.02){ const cs=(fax*m.fx+fay*m.fy)/(la*lb); ag=(1-cs)*0.5; }
+            H[i]=H[i]*(1-w)+_o.h*w; SX[i]=SX[i]*(1-w)+_o.sx*w; SY[i]=SY[i]*(1-w)+_o.sy*w;
+            TU[i]=Math.min(1.2,Math.max(TU[i],_o.turb)+0.55*ag*Math.min(1,Math.min(la,lb)*1.6+0.3));
+            scr.FX[i]=(fax*(1-w)+m.fx*w)*1.1+fax*0.1; scr.FY[i]=(fay*(1-w)+m.fy*w)*1.1+fay*0.1;
+            PR[i]=Math.max(pa,pb); D[i]=Math.max(D[i],m.d);
+            if(pb*(0.85+0.3*dj)>pa) body[i]=bi+1;
+            continue;
+          }
           body[i]=bi+1; H[i]=_o.h; SX[i]=_o.sx; SY[i]=_o.sy; TU[i]=_o.turb; PR[i]=m.prof; D[i]=m.d; scr.FX[i]=m.fx; scr.FY[i]=m.fy;
           if(cc<bc0) bc0=cc; if(cc>bc1) bc1=cc; if(r<br0) br0=r; if(r>br1) br1=r;
           /* la barranca: el agua está hundida en el terreno. Desde la cámara (al sur, mirando al norte) se ve la pared de la orilla
@@ -594,7 +652,7 @@ function pintar(sc,cuerpos){
               if(ny>0.2){ const alto=c.entierro*HPM/RPM, u=m.d/(ny*alto); if(u>=0&&u<1) scr.WL[i]=u; }
             }
           }
-        } else if(m.d>-hum-(c.pasto>0?1.6:0)&&body[i]===0){
+        } else if(m.d>-hum-(c.pasto>0?2.0:0)&&body[i]===0){
           D[i]=m.d;                      // tierra mojada (y, más allá, la franja de plantas de la orilla)
           if(cc<bc0) bc0=cc; if(cc>bc1) bc1=cc; if(r<br0) br0=r; if(r>br1) br1=r;
           if(c.pasto>0&&m.d<-0.05) scr.VG[i]=plantaDe(c,wx,wy,-m.d,hum);
@@ -640,7 +698,7 @@ function pintar(sc,cuerpos){
       const i=r*cols+cc, bi=body[i];
       if(!bi){
         /* tierra junto al agua: oscurecida por la humedad y con piedritas */
-        const d=D[i]; if(d>-90&&G[i]){ orillaTierra(sc,i,cc,r,d); if(scr.VG[i]) pintarPlanta(sc,i,cc,r,scr.VG[i],d,luz,sombras); }
+        const d=D[i]; if(d>-90&&G[i]) orillaTierra(sc,i,cc,r,d); if(d>-90&&scr.VG[i]) pintarPlanta(sc,i,cc,r,scr.VG[i],d,luz,sombras);
         continue;
       }
       const c=lista[bi-1], T=TIPOS[c.tipo], wx=x0+(cc+0.5)/CPM;
@@ -741,10 +799,11 @@ function pintar(sc,cuerpos){
 }
 /* ---- plantas de la orilla: pastos y juncos en la tierra, hojas de lirio sobre el agua ----
    Salen de un ruido por metro (crecen en matas, no parejo) y de un hash por celda; el cuerpo da la densidad (`pasto`, `lirios`). */
+let _VP=0.3;                                   // el viento que sienten las plantas: el del agua de este cuadro (se toma una vez por cuadro)
 function plantaDe(c,wx,wy,dn,hum){
-  const sem=c.sem|0, band=hum+1.6;
+  const sem=c.sem|0, band=hum+2.0;
   const mata=ruido(sem+41,wx*0.8,wy*0.8);                              // dónde hay mata
-  const p=c.pasto*0.30*clamp(1.15-dn/band,0,1)*clamp((mata-0.32)*2.6,0,1.2);
+  const p=Math.min(0.95,c.pasto*0.55*clamp(1.2-dn/band,0,1)*clamp((mata-0.25)*3.0,0,1.4));
   const hq=(h3((wx*7)|0,(wy*7)|0,33)%1000)/1000;
   if(hq>=p) return 0;
   const alto=ruido(sem+42,wx*0.55+9,wy*0.55)>0.58&&dn<hum+0.5&&c.tipo!=='charco';     // juncos: más altos, pegados al agua
@@ -759,15 +818,15 @@ function hojaLirio(c,wx,wy,d){
   return h3((wx*5)|0,(wy*3)|0,38)%100<9?2:1;
 }
 function pintarPlanta(sc,i,cc,r,tipo,d,luz,sombras){
-  const {G,C,x0,y0,CPM,RPM,t}=sc, v=C[i], lum=(((v>>16)&255)+((v>>8)&255)+(v&255))/3, f=clamp(lum/105,0.4,1.25);
+  const {G,C,x0,y0,CPM,RPM,t}=sc, v=0x2c3a24, f=clamp(0.75+0.5*luz.amb,0.7,1.3);        // no lee el color del suelo (el pasto lo anima cuadro a cuadro): el color sale de la luz
   const wx=x0+(cc+0.5)/CPM, wy=y0+(r+0.5)/RPM, hq=h3((wx*9)|0,(wy*9)|0,35)%100;
-  const viento=(NV.entorno&&NV.entorno.viento)?clamp(Math.abs(NV.entorno.viento('agua',wx,wy,t)||0),0,1.2):0.3;
+  const viento=_VP;
   const sway=sen(TAU*(wx*0.21+t*0.55)+hq*0.3)*0.5+0.5+viento*0.5;
   let code, R,Gc,B;
-  if(tipo===2){ code=hq<55?33:hq<80?106:124; const k=0.8+0.4*(hq%7)/7; R=70*k*f; Gc=110*k*f; B=48*k*f; }                  // junco: ! j |
-  else { code=sway>1.0?92:sway<0.55?47:124; if(hq<18) code=124; const k=0.75+0.5*(hq%9)/9; R=62*k*f; Gc=104*k*f; B=44*k*f; } // brizna: \ / |
+  if(tipo===2){ code=hq<55?33:hq<80?106:124; const k=0.8+0.4*(hq%7)/7; R=84*k*f; Gc=138*k*f; B=58*k*f; }                  // junco: ! j |
+  else { code=sway>1.0?92:sway<0.55?47:124; if(hq<18) code=124; const k=0.75+0.5*(hq%9)/9; R=70*k*f; Gc=124*k*f; B=50*k*f; } // brizna: \ / |
   const kk=clamp(1+d/0.9,0.5,1);
-  R=mix(((v>>16)&255)*0.6,R,0.85*kk); Gc=mix(((v>>8)&255)*0.6,Gc,0.85*kk); B=mix((v&255)*0.6,B,0.85*kk);
+  R=mix(((v>>16)&255)*0.6,R,0.95*kk); Gc=mix(((v>>8)&255)*0.6,Gc,0.95*kk); B=mix((v&255)*0.6,B,0.95*kk);
   R*=luz.r; Gc*=luz.g; B*=luz.b;
   if(sombras) for(const sh of sombras){ const a=cc-sh.c0, b=r-sh.r0; if(a>=0&&b>=0&&a<sh.w&&b<sh.h){ const k=sh.k[b*sh.w+a]; if(k>0){ const q=1-0.5*k; R*=q; Gc*=q; B*=q; } } }
   G[i]=code; C[i]=pack(R,Gc,B);
@@ -896,34 +955,48 @@ function cuerpoEn(x,y,tol){
    Devuelve dónde poner rocas (del motor de rocas: NV.rocoso) alrededor y dentro del cuerpo: [{x,y,spec,dentro}] con x,y enteros (la casilla del mundo).
    No las pone: el Modo Dios las coloca como objetos reales, así que se editan, se regeneran y se borran como cualquier roca. Mismo cuerpo + misma `semO`, mismas rocas. */
 const MAT_ORILLA=['granito','caliza','basalto','pizarra','arenisca'];
+const NOM_ALT={pequena:[0.22,0.55],media:[0.80,1.60],grande:[1.90,3.80]};       // las alturas del motor de rocas, para escalar al tamaño pedido
+/* Cada "hueco" de roca (el k-ésimo de la orilla, el k-ésimo de adentro) sale de su propia semilla y sólo depende de los huecos anteriores:
+   pedir más rocas AGREGA al final, pedir menos QUITA del final, y cambiar el tamaño o el musgo cambia la roca de cada hueco sin moverla. */
 function decorar(c,semO){
   if(c.tipo==='cascada') return [];
-  const T=TIPOS[c.tipo], F=prepararCampo(c), rnd=NV.mulberry((((c.sem|0)*977+(semO|0)*131)^0x5bd1e995)|0), dd=(v,d)=>v==null?d:v;
-  const kOr=dd(c.orillaRocas,T.orillaRocas), kIn=dd(c.orillaDentro,T.orillaDentro), kMu=dd(c.musgoRocas,T.musgoRocas);
+  const T=TIPOS[c.tipo], F=prepararCampo(c), dd=(v,d)=>v==null?d:v;
+  const so=semO==null?(c.semOrilla==null?c.sem:c.semOrilla):semO, base=(((c.sem|0)*977+(so|0)*131)^0x5bd1e995)|0;
+  const kOr=dd(c.orillaRocas,T.orillaRocas), kIn=dd(c.orillaDentro,T.orillaDentro), kMu=dd(c.musgoRocas,T.musgoRocas), tam=dd(c.rocasTam,T.rocasTam), vr=dd(c.rocasVar,T.rocasVar);
   const ori=[], ins=[];
   for(let j=0;j<F.h;j+=2) for(let i=0;i<F.w;i+=2){ const q=j*F.w+i, d=F.d[q];
     if(d<=-0.3&&d>-1.8) ori.push(q); else if(d>0.45&&F.prof[q]>0.04&&F.prof[q]<=1.3) ins.push(q); }
-  const matB=MAT_ORILLA[(rnd()*MAT_ORILLA.length)|0];
-  const nOr=kOr<=0?0:Math.min(28,Math.round(kOr*ori.length*0.25*0.12)), nIn=kIn<=0||!ins.length?0:Math.min(12,Math.round(kIn*(0.7+ins.length*0.25*0.03)));
+  const matB=MAT_ORILLA[(NV.mulberry(base+5)()*MAT_ORILLA.length)|0];
+  /* cuántas: por la cantidad de orilla y de agua somera que hay, y por la perilla */
+  const nOr=kOr<=0?0:Math.min(60,Math.round(kOr*ori.length*0.25*0.12)), nIn=kIn<=0||!ins.length?0:Math.min(30,Math.round(kIn*(0.7+ins.length*0.25*0.03)));
   const formas={pequena:['redondeada','angular','plana','irregular','ovalada'],media:['redondeada','angular','plana','irregular','alargada','fracturada','estratificada'],grande:['redondeada','fracturada','angular','irregular','erosionada','estratificada']};
-  const rad={pequena:0.9,media:1.6,grande:2.6}, out=[];
-  const pickT=dentro=>{ const r=rnd(); return dentro?(r<0.72?'pequena':r<0.95?'media':'grande'):(r<0.5?'pequena':r<0.85?'media':'grande'); };
-  const poner=(lista,n,dentro)=>{
-    for(let k=0,intentos=0;k<n&&intentos<n*30&&lista.length;intentos++){
-      const q=lista[(rnd()*lista.length)|0], i=q%F.w, j=(q/F.w)|0;
-      const x=Math.round(F.x0+(i+rnd())/PPM), y=Math.round(F.y0+(j+rnd())/PPM), m={};
-      if(!muestra(F,x+0.5,y+0.5,m)) continue;
-      if(dentro?!(m.d>0.35&&m.prof>0.03):!(m.d<-0.15&&m.d>-2.2)) continue;
-      const tam=pickT(dentro); let libre=true;
-      for(const o of out){ if(Math.hypot(o.x-x,(o.y-y)*1.6)<(rad[tam]+rad[o.spec.tam])*0.6){ libre=false; break; } }
-      if(!libre) continue;
-      const mat=rnd()<0.8?matB:MAT_ORILLA[(rnd()*MAT_ORILLA.length)|0], fl=formas[tam], forma=fl[(rnd()*fl.length)|0];
-      const musgo=rnd()<kMu*(dentro?0.55:0.9)?0.3+rnd()*0.6:0;
-      const estado={musgo,liquen:rnd()<0.25?0.2+rnd()*0.4:0,humedad:dentro?0.7:0.35+rnd()*0.4,erosion:rnd()*0.4,enterrada:dentro?0.25+rnd()*0.35:0.15+rnd()*0.4};
-      out.push({x,y,dentro,spec:{mat,tam,forma,estado,sem:(rnd()*60000|0)+1,escala:0.85+rnd()*0.35,yaw:rnd()*6.28}}); k++;
+  const out=[];
+  const hacer=(lista,n,dentro,off)=>{
+    const mios=[];
+    for(let k=0;k<n&&lista.length;k++){
+      const rnd=NV.mulberry((base+off+k*7919)|0);
+      let x=0,y=0,ok=false;
+      for(let it=0;it<30&&!ok;it++){
+        const q=lista[(rnd()*lista.length)|0], i=q%F.w, j=(q/F.w)|0, m={};
+        x=Math.round(F.x0+(i+rnd())/PPM); y=Math.round(F.y0+(j+rnd())/PPM);
+        if(!muestra(F,x+0.5,y+0.5,m)) continue;
+        if(dentro?!(m.d>0.35&&m.prof>0.03):!(m.d<-0.15&&m.d>-2.2)) continue;
+        ok=true; for(const o of mios) if(Math.hypot(o.x-x,(o.y-y)*1.6)<1.3){ ok=false; break; }
+      }
+      /* lo que sigue del azar de este hueco no depende de cuántos intentos hizo la posición */
+      const r2=NV.mulberry((base+off+k*104729+3)|0);
+      if(!ok) continue;
+      /* altura pedida (m): la perilla de tamaño, repartida por la de variedad; se escoge la clase del motor y se escala a esa altura */
+      const H=clamp(tam*Math.exp((r2()-0.5)*2*vr*1.15),0.12,4.5);
+      const cl=H<0.62?'pequena':H<1.75?'media':'grande', nom=(NOM_ALT[cl][0]+NOM_ALT[cl][1])/2;
+      const mat=r2()<0.8?matB:MAT_ORILLA[(r2()*MAT_ORILLA.length)|0], fl=formas[cl], forma=fl[(r2()*fl.length)|0];
+      const musgo=r2()<kMu*(dentro?0.55:0.9)?0.3+r2()*0.6:0;
+      const estado={musgo,liquen:r2()<0.25?0.2+r2()*0.4:0,humedad:dentro?0.7:0.35+r2()*0.4,erosion:r2()*0.4,enterrada:dentro?0.25+r2()*0.35:0.15+r2()*0.4};
+      const e={x,y,dentro,spec:{mat,tam:cl,forma,estado,sem:(r2()*60000|0)+1,escala:clamp(H/nom,0.3,3),yaw:r2()*6.28}};
+      mios.push(e); out.push(e);
     }
   };
-  poner(ori,nOr,false); poner(ins,nIn,true);
+  hacer(ori,nOr,false,11); hacer(ins,nIn,true,977777);
   return out;
 }
 /* hasta dónde llega el agua a una roca metida en ella (en metros de altura de la roca), o null si está en seco */
@@ -935,7 +1008,7 @@ function nivelEn(x,y){
 }
 
 /* ------------------------------------------------------------------ registro ---- */
-const A={decorar,nivelEn,sincronizar,vista,cuerpos,cerca,cuerpoEn,version:()=>VERSION,TIPOS,TIPOS_ID,NOMBRES,CASCADA0,crear,validar,aDatos,deDatos,tocar,prepararCampo,muestra,enAgua,actualizar,superficie,
+const A={decorar,nivelEn,unir,sincronizar,vista,cuerpos,cerca,cuerpoEn,version:()=>VERSION,TIPOS,TIPOS_ID,NOMBRES,CASCADA0,crear,validar,aDatos,deDatos,tocar,prepararCampo,muestra,enAgua,actualizar,superficie,
   golpe,actor,pintar,pintarCascada,pintarEspumaCascada,usarClima,clima,VIENTO_DIR,colorProf,cielo,lecho,sen,
   datosMundo:cuerpos=>({formato:1,cuerpos:cuerpos.map(aDatos)}),
   desdeMundo:o=>{ if(!o||o.formato!==1||!Array.isArray(o.cuerpos)) throw new Error('aguas: formato desconocido'); return o.cuerpos.map(deDatos); }};

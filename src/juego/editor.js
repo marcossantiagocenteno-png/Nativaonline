@@ -257,6 +257,9 @@
     if(hacer({t:'lote',ops:L.map(o=>({t:'objeto-',x:o.x,y:o.y}))},n+' objeto'+(n>1?'s':'')+' eliminado'+(n>1?'s':'')+'. Deshacer los trae de vuelta.')){ E.selCaja=null; E.selObjs=[]; actualizarBorrar(); return true; }
     return false;
   }
+  /* para que una perilla en vivo deje un solo paso de deshacer: se anota el largo de la pila al empezar y al soltar se juntan los pasos */
+  E.pilaLargo=()=>pila.length;
+  E.colapsarPila=n=>{ const t=pila.splice(n); if(t.length>1) pila.push({t:'lote',ops:t.reverse()}); else if(t.length) pila.push(t[0]); };
   E.borrarSeleccion=borrarSel; E.limpiarSeleccion=limpiarSel;
   function intentarQuitar(e){
     apuntar(e); const h=E.hover; if(!h) return true;

@@ -1586,6 +1586,7 @@ function pintarAguas(pp){
   NV.aguasActor=AG.actor(NV.aguasActor,lista,pp.x+0.5,pp.y+0.5,tt,null);
   const otros=NV.personajes;
   if(otros&&otros.length){ for(let q=0;q<otros.length;q++){ const o=otros[q], po=NV.posPersonaje(o,Date.now()); o._aguaActor=AG.actor(o._aguaActor,lista,po.x+0.5,po.y+0.5,tt,null); } }
+  AG.unir(lista);
   const grupos=new Map();
   for(const c of lista){
     let cx=c.x, cy=c.y;
@@ -1595,7 +1596,7 @@ function pintarAguas(pp){
   const rf={n:NV.grabadosAgua.n(),B:NV.grabadosAgua.B};
   for(const [alza,g] of grupos){
     const sc={G:fbG,C:fbC,cols,rows:rowsN,CPM,RPM,HPM,x0:camX,y0:camY-(liftR-alza)/RPM,t:tt,reflejables:rf,
-      sombras:[{c0:0,r0:0,w:cols,h:rowsN,k:NV.aguaSombra}],mascara:fbL,opciones:NV.aguasOpciones||null,fondo:NV.fondoArte};
+      sombras:[{c0:0,r0:0,w:cols,h:rowsN,k:NV.aguaSombra}],mascara:fbL,opciones:NV.aguasOpciones||null,fondo:NV.fondoArte,unido:true};
     AG.pintar(sc,g);
     for(const c of g) if(c.tipo==='cascada'){ AG.pintarEspumaCascada(sc,c); AG.pintarCascada(sc,c); }
   }
