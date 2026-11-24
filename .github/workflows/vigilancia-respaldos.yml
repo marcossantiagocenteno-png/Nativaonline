@@ -1,4 +1,6 @@
 # Vigilancia EXTERNA de los respaldos de Nativa Online. Corre en GitHub, no en Oracle: si la VM muere, esto lo nota.
+# OJO: un `schedule` sólo corre desde la rama POR DEFECTO (main). Mientras este archivo viva sólo en `multijugador` no se ejecuta; la forma de
+# activarlo sin fusionar ramas está en docs/PUBLICACION.md §2 (repositorio aparte, operaciones/vigilancia/).
 # Está apagada hasta que se defina la variable de repositorio RESPALDOS_ACTIVOS = true (Settings → Variables), para no fallar antes de que existan los buckets.
 # Secretos (Settings → Secrets): B2_ID_LECTURA, B2_CLAVE_LECTURA (clave de B2 de SÓLO LECTURA) y, para el ensayo, NATIVA_VERIFICADOR_IDENTIDAD
 # (la clave del VERIFICADOR, que sólo abre canarios sintéticos; NUNCA la clave maestra).

@@ -1,0 +1,37 @@
+# EJEMPLO INERTE (no está en .github/workflows). Opción C de docs/PUBLICACION.md: publicar en Pages sólo index.html y src/, sin servidor/ ni docs/.
+# Para usarlo habría que: copiarlo a .github/workflows/, poner Settings → Pages → Source = GitHub Actions y añadir la rama desde la que se publique
+# a las reglas de despliegue del entorno `github-pages` (por defecto sólo la rama por defecto puede desplegar). Nada de eso está hecho.
+name: Publicar cliente en Pages
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [publicado]
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dejar sólo lo que usa el navegador
+        run: |
+          mkdir _sitio && cp index.html _sitio/ && cp -r src _sitio/src
+          test -f _sitio/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _sitio
+  desplegar:
+    needs: construir
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - id: despliegue
+        uses: actions/deploy-pages@v4

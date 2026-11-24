@@ -1,0 +1,48 @@
+# EJEMPLO INERTE para un repositorio APARTE (público, pequeño, p. ej. `nativa-vigilancia`) cuya rama por defecto contenga SÓLO este archivo en
+# .github/workflows/. Así el `schedule` corre (sólo corre en la rama por defecto) sin fusionar `multijugador` en `main`, y los secretos de
+# vigilancia no viven en el repositorio del juego. Nada de esto está creado. Ver docs/PUBLICACION.md §2.
+# Secretos del repositorio de vigilancia: B2_ID_LECTURA, B2_CLAVE_LECTURA, NATIVA_VERIFICADOR_IDENTIDAD (clave del VERIFICADOR, que sólo abre canarios).
+# Variable de repositorio: CODIGO_COMMIT (el SHA completo del repositorio del juego que se usa; se actualiza A MANO al cambiar los scripts).
+name: Vigilancia externa de respaldos
+on:
+  schedule:
+    - cron: '17 * * * *'      # cada hora (puede retrasarse bajo carga)
+    - cron: '43 5 * * 1'      # lunes: además, ensayo de restauración del canario
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: vigilancia
+  cancel-in-progress: false
+jobs:
+  vigilar:
+    if: ${{ vars.CODIGO_COMMIT != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NATIVA_RESPALDO_DESTINO: b2
+      B2_ID_LECTURA: ${{ secrets.B2_ID_LECTURA }}
+      B2_CLAVE_LECTURA: ${{ secrets.B2_CLAVE_LECTURA }}
+      B2_CUBO_SEIS_HORAS: ${{ vars.B2_CUBO_SEIS_HORAS || 'nativa-seis-horas' }}
+      B2_CUBO_DIARIO: ${{ vars.B2_CUBO_DIARIO || 'nativa-diario' }}
+      B2_CUBO_SEMANAL: ${{ vars.B2_CUBO_SEMANAL || 'nativa-semanal' }}
+      NATIVA_RESPALDO_N_DESTINATARIOS: ${{ vars.NATIVA_RESPALDO_N_DESTINATARIOS || '2' }}
+    steps:
+      - name: Código del juego, anclado a un commit
+        uses: actions/checkout@v4
+        with:
+          repository: marcossantiagocenteno-png/Nativaonline
+          ref: ${{ vars.CODIGO_COMMIT }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar age
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq age
+      - name: Vigilar
+        run: node operaciones/respaldos/vigilar.js
+      - name: Ensayo del canario (lunes o a mano)
+        if: ${{ github.event.schedule == '43 5 * * 1' || github.event_name == 'workflow_dispatch' }}
+        env:
+          NATIVA_VERIFICADOR_IDENTIDAD: ${{ secrets.NATIVA_VERIFICADOR_IDENTIDAD }}
+        run: node operaciones/respaldos/ensayo.js
