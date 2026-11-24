@@ -12,7 +12,7 @@ ok(ES.TIPOS_ID.length>=14,'catálogo de tipos de la tanda ('+ES.TIPOS_ID.length+
 /* todos los tipos dibujan, con contorno, sin glifos fuera del rango imprimible */
 for(const tipo of ES.TIPOS_ID){
   const sp={tipo,sem:5,estado:{musgo:0.4,vegetacion:0.3}}, g=dibujar(ES.crear(sp));
-  ok(g.size>40,tipo+': dibuja celdas');
+  ok(g.size>(ES.TIPOS[tipo].cat==='Restos animales'?12:40),tipo+': dibuja celdas ('+g.size+')');
   let raro=0; for(const v of g.values()) if(v[0]<32||v[0]>126) if(v[0]!==176) raro=v[0];
   ok(!raro,tipo+': glifos imprimibles'+(raro?' (salió '+raro+')':''));
   ok(cuenta(g,gl=>gl===35)>4,tipo+': tiene contorno');
@@ -70,6 +70,27 @@ const Sx=ES.crear({tipo:'muro',sem:2}), lejos=dibujar(Sx,{CPM:5.2,HPM:2.7,RPM:1.
 const g2=new Map(), c2=ctx(); c2.put=(x,y,gl,col)=>g2.set(x+','+y,[gl,col]); ES.pintar(Sx,c2); const antes=g2.size; ES.pintar(Sx,Object.assign(c2,{x:1.5})); ok(g2.size>=antes,'dos estructuras superpuestas dibujan sin error');
 /* sombra proyectada */
 const sh=new Map(), cs=ctx(); cs.put=(x,y,gl,col)=>sh.set(x+','+y,[gl,col]); cs.sombrear=(c,r,k)=>sh.set(c+','+r,[k,0]); ES.pintarSombra(Sx,cs); ok(sh.size>20,'proyecta sombra');
+/* restos animales: composición articulada, desarmado por deterioro, enterrado, cuernos, nido y madriguera */
+ok(ES.TIPOS_ID.filter(t=>ES.TIPOS[t].cat==='Restos animales').length>=11,'categoría E: tipos de restos animales');
+for(const t of ['esqueletoPequeno','esqueletoMediano','esqueletoGrande']){
+  const ent=ES.crear({tipo:t,sem:7,deterioro:0}), roto=ES.crear({tipo:t,sem:7,deterioro:0.95});
+  ok(ent.g.rubble>20,t+': entero tiene muchas piezas ('+ent.g.rubble+')');
+  ok(roto.g.rubble<ent.g.rubble,t+': deteriorado pierde piezas ('+roto.g.rubble+' < '+ent.g.rubble+')');
+  { const A=hash(dibujar(ent,{CPM:30,HPM:15,RPM:9})), B=hash(dibujar(roto,{CPM:30,HPM:15,RPM:9})); ok(A!==B,t+': el deterioro lo desordena'); }
+  const sk=ES.crear({tipo:t,sem:7,deterioro:0,estado:{enterrada:0.8}});
+  ok(sk.g.sink>ent.g.sink,t+': enterrado se hunde en el suelo ('+sk.g.sink.toFixed(2)+' > '+ent.g.sink.toFixed(2)+')');
+}
+ok(ES.crear({tipo:'esqueletoGrande',sem:3,deterioro:0.1}).box.umax>ES.crear({tipo:'esqueletoPequeno',sem:3,deterioro:0.1}).box.umax*3,'el esqueleto grande mide mucho más que el pequeño');
+ok(H({tipo:'craneo',sem:4,cuernos:true})!==H({tipo:'craneo',sem:4,cuernos:false}),'cráneo: los cuernos son una pieza real');
+ok(ES.crear({tipo:'craneo',sem:4,cuernos:true}).g.rubble>ES.crear({tipo:'craneo',sem:4,cuernos:false}).g.rubble,'cráneo con cuernos tiene más piezas');
+ok(H({tipo:'esqueletoMediano',sem:5,deterioro:0.3})===H({tipo:'esqueletoMediano',sem:5,deterioro:0.3}),'esqueleto determinista');
+ok(ES.regenerar(ES.limpiar({tipo:'esqueletoMediano',sem:5,deterioro:0.5}),'deterioro').sem===5,'regenerar deterioro del esqueleto conserva la forma');
+{ const a=ES.limpiar({tipo:'esqueletoMediano',sem:5,deterioro:0.6}), b=ES.regenerar(a,'deterioro'); ok(H(a)!==H(b),'otro desorden, mismo animal'); }
+ok(ES.crear({tipo:'nido',sem:2}).g.rubble>25,'nido: muchas ramitas');
+{ let vac=0; const S=ES.crear({tipo:'madriguera',sem:3,deterioro:0.1}); for(let u=-0.6;u<0.6;u+=0.04) for(let v=0.02;v<0.4;v+=0.04) for(let z=0;z<1.2;z+=0.04){ if(S.g.sdf(u,v,z)<0.03&&S.g.info(u,v,z).vac) vac++; } ok(vac>3,'madriguera: la boca tiene interior oscuro ('+vac+')'); }
+ok(ES.crear({tipo:'guarida',sem:3}).g.rubble>ES.crear({tipo:'madriguera',sem:3}).g.rubble,'guarida: huesos en la entrada');
+ok(dibujar(ES.crear({tipo:'madriguera',sem:3,deterioro:0.9})).size>=dibujar(ES.crear({tipo:'madriguera',sem:3,deterioro:0})).size*0.5,'madriguera derrumbada sigue dibujando');
+{ const g=dibujar(ES.crear({tipo:'esqueletoMediano',sem:5,edad:0.9})); let rampa=0; for(const v of g.values()) if(v[0]===78||v[0]===110||v[0]===105) rampa++; ok(rampa>5,'hueso usa su rampa propia (i n N)'); }
 /* rendimiento: 40 estructuras distintas y repintar con caché */
 ES.reiniciarCache(); let t0=Date.now(); const lote=[]; for(let i=0;i<40;i++) lote.push(ES.crear({tipo:ES.TIPOS_ID[i%ES.TIPOS_ID.length],sem:i+1,estado:{musgo:0.3}}));
 for(const S of lote) dibujar(S); const frio=Date.now()-t0; t0=Date.now(); for(const S of lote) dibujar(S); const tibio=Date.now()-t0;

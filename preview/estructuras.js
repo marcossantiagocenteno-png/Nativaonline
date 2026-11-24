@@ -137,7 +137,7 @@ function una(spec,extra){
 }
 function guardarFav(spec){ const l=favs(); l.push(JSON.parse(JSON.stringify(spec))); guardarFavs(l); barra(); }
 const botFav=spec=>{ const b=el('button',{textContent:'★ Conservar',title:'Guarda esta estructura (la receta, no la imagen)'}); b.onclick=()=>{ guardarFav(spec); b.textContent='★ Guardada'; }; return b; };
-const ZM={muro:1,muroLadrillo:1,paredCaida:1,cercaPiedra:1,cercaMadera:1,puente:1,arco:0.9,escalera:1.2,chimenea:1.2,columna:1.5,pilar:1.4,pozo:1.5,puerta:1.9,ventana:2};
+const ZM={muro:1,muroLadrillo:1,paredCaida:1,cercaPiedra:1,cercaMadera:1,puente:1,arco:0.9,escalera:1.2,chimenea:1.2,columna:1.5,pilar:1.4,pozo:1.5,puerta:1.9,ventana:2,craneo:3.2,cuernos:2.8,colmillos:2,costillar:2,huesosSueltos:1.6,esqueletoPequeno:2.4,esqueletoMediano:1.3,esqueletoGrande:0.9,nido:3,madriguera:1.8,guarida:1};
 const zmDe=t=>ZM[t]||1;
 
 /* ---- Muestrario: las categorías pedidas para esta tanda, tres variantes de cada una ---- */
@@ -151,12 +151,20 @@ const MUESTRAS=[
   ['Puentes deteriorados',{tipo:'puente',mat:['madera','madera','madera'],det:[0.25,0.55,0.85],edad:[0.4,0.7,0.9],est:{humedad:0.4,musgo:0.3}}],
   ['Escaleras destruidas',{tipo:'escalera',mat:['mamposteria','sillar','piedraSeca'],det:[0.3,0.55,0.85],edad:0.7,est:{musgo:0.4,vegetacion:0.3,hojas:0.3}}],
   ['Chimeneas, puertas y ventanas',{tipo:['chimenea','puerta','ventana'],mat:['ladrillo','madera','madera'],det:[0.4,0.5,0.55],edad:0.7,est:{vegetacion:0.25,humedad:0.2,quemadura:0.35}}],
-  ['Cercas',{tipo:['cercaPiedra','cercaMadera','cercaMadera'],mat:['piedraSeca','madera','madera'],det:[0.3,0.3,0.7],edad:[0.6,0.5,0.8],est:{musgo:0.3,vegetacion:0.3}}]
+  ['Cercas',{tipo:['cercaPiedra','cercaMadera','cercaMadera'],mat:['piedraSeca','madera','madera'],det:[0.3,0.3,0.7],edad:[0.6,0.5,0.8],est:{musgo:0.3,vegetacion:0.3}}],
+  ['Cráneos',{tipo:'craneo',mat:'hueso',det:[0.1,0.45,0.85],edad:[0.3,0.6,0.9],est:{musgo:0.15,tierra:0.2}}],
+  ['Costillas',{tipo:'costillar',mat:'hueso',det:[0.2,0.55,0.9],edad:[0.4,0.6,0.9],est:{tierra:0.25,vegetacion:0.2}}],
+  ['Cuernos y colmillos',{tipo:['cuernos','cuernos','colmillos'],mat:'hueso',det:[0.1,0.5,0.4],edad:[0.3,0.7,0.8],est:{tierra:0.15,musgo:0.1}}],
+  ['Huesos parcialmente enterrados',{tipo:'huesosSueltos',mat:'hueso',det:[0.3,0.6,0.9],edad:[0.5,0.7,0.9],est:{enterrada:0.5,tierra:0.4,vegetacion:0.25}}],
+  ['Esqueletos pequeños y medianos',{tipo:['esqueletoPequeno','esqueletoMediano','esqueletoMediano'],mat:'hueso',det:[0.1,0.3,0.85],edad:[0.4,0.6,0.85],est:{tierra:0.2,vegetacion:0.2,musgo:0.15}}],
+  ['Esqueletos grandes: completo, incompleto, desordenado',{tipo:'esqueletoGrande',mat:'hueso',det:[0,0.55,0.95],edad:[0.4,0.65,0.9],est:{tierra:0.25,vegetacion:0.3,musgo:0.2}}],
+  ['Nidos abandonados',{tipo:'nido',mat:'madera',det:[0.1,0.45,0.85],edad:[0.3,0.6,0.9],est:{musgo:0.2,hojas:0.3}}],
+  ['Madrigueras y guaridas',{tipo:['madriguera','madriguera','guarida'],mat:'tierra',det:[0.1,0.65,0.3],edad:[0.4,0.7,0.6],est:{vegetacion:0.3,hojas:0.3}}]
 ];
 const pick=(v,k)=>Array.isArray(v)?v[k%v.length]:v;
 function muestrario(c){
   c.appendChild(el('h2',{textContent:'Muestrario: construcciones, ruinas y estructuras rurales, tres variantes de cada una'}));
-  c.appendChild(el('p',{className:'nota',textContent:'Cada cuadro lo genera el motor ahora mismo con una receta distinta (material, semilla, antigüedad, deterioro). "Conservar" guarda la receta en Favoritas. Esta tanda cubre construcciones y ruinas y el pozo; madera caída, campamentos, restos animales, cuevas y objetos misteriosos vienen después.'}));
+  c.appendChild(el('p',{className:'nota',textContent:'Cada cuadro lo genera el motor ahora mismo con una receta distinta (material, semilla, antigüedad, deterioro). "Conservar" guarda la receta en Favoritas. Cubre construcciones y ruinas, el pozo y los restos animales; madera caída, campamentos, cuevas, objetos abandonados y estatuas vienen después.'}));
   MUESTRAS.forEach(([tit,d],ii)=>{
     c.appendChild(el('h2',{textContent:(ii+1)+'. '+tit}));
     const fila=el('div',{className:'fila'});
@@ -309,6 +317,8 @@ function dibujar(){ VIVOS.length=0; barra(); const c=$('#cuerpo'); c.innerHTML='
 const q=new URLSearchParams(location.search);
 if(q.get('vista')) ESTADO.vista=q.get('vista');
 if(q.get('escala')) ESTADO.cw=+q.get('escala');
+if(q.get('pasto')!=null) ESTADO.pasto=+q.get('pasto');
+if(q.get('det')!=null) ESTADO.banco.spec=ES.limpiar(Object.assign({},ESTADO.banco.spec,{deterioro:+q.get('det')}));
 if(q.get('tipo')){ ESTADO.banco.spec=ES.limpiar(Object.assign({},ESTADO.banco.spec,{tipo:q.get('tipo'),mat:ES.TIPOS[q.get('tipo')]?ES.TIPOS[q.get('tipo')].mat:undefined})); ESTADO.env.tipo=q.get('tipo'); ESTADO.env.mat=ES.TIPOS[q.get('tipo')].mat; ESTADO.oc.tipo=q.get('tipo'); }
 if(q.get('semilla')) ESTADO.banco.spec=ES.limpiar(Object.assign({},ESTADO.banco.spec,{sem:+q.get('semilla')}));
 if(q.get('grupo')) ESTADO.grupo.tipo=q.get('grupo');

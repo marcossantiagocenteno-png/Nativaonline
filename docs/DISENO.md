@@ -396,6 +396,8 @@ suelo.
 | tronco en pie | `t h H` | el camino viejo: árbol místico y arbustos |
 | ramas | `y Y` | |
 | tronco caído | `h H` | tendido de este a oeste |
+| estructura: hueso | `. : - i n N` | extremo denso `N`, exclusivo; fisuras `:` en hueso viejo |
+| estructura: tierra (madriguera, guarida) | `. , ; : o O` | extremo denso `O`; la boca es vacío oscuro |
 
 **Corteza** (una por especie; es el extremo denso y por eso es exclusiva)
 
@@ -1735,7 +1737,7 @@ El jugador ya generaba ondas al pisar agua (`AG.actor`), pero eran físicas y di
 
 **Estado: sólo laboratorio.** `src/juego/estructuras.js` está en `modulos.js` (se carga y se prueba) pero el juego **no lo usa**: no está en la paleta del Modo Dios ni en `objetos.js`. Se integra cuando Marcos revise `preview/estructuras.html` y lo apruebe. No toca ni reemplaza rocoso, arbolado, pasto ni aguas.
 
-**Esta tanda (14 tipos, 5 agrupaciones):** muro de piedra, muro de ladrillo, pared caída, cerca de piedra, columna, pilar, arco, escalera, chimenea, puerta, ventana, cerca de madera, puente, pozo. Agrupaciones: ruina, casa, pozo antiguo, cercado, puente roto. **No están todavía:** madera caída y troncos (A), campamentos (D), restos animales (E), cuevas (F), objetos abandonados (G), estatuas y altares (H), complementos naturales (I), generación ambiental aleatoria, partes que reaccionan al viento, cuevas caminables.
+**Esta tanda (14 tipos, 5 agrupaciones):** muro de piedra, muro de ladrillo, pared caída, cerca de piedra, columna, pilar, arco, escalera, chimenea, puerta, ventana, cerca de madera, puente, pozo. Agrupaciones: ruina, casa, pozo antiguo, cercado, puente roto. **No están todavía:** madera caída y troncos (A), campamentos (D), cuevas (F), objetos abandonados (G), estatuas y altares (H), complementos naturales (I), generación ambiental aleatoria, partes que reaccionan al viento, cuevas caminables.
 
 **Arquitectura (la de rocas y árboles).** Un objeto es una *spec* chica y determinista `{tipo,mat,sem,semD,semV,escala,yaw,inclinacion,largo,alto,grosor,edad,deterioro,tono,lum,sat,estado:{musgo,liquen,humedad,vegetacion,tierra,hojas,quemadura,enterrada}}` más un sólido por distancia que cada celda recorre con un rayo a la inclinación de cámara del juego. La spec es lo único que se guarda (`aObjeto`/`deObjeto`, JSON); el dibujo siempre se regenera.
 
@@ -1758,3 +1760,15 @@ El jugador ya generaba ondas al pisar agua (`AG.actor`), pero eran físicas y di
 **Limitaciones conocidas.** Sin viento. Las tablas del puente y la cuerda del pozo son sólidos, no partes que se muevan. La vegetación sobre las piezas es sombreado, no plantas del motor de pasto. Los 14 tipos se midieron en 6–134 ms por estructura en frío (después, caché); en el juego real con cientos aún no se midió.
 
 **Laboratorio:** `preview/estructuras.html` con vistas Muestrario (10 categorías × 3 variantes), Envejecer y deteriorar (matriz 4×4), Banco (controles reales, editar objeto vs generador, referencia, copias, semillas por capa, estadísticas de caché), Agrupaciones, Oclusión y distancia, y Favoritas (se guarda la receta). Pruebas: `node pruebas/estructuras.js`.
+
+
+### Restos animales (categoría E, 23/11)
+
+Once tipos nuevos en `Restos animales`: cráneo, costillas, cuernos, colmillos, huesos enterrados, esqueleto pequeño / mediano / grande, nido abandonado, madriguera y guarida. Materiales nuevos: `hueso` (rampa `. : - i n N`, fisuras con la edad) y `tierra` (`. , ; : o O`). Mismas perillas que el resto: edad, deterioro, estado (musgo, vegetación, tierra, enterrada), tono, luminosidad, saturación, y semillas separadas de forma, deterioro y vegetación.
+
+- **Esqueleto = composición articulada**, no huesos sueltos: columna con cola, caja torácica (un arco por costilla, de un lado o de los dos), pelvis, cuatro patas de tres huesos abiertas sobre el suelo y cráneo en la punta del cuello. La proporción sale de `largo` (0,55 m pequeño, 1,7 m mediano, 4,2 m grande); el grande puede traer cuernos y colmillos (`cuernos` / `colmillos` fuerzan o quitan).
+- **Deterioro lo desarma de verdad:** primero faltan piezas, después las que quedan se corren, se giran sobre el suelo y las costillas se abren. Con `deterioro` 0 está entero; cerca de 1, es un esqueleto incompleto y desordenado. `estado.enterrada` lo hunde en el suelo; `vegetacion`, `musgo` y `tierra` lo cubren.
+- **Nido:** cuenco de ramitas entrecruzadas con cáscaras (material secundario `hueso`). **Madriguera / guarida:** montículo de tierra con la boca al sur, borde levantado y tierra sacada; la guarida es más grande y trae huesos en la entrada. El deterioro achica y rellena la boca.
+- Se hacen con las mismas interfaces (`crear`, `editar`, `regenerar`, `aObjeto`, grupos) y entran al muestrario del laboratorio.
+
+**Limitaciones de esta tanda:** sólo cuadrúpedos (nada de aves, serpientes ni peces); los huesos son estilizados (más gruesos que los reales) para que se vean a 13 columnas por metro; los dientes no se dibujan, salvo colmillos; la boca de la madriguera es un vacío oscuro, no un túnel con interior; no hay agrupaciones nuevas de restos (por ejemplo una guarida con su esqueleto).
