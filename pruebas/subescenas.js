@@ -108,7 +108,42 @@ NV.mundo.editar({t:'objeto-',x:ux,y:uy}); SU.sincronizar();
 probar('borrar el umbral borra el sub-mundo del listado', SU.lista().length===0);
 NV.mundo.editar({t:'objeto+',x:ux,y:uy,objeto:obj}); SU.sincronizar();
 probar('y deshacer lo trae de vuelta con su cueva', SU.lista().length===1&&SU.lista()[0].nombre==='Gruta del Zorro');
-probar('el Modo Dios no se abre adentro de una cueva', (()=>{ E.salir(); m.ponerYo(ux,uy+2); m.move(0,-1); m.move(0,-1); const adentro=NV.escena!==null; E.entrar(); const bloqueado=!E.activo; return adentro&&bloqueado; })());
+/* ---- el Modo Dios funciona adentro ---- */
+E.salir(); NV.mundo.editar({t:'objeto-',x:ux,y:uy}); NV.mundo.editar({t:'objeto+',x:ux,y:uy,objeto:obj}); SU.sincronizar();
+m.ponerYo(ux,uy+2); m.move(0,-1); m.move(0,-1);
+probar('se entra de nuevo', NV.escena!==null);
+E.entrar();
+probar('el Modo Dios se abre adentro y muestra su panel de sub-mundo', E.activo&&document.getElementById('subNombre').textContent==='Gruta del Zorro');
+probar('adentro, un clic no intenta ampliar ni colocar nada del mundo de afuera', (()=>{ const n=NV.mundo.estadisticas().agregar; E.alBajar({button:0,clientX:300,clientY:300,ctrlKey:false,preventDefault(){}}); return NV.mundo.estadisticas().agregar===n; })());
+const nuevoSp=JSON.parse(JSON.stringify(obj.r)); nuevoSp.nombre='Gruta editada'; nuevoSp.cueva.estado.musgo=0.9;
+E.reemplazar(NV.mundo.objetosDe('umbral')[0],SU.aObjeto(nuevoSp));
+probar('editar la cueva con el Modo Dios la rehace sin sacar a nadie de adentro', NV.escena!==null&&NV.escena.nombre==='Gruta editada'&&NV.sueloEn(m.me().x,m.me().y)&&!NV.solidoEn(m.me().x,m.me().y));
+probar('y el cuadro de adentro se sigue dibujando', (()=>{ try{ m.draw_(); return true; }catch(e){ return false; } })());
+probar('"salir de la cueva" del Modo Dios lleva afuera', (()=>{ SU.salirAfuera(); return NV.escena===null&&document.getElementById('subNombre').textContent===''; })());
+E.salir();
+
+/* ---- siempre se puede salir: 20 cuevas al azar, de ida y vuelta ---- */
+{
+  let sin=0;
+  for(let k=0;k<20;k++){
+    const o2=SU.aObjeto({nombre:'C'+k,cueva:SU.cuevaAleatoria()}), x=20+k*3, y=52;
+    NV.mundo.editar({t:'objeto+',x,y,objeto:o2}); SU.sincronizar();
+    m.ponerYo(x,y+2); m.move(0,-1); m.move(0,-1);
+    if(!NV.escena){ sin++; continue; }
+    const Ek=SU.dentro(); const c=ruta2(Ek);
+    let salio=false; if(c) for(const p of c){ const o=m.me(); m.move(Math.sign(p.x-o.x),Math.sign(p.y-o.y)); if(NV.escena===null){ salio=true; break; } }
+    if(!salio){ sin++; SU.salirAfuera(); }
+  }
+  probar('en 20 cuevas al azar siempre se puede salir caminando hasta la boca', sin===0);
+}
+function ruta2(E1){
+  const o=m.me(), clave=(x,y)=>x+','+y, q=[{x:o.x,y:o.y}], padre=new Map([[clave(o.x,o.y),null]]);
+  while(q.length){
+    const n=q.shift(); if(NV.umbrales.detectar(E1.id,n.x+0.5,n.y+0.5)){ const p=[]; let k=n; while(padre.get(clave(k.x,k.y))){ p.push(k); k=padre.get(clave(k.x,k.y)); } return p.reverse(); }
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const x=n.x+dx, y=n.y+dy, c=clave(x,y); if(padre.has(c)||!NV.sueloEn(x,y)||NV.solidoEn(x,y)) continue; padre.set(c,n); q.push({x,y}); }
+  }
+  return null;
+}
 
 console.log('\n'+ok.length+' comprobaciones pasaron'+(mal.length?', '+mal.length+' FALLARON:':''));
 mal.forEach(x=>console.log('  ✗',x));

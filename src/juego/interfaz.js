@@ -8,7 +8,7 @@ const NVi = window.NV;
 
 /* Sello de versión, puesto por sellar.sh al publicar. Se ve en el pie: así
    Marcos y yo sabemos al instante si está mirando la última versión. */
-NVi.VERSION='24/11 09:12';
+NVi.VERSION='24/11 10:00';
 
 NVi.MARCADO = `<div id="stage">
   <canvas id="cv"></canvas>
@@ -37,6 +37,7 @@ NVi.MARCADO = `<div id="stage">
     <div class="pestanas"><button id="diosModoObj" class="on">Objetos</button><button id="diosModoCam">Caminos</button><button id="diosModoTer">Terreno</button><button id="diosModoAgu">Aguas</button><button id="diosModoFlu">Fluidez</button></div>
     <div id="diosParcela"><span>Parcela</span><button id="parAdd" class="on">Añadir</button><button id="parQuit">Remover</button><button id="parSel" title="Arrastrá un rectángulo: lo que queda dentro se selecciona (Mayús suma)">Seleccionar objetos</button><button id="parBorrar" disabled title="Supr o Retroceso">Borrar</button></div>
     <div class="cuerpo">
+    <div id="diosSub"><div class="grupo">Sub-mundo</div><div id="subNombre"></div><button id="subEditar">editar esta cueva</button><button id="subSalir">salir de la cueva</button></div>
     <div id="diosPaleta"></div>
     <div id="diosCaminos">
       <div class="grupo">Familia</div>

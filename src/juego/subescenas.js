@@ -97,13 +97,46 @@ function sincronizar(){
   }
   vSync=NV.mundo.version();
 }
-function asegurar(){ if(vSync!==NV.mundo.version()) sincronizar(); }
+function asegurar(){
+  if(vSync===NV.mundo.version()) return;
+  sincronizar();
+  if(ESC&&SUBS.has(ESC.id)) materializar(ESC.id);
+}
+/* el mundo cambió mientras se estaba adentro (se editó la cueva con el Modo Dios): se rehace el interior en el lugar */
+function refrescarEscena(){
+  if(!ESC) return;
+  asegurar();
+  const s=SUBS.get(ESC.id);
+  if(!s){ const a=ESC.afuera||{x:me.x,y:me.y}; salirAlMundo({x:a.x+0.5,y:a.y+0.5,dx:0,dy:1}); return; }
+  ESC.S=NV.cuevas.crear(s.spec.cueva); ESC.spec=s.spec; ESC.nombre=s.nombre; ESC.dentro=s.dentro;
+  const p=NV.umbrales.puede(s.dentro); if(p.ok) ESC.afuera={x:Math.floor(p.destino.x),y:Math.floor(p.destino.y)};
+  if(!NV.sueloEn(me.x,me.y)||NV.solidoEn(me.x,me.y)){ const c=casillaCerca(me.x+0.5,me.y+0.5); if(c){ me.x=c.x; me.y=c.y; NV.desdeX=undefined; NV.desdeY=undefined; } }
+  nombreEnPantalla(s.nombre); if(typeof programarCuadro==='function') programarCuadro();
+}
+function salirAfuera(){
+  if(!ESC) return false; asegurar();
+  const p=NV.umbrales.puede(ESC.dentro); if(!p.ok) return false;
+  return cruzar(Object.assign({mapa:'mundo'},p.destino));
+}
+function editarEsta(){
+  if(!ESC||!NV.creador) return;
+  const o=NV.mundo.objetosDe('umbral').find(q=>idDe(q)===ESC.id), r=o&&NV.entradaDeObjeto(o);
+  if(r) NV.creador.abrir(r.motor,r.entrada,o);
+}
 /* arma el interior (sus bocas) y ata la boca obligatoria con el umbral de afuera; recién entonces el umbral se puede cruzar */
 function materializar(id){
   const s=SUBS.get(id); if(!s) return null; if(s.listo) return s;
   const S=NV.cuevas.crear(s.spec.cueva);
   NV.umbrales.desdeCueva(id,S,{nombre:s.nombre});
-  s.dentro=id+':'+NV.cuevas.entradas(S)[0].id;
+  const e=NV.cuevas.entradas(S)[0];
+  s.dentro=id+':'+e.id;
+  /* el umbral de la boca se apoya sobre UNA casilla libre (la más cercana a la boca): así siempre hay una casilla que se puede pisar */
+  let mejor=null, bd=1e9;
+  for(let dz=-5;dz<=5;dz++) for(let dx=-5;dx<=5;dx++){
+    const cx=Math.floor(e.x)+dx, cz=Math.floor(e.z)+dz; if(!NV.cuevas.libre(S,cx+0.5,cz+0.5)) continue;
+    const d=Math.hypot(cx+0.5-(e.x-e.dx*0.4),cz+0.5-(e.z-e.dz*0.4)); if(d<bd){ bd=d; mejor={x:cx,z:cz}; }
+  }
+  if(mejor) NV.umbrales.editar(s.dentro,{x:mejor.x+0.5,y:mejor.z+0.5,radio:0.9});
   NV.umbrales.vincular(id+':fuera',s.dentro);
   s.listo=true; return s;
 }
@@ -140,7 +173,11 @@ function recolocar(c,dx,dy){
   if(typeof dejarDeCaminar==='function') dejarDeCaminar();
   if(typeof detenerRuta==='function') detenerRuta();
 }
-function nombreEnPantalla(t){ const w=$e('wname'); if(w) w.textContent=t; }
+function nombreEnPantalla(t){
+  const w=$e('wname'); if(w) w.textContent=t;
+  const d=$e('dios'); if(d&&d.classList) d.classList.toggle('subMode',!!ESC);       // el Modo Dios cambia de panel según dónde se esté
+  const n=$e('subNombre'); if(n) n.textContent=ESC?ESC.nombre:'';
+}
 
 function entrarEscena(r){
   const s=subDeUmbral(r.destino.umbral)||SUBS.get(r.mapa); if(!s) return false;
@@ -157,7 +194,7 @@ function salirAlMundo(r){
   ESC=null; NV.escena=null; cambiarFunciones(false);
   const c=casillaCerca(r.x,r.y)||{x:Math.floor(r.x),y:Math.floor(r.y)};
   recolocar(c,r.dx,r.dy);
-  const p=NV.panelDe(me.x,me.y); if(p){ world=p; nombreEnPantalla(p.nombre); } NV.olvidarObjetos();
+  const p=NV.panelDe(me.x,me.y); if(p) world=p; nombreEnPantalla(p?p.nombre:''); NV.olvidarObjetos();
   return true;
 }
 function cruzar(r){
@@ -214,7 +251,8 @@ function dibujarEscena(){
   const t0=performance.now();
   const dtS=relojAmbiente(), dtC=dtS>0?dtS:1/30;
   const colsM=Math.ceil(cols/CPM), rowsM=Math.ceil(rowsN/RPM), pp=NV.posDibujo(Date.now());
-  const dX=pp.x-colsM/2+0.5, dY=pp.y-rowsM/2+0.5;
+  let dX=pp.x-colsM/2+0.5, dY=pp.y-rowsM/2+0.5;
+  if(NV.camLibre){ dX+=NV.camLibre.x; dY+=NV.camLibre.y; }
   if(NV.camXf===undefined||NV.camDirecta){ NV.camXf=dX; NV.camYf=dY; }
   const sigue=1-Math.exp(-dtC/0.07);
   NV.camXf+=(dX-NV.camXf)*sigue; NV.camYf+=(dY-NV.camYf)*sigue;
@@ -336,6 +374,8 @@ function iniciar(){
   }
   const mp=b('mundos');
   if(mp){ parar(mp); b('mundosCerrar').addEventListener('click',cerrarLista); }
+  if(b('subEditar')) b('subEditar').addEventListener('click',editarEsta);
+  if(b('subSalir')) b('subSalir').addEventListener('click',salirAfuera);
   if(b('diosMundos')) b('diosMundos').addEventListener('click',()=>{ listaAbierta()?cerrarLista():abrirLista(); });
 }
 
@@ -356,9 +396,9 @@ if(NV.motores) NV.motores.registrar({id:'subescenas',nombre:'Sub-mundos (Umbral 
       aObjeto, deObjeto, idDe:()=>ID, previa, resumen
     }
   }});
-if(NV.mundo&&NV.mundo.alCambiar) NV.mundo.alCambiar(()=>{ if(listaAbierta()) pintarLista(); });
+if(NV.mundo&&NV.mundo.alCambiar) NV.mundo.alCambiar(()=>{ if(ESC) refrescarEscena(); if(listaAbierta()) pintarLista(); });
 NV.dibujarUmbral=dibujarUmbral;
-NV.subescenas={limpiar,aObjeto,deObjeto,caminable,cuevaAleatoria,sincronizar,materializar,lista,alPisar,bloquea,dibujarEscena,preguntar,abrirLista,cerrarLista,iniciar,
+NV.subescenas={limpiar,aObjeto,deObjeto,caminable,cuevaAleatoria,sincronizar,materializar,lista,alPisar,bloquea,dibujarEscena,preguntar,salirAfuera,editarEsta,abrirLista,cerrarLista,iniciar,
   dentro:()=>ESC,idDe,DIRS,previa,nombrePorDefecto,
   /* para pruebas */
   _confirmar:confirmarPregunta,_pend:()=>PEND,_cruzar:cruzar};

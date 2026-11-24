@@ -287,6 +287,7 @@
     if(!E.activo) return;
     e.preventDefault();
     if(E.espacio&&e.button===0){ iniciarPaneo(e); return; }
+    if(NV.escena){ decir('Adentro de un sub-mundo: editá la cueva con el botón de abajo. Espacio + arrastrar mueve la vista.'); return; }
     if(E.parcelaModo==='seleccionar'&&E.modo==='objetos'&&e.button===0){ iniciarSel(e); return; }
     if(e.button===0&&!e.ctrlKey&&intentarAmpliar(e)) return;
     if(E.modo!=='objetos'){ E.modos[E.modo].bajar(e); return; }
@@ -326,11 +327,10 @@
   /* ---------- entrar y salir ---------- */
   E.entrar=function(){
     if(E.activo) return;
-    if(NV.escena){ decir('Salí de la cueva para usar el Modo Dios.'); return; }
     E.activo=true; NV.pick(true); NV.zoomLibre(true);
     if(typeof dejarDeCaminar==='function') dejarDeCaminar();
     if(typeof detenerRuta==='function') detenerRuta();
-    const p=$e('dios'); if(p) p.classList.add('show');
+    const p=$e('dios'); if(p){ p.classList.add('show'); p.classList.toggle('subMode',!!NV.escena); }
     $e('cv').style.cursor='crosshair';
     decir('<b>Modo Dios</b>\nElegí algo de la paleta y hacé clic en el terreno.\nRueda o + / − : zoom libre (hasta 200 m).\nEspacio + arrastrar: mover el mapa · Inicio: volver al personaje.\nParcela › Añadir: clic en el vacío junto al mapa. Remover: clic sobre la parcela.');
     refrescar(); programarCuadro();
