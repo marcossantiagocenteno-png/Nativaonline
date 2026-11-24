@@ -397,6 +397,7 @@ suelo.
 | ramas | `y Y` | |
 | tronco caído | `h H` | tendido de este a oeste |
 | estructura: hueso | `. : - i n N` | extremo denso `N`, exclusivo; fisuras `:` en hueso viejo |
+| estructura: hierro (armas y armadura) | `. : - x X Z` | extremo denso `Z`; el óxido sube con edad y humedad |
 | estructura: tierra (madriguera, guarida) | `. , ; : o O` | extremo denso `O`; la boca es vacío oscuro |
 
 **Corteza** (una por especie; es el extremo denso y por eso es exclusiva)
@@ -1772,3 +1773,19 @@ Once tipos nuevos en `Restos animales`: cráneo, costillas, cuernos, colmillos, 
 - Se hacen con las mismas interfaces (`crear`, `editar`, `regenerar`, `aObjeto`, grupos) y entran al muestrario del laboratorio.
 
 **Limitaciones de esta tanda:** sólo cuadrúpedos (nada de aves, serpientes ni peces); los huesos son estilizados (más gruesos que los reales) para que se vean a 13 columnas por metro; los dientes no se dibujan, salvo colmillos; la boca de la madriguera es un vacío oscuro, no un túnel con interior; no hay agrupaciones nuevas de restos (por ejemplo una guarida con su esqueleto).
+
+
+### Humanos, gigantes, dragones, serpientes, batalla, tótem y círculo (23/11, noche)
+
+Siete tipos más en `Restos animales`, con las mismas perillas y semillas.
+
+- **Esqueleto humano** (1,7 m): columna, caja torácica en anillos, pelvis, brazos de tres huesos más mano, piernas con fémur, tibia, peroné y pie, y cráneo humano (bóveda redonda, cara corta, mandíbula). **De gigante:** el mismo esqueleto a escala 5,4 m con huesos más gruesos; `ciclope` (o 40% al azar) le deja una sola órbita grande.
+- **Esqueleto de dragón** (9 m): columna con púas, cuello con curva, cola larga que se afina con púas, caja torácica grande, cuatro patas, **alas de huesos** (brazo, antebrazo, cuatro dedos largos y garra) y cráneo largo con cuernos (`cuernos:false` los quita).
+- **Serpiente gigante** (12 m): cadena de vértebras sobre una curva en S que engorda a la mitad, un par de costillas cada dos vértebras y cráneo plano con colmillos.
+- **Restos de batalla:** calaveras humanas, huesos largos y costillas (hueso); escudos de madera con su centro de hierro, algunos partidos por el deterioro; lanzas con cabeza de hierro, rotas en dos cuando el deterioro sube; flechas clavadas y tiradas; yelmo, peto, grebas y una espada rota. Usa **tres materiales por objeto** (`mat` base, `matB` secundario, `matC` terciario): hueso, hierro y madera.
+- **Tótem de huesos:** pilar de madera (o de piedra con `mat:'sillar'`) con cráneos alternados a los lados, dos travesaños de huesos con cadenas de huesos colgando, y un cráneo grande con cuernos arriba. El deterioro tumba cráneos al pie y inclina el pilar.
+- **Círculo ritual:** huesos largos puestos punta con punta en un círculo, de 4 a 8 cráneos (o `radios`) mirando al centro con un hueso hacia cada uno, y al centro dos huesos cruzados y un cráneo con cuernos. El deterioro corre y quita huesos.
+
+Cambios del motor: cráneos por especie (bestia, humano, dragón, serpiente), piezas nuevas (caja girada, disco para escudos con corte, cascarón hueco para yelmos y petos), material `hierro` con óxido, tercer material, y costillas en anillo para el humano.
+
+**Limitaciones:** los escudos y las placas son planos o ligeramente curvos; no hay sangre ni telas ni cuerdas (el tótem cuelga huesos, no ataduras); las flechas y lanzas son finas y a escala lejana quedan en pocas celdas; el esqueleto humano a zoom lejano se reduce a unas pocas celdas, como todo lo chico. No hay agrupaciones de estos restos todavía.

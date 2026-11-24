@@ -91,6 +91,25 @@ ok(ES.crear({tipo:'nido',sem:2}).g.rubble>25,'nido: muchas ramitas');
 ok(ES.crear({tipo:'guarida',sem:3}).g.rubble>ES.crear({tipo:'madriguera',sem:3}).g.rubble,'guarida: huesos en la entrada');
 ok(dibujar(ES.crear({tipo:'madriguera',sem:3,deterioro:0.9})).size>=dibujar(ES.crear({tipo:'madriguera',sem:3,deterioro:0})).size*0.5,'madriguera derrumbada sigue dibujando');
 { const g=dibujar(ES.crear({tipo:'esqueletoMediano',sem:5,edad:0.9})); let rampa=0; for(const v of g.values()) if(v[0]===78||v[0]===110||v[0]===105) rampa++; ok(rampa>5,'hueso usa su rampa propia (i n N)'); }
+/* humanos, gigantes, dragón, serpiente, batalla, tótem y círculo */
+const piezas=(sp)=>ES.crear(sp).g.rubble;
+ok(piezas({tipo:'esqueletoHumano',sem:3,deterioro:0})>45,'humano: esqueleto completo ('+piezas({tipo:'esqueletoHumano',sem:3,deterioro:0})+' piezas)');
+ok(piezas({tipo:'esqueletoHumano',sem:3,deterioro:0.95})<piezas({tipo:'esqueletoHumano',sem:3,deterioro:0}),'humano: el deterioro le quita piezas');
+ok(ES.crear({tipo:'esqueletoGigante',sem:3}).box.umax>ES.crear({tipo:'esqueletoHumano',sem:3}).box.umax*2.5,'gigante: mide mucho más que el humano');
+ok(H({tipo:'esqueletoGigante',sem:3,ciclope:true})!==H({tipo:'esqueletoGigante',sem:3,ciclope:false}),'gigante: la órbita única cambia el cráneo');
+ok(piezas({tipo:'esqueletoDragon',sem:3,deterioro:0})>piezas({tipo:'esqueletoMediano',sem:3,deterioro:0}),'dragón: más piezas que un esqueleto mediano (alas, cola, púas)');
+{ const D=ES.crear({tipo:'esqueletoDragon',sem:3,deterioro:0}); ok(D.box.zmax>D.box.umax*0.3,'dragón: las alas abren el ancho ('+D.box.zmax.toFixed(1)+' de '+D.box.umax.toFixed(1)+')'); }
+ok(ES.crear({tipo:'esqueletoSerpiente',sem:3}).box.umax>4,'serpiente gigante: larga');
+ok(piezas({tipo:'esqueletoSerpiente',sem:3,deterioro:0.9})<piezas({tipo:'esqueletoSerpiente',sem:3,deterioro:0}),'serpiente: el deterioro la desarma');
+{ const B=ES.crear({tipo:'restosBatalla',sem:3}); ok(B.g.rubble>40,'batalla: muchas piezas ('+B.g.rubble+')'); ok(B.spec.matB==='hierro'&&B.spec.matC==='madera','batalla: hueso, hierro y madera');
+  let mats=new Set(); for(let u=-1.6;u<1.6;u+=0.05) for(let z=-1.2;z<1.2;z+=0.05){ if(B.g.sdf(u,0.04,z)<0.02) mats.add(B.g.info(u,0.04,z).mat); } ok(mats.size>=2,'batalla: hay al menos dos materiales distintos en el suelo ('+[...mats].join(',')+')'); }
+ok(H({tipo:'restosBatalla',sem:3,deterioro:0})!==H({tipo:'restosBatalla',sem:3,deterioro:0.9}),'batalla: más destrozo, otra escena');
+{ const T=ES.crear({tipo:'totemHuesos',sem:3,deterioro:0}), T2=ES.crear({tipo:'totemHuesos',sem:3,deterioro:0.9}); ok(T.box.vmax>3,'tótem: alto como un pilar ('+T.box.vmax.toFixed(1)+')'); ok(T2.g.rubble!==T.g.rubble||H({tipo:'totemHuesos',sem:3,deterioro:0.9})!==H({tipo:'totemHuesos',sem:3,deterioro:0}),'tótem: el deterioro tira cráneos'); }
+ok(H({tipo:'totemHuesos',sem:3,mat:'sillar'})!==H({tipo:'totemHuesos',sem:3,mat:'madera'}),'tótem: el pilar puede ser de piedra o de madera');
+{ const C=ES.crear({tipo:'circuloRitual',sem:3,deterioro:0}); ok(C.g.rubble>25,'círculo: huesos acomodados ('+C.g.rubble+')'); ok(Math.abs(C.box.umax-C.box.zmax)<1.2,'círculo: es redondo');
+  ok(H({tipo:'circuloRitual',sem:3,radios:4})!==H({tipo:'circuloRitual',sem:3,radios:8}),'círculo: la cantidad de calaveras cambia el dibujo'); }
+ok(ES.TIPOS.restosBatalla.matB==='hierro'&&ES.MATS.indexOf('hierro')>=0,'el hierro es un material del motor');
+{ const a=dibujar(ES.crear({tipo:'restosBatalla',sem:3,edad:0.9,estado:{humedad:0.6}})), b=dibujar(ES.crear({tipo:'restosBatalla',sem:3,edad:0,estado:{humedad:0}})); let da=0; for(const [k,v] of a){ const w=b.get(k); if(w&&w[1]!==v[1]) da++; } ok(da>10,'el hierro viejo y húmedo cambia de color (óxido)'); }
 /* rendimiento: 40 estructuras distintas y repintar con caché */
 ES.reiniciarCache(); let t0=Date.now(); const lote=[]; for(let i=0;i<40;i++) lote.push(ES.crear({tipo:ES.TIPOS_ID[i%ES.TIPOS_ID.length],sem:i+1,estado:{musgo:0.3}}));
 for(const S of lote) dibujar(S); const frio=Date.now()-t0; t0=Date.now(); for(const S of lote) dibujar(S); const tibio=Date.now()-t0;

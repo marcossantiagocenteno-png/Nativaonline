@@ -71,6 +71,8 @@ const MATERIALES={
     bh:[0.16,0.16], bl:[1.2,1.2], irreg:0, g:0.020, bev:0.030, sal:0.008, tono:0.18, junta:[24,16,10], grano:0.25, veta:1},
   hueso:{nombre:'Hueso', ramp:['.',':','-','i','n','N'], pal:[[52,46,38],[98,90,76],[142,132,112],[182,172,148],[214,204,178],[238,230,204]],
     bh:[0.30,0.30], bl:[0.60,0.60], irreg:0, g:0.020, bev:0.030, sal:0.008, tono:0.16, junta:[60,52,42], grano:0.20, fisura:1},
+  hierro:{nombre:'Hierro', ramp:['.',':','-','x','X','Z'], pal:[[22,24,28],[46,50,56],[82,88,96],[120,126,134],[158,164,170],[196,200,206]],
+    bh:[0.30,0.30], bl:[0.60,0.60], irreg:0, g:0.020, bev:0.030, sal:0.008, tono:0.14, junta:[20,22,26], grano:0.16, oxido:1},
   tierra:{nombre:'Tierra', ramp:['.',',',';',':','o','O'], pal:[[44,32,22],[82,60,40],[122,94,62],[160,128,86],[194,160,112],[222,190,140]],
     bh:[0.30,0.30], bl:[0.60,0.60], irreg:1, g:0.040, bev:0.060, sal:0.020, tono:0.30, junta:[30,22,14], grano:0.38}
 };
@@ -109,6 +111,13 @@ const TIPOS={
   esqueletoGrande: {nombre:'Esqueleto grande', cat:'Restos animales', mat:'hueso',  largo:4.2,  alto:1.2,  grosor:3.0,  det:0.2, base:'esqueleto'},
   nido:        {nombre:'Nido abandonado',      cat:'Restos animales', mat:'madera', largo:0.55, alto:0.2,  grosor:0.55, det:0.3, matB:'hueso'},
   madriguera:  {nombre:'Madriguera',           cat:'Restos animales', mat:'tierra', largo:1.3,  alto:0.5,  grosor:1.1,  det:0.2},
+  esqueletoHumano:{nombre:'Esqueleto humano',cat:'Restos animales', mat:'hueso',  largo:1.7,  alto:0.3,  grosor:0.8,  det:0.2, base:'humano'},
+  esqueletoGigante:{nombre:'Esqueleto de gigante',cat:'Restos animales', mat:'hueso',  largo:5.4,  alto:1.0,  grosor:2.4,  det:0.25, base:'humano'},
+  esqueletoDragon: {nombre:'Esqueleto de dragón',cat:'Restos animales', mat:'hueso',  largo:9.0,  alto:1.5,  grosor:5.0,  det:0.25, base:'dragon'},
+  esqueletoSerpiente:{nombre:'Serpiente gigante',cat:'Restos animales', mat:'hueso',  largo:12.0, alto:0.7,  grosor:4.0,  det:0.25, base:'serpiente'},
+  restosBatalla:{nombre:'Restos de batalla',   cat:'Restos animales', mat:'hueso',  largo:5.0,  alto:0.5,  grosor:3.2,  det:0.4, matB:'hierro', matC:'madera', base:'batalla'},
+  totemHuesos: {nombre:'Tótem de huesos',      cat:'Restos animales', mat:'madera', largo:0.9,  alto:3.4,  grosor:0.5,  det:0.2, matB:'hueso', base:'totem'},
+  circuloRitual:{nombre:'Círculo ritual',      cat:'Restos animales', mat:'hueso',  largo:3.6,  alto:0.3,  grosor:3.6,  det:0.15, matB:'hueso', base:'circulo'},
   guarida:     {nombre:'Guarida',              cat:'Restos animales', mat:'tierra', largo:3.4,  alto:1.4,  grosor:2.6,  det:0.25, base:'madriguera', matB:'hueso'}
 };
 const TIPOS_ID=Object.keys(TIPOS);
@@ -464,17 +473,45 @@ function sdA(x,y,z,b){ const px=x-b.cx,py=y-b.cy,pz=z-b.cz, pu=px*b.ux+py*b.uy+p
   else { const a=b.am+(da>0?b.half:-b.half), qu=Math.cos(a)*b.R-pu, qv=Math.sin(a)*b.R-pv; d=Math.sqrt(qu*qu+qv*qv+w2); t=da>0?1:0; }
   return d-(b.r0+(b.r1-b.r0)*t); }
 /* cráneo: se define en su propio sistema (nariz hacia +x, largo total 1,1) y se coloca con una matriz */
-function craneo(cx,cy,cz,s,yaw,roll,t,sinOrbita){
-  const fx=Math.cos(yaw), fz=Math.sin(yaw), cr=Math.cos(roll), sr=Math.sin(roll);
-  const ux=sr*(-fz), uy=cr, uz=sr*fx;                                     // arriba, rodado alrededor del frente
-  return {k:'k',cx,cy,cz,s,t:t||0,m:[fx,0,fz,ux,uy,uz,-fz*uy,fz*ux-fx*uz,fx*uy],orb:!sinOrbita,br:0.72*s};
+const BRK=[0.72,0.72,0.95,0.70];            // radio de cota por especie de cráneo: 0 bestia, 1 humano, 2 dragón, 3 serpiente
+/* orientación: filas = frente, arriba, costado, ya rodadas alrededor del frente */
+function orient(yaw,roll){ const fx=Math.cos(yaw), fz=Math.sin(yaw), cr=Math.cos(roll), sr=Math.sin(roll), ux=sr*(-fz), uy=cr, uz=sr*fx;
+  return [fx,0,fz,ux,uy,uz,-fz*uy,fz*ux-fx*uz,fx*uy]; }
+function craneo(cx,cy,cz,s,yaw,roll,t,sinOrbita,kind,cic){
+  kind=kind||0; return {k:'k',cx,cy,cz,s,t:t||0,m:0,mx:orient(yaw,roll),orb:!sinOrbita,kind,cic:!!cic,br:BRK[kind]*s};
 }
-function sdK(x,y,z,b){ const px=x-b.cx,py=y-b.cy,pz=z-b.cz, m=b.m, s=b.s;
-  const lx=(m[0]*px+m[1]*py+m[2]*pz)/s, ly=(m[3]*px+m[4]*py+m[5]*pz)/s, lz=(m[6]*px+m[7]*py+m[8]*pz)/s;
-  let f=smin(smin(ell(lx+0.22,ly-0.08,lz,0.30,0.20,0.19),ell(lx-0.22,ly,lz,0.36,0.115,0.095),0.06),ell(lx-0.06,ly+0.13,lz,0.40,0.06,0.12),0.03);
-  if(b.orb){ f=Math.max(f,-(Math.hypot(lx-0.02,ly-0.10,Math.abs(lz)-0.17)-0.075)); f=Math.max(f,-(Math.hypot(lx-0.57,ly-0.02,lz)-0.05)); }
+function sdK(x,y,z,b){ const px=x-b.cx,py=y-b.cy,pz=z-b.cz, m=b.mx, s=b.s;
+  const lx=(m[0]*px+m[1]*py+m[2]*pz)/s, ly=(m[3]*px+m[4]*py+m[5]*pz)/s, lz=(m[6]*px+m[7]*py+m[8]*pz)/s, az=Math.abs(lz);
+  let f;
+  if(b.kind===1){        // humano: bóveda redonda, cara corta, mandíbula
+    f=smin(smin(ell(lx,ly-0.14,lz,0.50,0.42,0.38),ell(lx-0.40,ly,lz,0.22,0.30,0.24),0.08),ell(lx-0.30,ly+0.32,lz,0.22,0.10,0.20),0.04);
+    if(b.orb){ f=b.cic?Math.max(f,-(Math.hypot(lx-0.52,ly-0.06,lz)-0.17)):Math.max(f,-(Math.hypot(lx-0.50,ly-0.04,az-0.14)-0.09)); f=Math.max(f,-(Math.hypot(lx-0.62,ly+0.10,lz)-0.05)); }
+  } else if(b.kind===2){ // dragón: cráneo largo, hocico alargado, mandíbula profunda
+    f=smin(smin(ell(lx+0.30,ly-0.06,lz,0.32,0.17,0.17),ell(lx-0.28,ly,lz,0.58,0.10,0.11),0.07),ell(lx-0.15,ly+0.14,lz,0.62,0.05,0.10),0.03);
+    if(b.orb){ f=Math.max(f,-(Math.hypot(lx+0.05,ly-0.10,az-0.14)-0.08)); f=Math.max(f,-(Math.hypot(lx-0.84,ly,lz)-0.04)); }
+  } else if(b.kind===3){ // serpiente: cuña plana
+    f=smin(smin(ell(lx+0.15,ly,lz,0.30,0.10,0.14),ell(lx-0.25,ly-0.01,lz,0.32,0.07,0.10),0.05),ell(lx-0.10,ly+0.09,lz,0.45,0.04,0.09),0.03);
+    if(b.orb) f=Math.max(f,-(Math.hypot(lx-0.12,ly-0.05,az-0.10)-0.05));
+  } else {
+    f=smin(smin(ell(lx+0.22,ly-0.08,lz,0.30,0.20,0.19),ell(lx-0.22,ly,lz,0.36,0.115,0.095),0.06),ell(lx-0.06,ly+0.13,lz,0.40,0.06,0.12),0.03);
+    if(b.orb){ f=Math.max(f,-(Math.hypot(lx-0.02,ly-0.10,az-0.17)-0.075)); f=Math.max(f,-(Math.hypot(lx-0.57,ly-0.02,lz)-0.05)); }
+  }
   return f*s; }
-const toW=(b,l)=>[b.cx+l[0]*b.m[0]+l[1]*b.m[3]+l[2]*b.m[6], b.cy+l[0]*b.m[1]+l[1]*b.m[4]+l[2]*b.m[7], b.cz+l[0]*b.m[2]+l[1]*b.m[5]+l[2]*b.m[8]];
+/* caja girada (hojas de espada, cabezas de lanza, plumas): usa tabla() */
+function bx(cx,cy,cz,hx,hy,hz,yaw,pitch,t,m){ return {k:'b',cx,cy,cz,hx,hy,hz,yaw:yaw||0,pitch:pitch||0,t:t||0,m:m||0,br:Math.hypot(hx,hy,hz)+0.03}; }
+function sdB(x,y,z,b){ return tabla(x,y,z,b.cx,b.cy,b.cz,b.hx,b.hy,b.hz,b.yaw,b.pitch,Math.min(b.hx,b.hy,b.hz)*0.3); }
+/* disco (escudo): cilindro plano orientado; corte opcional en su eje x local para un escudo partido */
+function disco(cx,cy,cz,R,th,yaw,roll,t,m,corte){ return {k:'d',cx,cy,cz,R,th,mm:orient(yaw,roll),t:t||0,m:m||0,corte:corte==null?9:corte,br:R+th+0.04}; }
+function sdD(x,y,z,b){ const px=x-b.cx,py=y-b.cy,pz=z-b.cz, m=b.mm, lx=m[0]*px+m[1]*py+m[2]*pz, ly=m[3]*px+m[4]*py+m[5]*pz, lz=m[6]*px+m[7]*py+m[8]*pz;
+  const q0=Math.hypot(lx,lz)-b.R, q1=Math.abs(ly)-b.th; let d=Math.min(Math.max(q0,q1),0)+Math.hypot(Math.max(q0,0),Math.max(q1,0));
+  return Math.max(d,lx-b.corte); }
+/* cascarón (yelmo, peto): elipsoide hueco, abierto por un plano local */
+function cascaron(cx,cy,cz,a,bb,c,th,yaw,roll,nx,ny,nz,dd,t,m){ return {k:'s',cx,cy,cz,a,bb,c,th,mm:orient(yaw,roll),n:[nx,ny,nz],dd,t:t||0,m:m||0,br:Math.max(a,bb,c)+0.05}; }
+function sdS(x,y,z,b){ const px=x-b.cx,py=y-b.cy,pz=z-b.cz, m=b.mm, lx=m[0]*px+m[1]*py+m[2]*pz, ly=m[3]*px+m[4]*py+m[5]*pz, lz=m[6]*px+m[7]*py+m[8]*pz;
+  let f=Math.max(ell(lx,ly,lz,b.a,b.bb,b.c),-ell(lx,ly,lz,b.a-b.th,b.bb-b.th,b.c-b.th));
+  return Math.max(f,b.dd-(b.n[0]*lx+b.n[1]*ly+b.n[2]*lz)); }
+function sdPieza(b,x,y,z){ switch(b.k){ case 'h': return sdH(x,y,z,b); case 'a': return sdA(x,y,z,b); case 'k': return sdK(x,y,z,b); case 'b': return sdB(x,y,z,b); case 'd': return sdD(x,y,z,b); default: return sdS(x,y,z,b); } }
+const toW=(b,l)=>[b.cx+l[0]*b.mx[0]+l[1]*b.mx[3]+l[2]*b.mx[6], b.cy+l[0]*b.mx[1]+l[1]*b.mx[4]+l[2]*b.mx[7], b.cz+l[0]*b.mx[2]+l[1]*b.mx[5]+l[2]*b.mx[8]];
 const toWv=(b,l)=>{ const o=toW(b,l); return [o[0]-b.cx,o[1]-b.cy,o[2]-b.cz]; };
 const nrm=v=>{ const n=Math.hypot(v[0],v[1],v[2])||1; return [v[0]/n,v[1]/n,v[2]/n]; };
 function cuernosDe(K,P,big,rnd,r){          // dos cuernos curvos que nacen en lo alto del cráneo
@@ -494,15 +531,15 @@ function colmillosDe(K,P,rnd,r){
 const pesc=(P,x)=>P.push(x);
 /* costillas de un tramo de columna: cada una es un arco que sale de la columna, sube y baja hasta el esternón en el suelo.
    El animal está caído de lado, así que el arco se ve de un solo lado (o de los dos si la caja se abrió). */
-function costillas(P,n,xa,xb,ys,Rmax,rr,d,rnd,rndD,colapso,falta,lados){
+function costillas(P,n,xa,xb,ys,Rmax,rr,d,rnd,rndD,colapso,falta,lados,anillo){
   for(let i=0;i<n;i++){
     const f=n>1?i/(n-1):0.5, xi=lerp(xa,xb,f), R=Rmax*(0.50+0.50*Math.sin(Math.PI*(0.10+0.80*f)));
     for(const lado of lados){
       if(rndD()<falta) continue;
-      let cx=xi, cz=lado*R, cy=ys, yawR=0, Rr=R, am=1.5708*(1-0.5*colapso), half=1.5708*0.97*(1-0.30*colapso);
-      if(rndD()<d*0.85){ cx+=(rndD()-0.5)*Rmax*1.5*d; cz+=(rndD()-0.5)*Rmax*1.6*d; yawR=(rndD()-0.5)*5*d; half=lerp(half,0.55,rndD()*d); Rr=R*lerp(0.7,1,rndD()); cy=Math.max(rr*1.1,ys); }
-      const c=Math.cos(yawR), s=Math.sin(yawR);
-      P.push(ar([cx,cy,cz],[lado*s,0,lado*c],[0,1,0],Rr,am,half,rr,rr*0.62,rnd()-0.5));
+      let cx=xi, cz=anillo?0:lado*R, cy=anillo?ys+R*(1-0.45*colapso):ys, yawR=0, Rr=anillo?R*(1-0.30*colapso):R, am=anillo?(lado>0?0:Math.PI):1.5708*(1-0.5*colapso), half=anillo?1.38*(1-0.2*colapso):1.5708*0.97*(1-0.30*colapso);
+      if(rndD()<d*0.85){ cx+=(rndD()-0.5)*Rmax*1.5*d; cz+=(rndD()-0.5)*Rmax*1.6*d; yawR=(rndD()-0.5)*5*d; half=lerp(half,0.55,rndD()*d); Rr=R*lerp(0.7,1,rndD()); cy=anillo?Math.max(rr*1.1,Rr*0.25):Math.max(rr*1.1,ys); }
+      const c=Math.cos(yawR), s=Math.sin(yawR), U=anillo?[0,0,1]:[lado*s,0,lado*c], Uu=anillo?[s,0,c]:U;
+      P.push(ar([cx,cy,cz],Uu,[0,1,0],Rr,am,half,rr,rr*0.62,rnd()-0.5));
     }
   }
 }
@@ -576,7 +613,7 @@ function bHuesos(sp,M,rnd,rndD,tipo){
     const yy=Math.max(0,y); let f=9, tt=0, mm=0;
     for(let q=0;q<P.length;q++){ const b=P[q], lb=Math.max(Math.abs(x-b.cx),Math.abs(yy-b.cy),Math.abs(z-b.cz))-b.br;
       if(lb>0.12){ if(lb<f) f=lb; continue; }
-      const dd=b.k==='h'?sdH(x,yy,z,b):b.k==='a'?sdA(x,yy,z,b):sdK(x,yy,z,b);
+      const dd=sdPieza(b,x,yy,z);
       if(dd<f){ f=dd; if(wi){ tt=b.t; mm=b.m||0; } } }
     if(wi){ _I.mat=mm; _I.t=tt; _I.e=9; _I.core=0; _I.hz=0; _I.hx=0; _I.vac=0; }
     return Math.max(f,-y);
@@ -585,6 +622,135 @@ function bHuesos(sp,M,rnd,rndD,tipo){
   return {ev,hx:xm+0.15,hz:zm+0.15,hy:Hh+0.1,car:Math.max(0.4,Hh*1.2),hmax:Hh,sombra,rubble:P.length,meta:{piezas:P.length},huesos:true};
 }
 
+
+/* ------------------------------------------------------------------ ESQUELETOS DE OTRAS ESPECIES, BATALLA, TÓTEM Y CÍRCULO ----
+   Humano, gigante (el mismo esqueleto a escala, con opción de cíclope), dragón (cuello, cola con púas y alas de huesos),
+   serpiente gigante (cadena de vértebras con costillas). Restos de batalla (escudos, lanzas rotas, flechas y armadura sobre huesos),
+   tótem de cráneos sobre un pilar y círculo ritual de huesos en el suelo. Tres materiales por objeto: 0 base, 1 secundario, 2 terciario. */
+function bHuesos2(sp,M,rnd,rndD,tipo){
+  const esc=sp.escala, d=sp.deterioro, edad=sp.edad, L0=sp.largo*esc, P=[];
+  const dir=rnd()<0.5?1:-1, falta=p=>rndD()<p, lerpA=(a,b,t)=>a+(b-a)*t;
+  const hueso=(a,b,r,disp,faltaP,m)=>{
+    if(falta(faltaP)) return;
+    let [ax,ay,az]=a,[bx,by,bz]=b;
+    if(disp>0&&rndD()<disp){ const mx=(ax+bx)/2,mz=(az+bz)/2, g=(rndD()-0.5)*5*d, c=Math.cos(g), s=Math.sin(g), ox=(rndD()-0.5)*L0*0.5*d, oz=(rndD()-0.5)*L0*0.5*d;
+      const rot=(x,z)=>[mx+(x-mx)*c+(z-mz)*s+ox, mz-(x-mx)*s+(z-mz)*c+oz]; [ax,az]=rot(ax,az); [bx,bz]=rot(bx,bz); ay=r*0.95; by=r*0.95+rndD()*r*0.5; }
+    P.push(hl(ax,ay,az,bx,by,bz,r,rnd()-0.5,m||0));
+  };
+  let Hmin=0.12;
+  if(tipo==='humano'){
+    const gig=sp.tipo==='esqueletoGigante', rb=Math.max(0.026,(gig?0.02:0.0185)*L0), ys=rb*1.1, F=n=>dir*n*L0, ond=f=>Math.sin(f*7+sp.sem*0.31)*0.012*L0*(1+d);
+    const nv=clamp(Math.round(L0*5)+8,10,22);
+    for(let i=0;i<nv;i++){ const f0=lerpA(0.34,0.04,i/nv), f1=lerpA(0.34,0.04,(i+1)/nv); hueso([F(f0),ys,ond(f0)],[F(f1),ys,ond(f1)],rb*1.05,d*0.8,d*0.28); }
+    for(let i=0;i<3;i++){ const f0=0.34+i*0.026; hueso([F(f0),ys,ond(f0)],[F(f0+0.026),ys,ond(f0)],rb*0.9,d*0.7,d*0.25); }
+    costillas(P,10,F(0.12),F(0.31),ys,L0*0.075,rb*0.7,d,rnd,rndD,Math.min(1,d*0.9+edad*0.25),d*0.5,[1,-1],true);
+    if(!falta(d*0.2)){ hueso([F(0.03),ys,-L0*0.06],[F(0.03),ys,L0*0.06],rb*1.9,d*0.7,0); hueso([F(0.045),ys,-L0*0.05],[F(0.01),ys,-L0*0.075],rb*1.3,d*0.7,d*0.2); hueso([F(0.045),ys,L0*0.05],[F(0.01),ys,L0*0.075],rb*1.3,d*0.7,d*0.2); }
+    for(const lado of [1,-1]){
+      const sp1=lerp(0.9,1.4,rnd()), sp2=lerp(0.9,1.5,rnd());
+      hueso([F(0.325),ys,lado*L0*0.02],[F(0.31),ys,lado*L0*0.085],rb*0.8,d*0.8,d*0.3);                              // clavícula
+      hueso([F(0.315),ys,lado*L0*0.085],[F(0.07),ys,lado*L0*0.11*sp1],rb*1.0,d*0.85,d*0.35);                      // húmero
+      hueso([F(0.07),ys,lado*L0*0.11*sp1],[F(-0.17),ys,lado*L0*0.125*sp2],rb*0.8,d*0.85,d*0.35);                  // cúbito
+      hueso([F(0.07),ys,lado*L0*0.125*sp1],[F(-0.16),ys,lado*L0*0.14*sp2],rb*0.65,d*0.85,d*0.4);                  // radio
+      for(let q=0;q<3;q++) hueso([F(-0.17),ys,lado*L0*0.13*sp2],[F(-0.23-q*0.01),ys,lado*L0*(0.125+q*0.014)*sp2],rb*0.4,d*0.9,d*0.5);
+      const ang=lerp(0.04,0.09,rnd());
+      hueso([F(0.02),ys,lado*L0*0.04],[F(-0.23),ys,lado*L0*ang],rb*1.15,d*0.85,d*0.35);                           // fémur
+      hueso([F(-0.23),ys,lado*L0*ang],[F(-0.46),ys,lado*L0*(ang+(rnd()-0.5)*0.05)],rb*0.95,d*0.85,d*0.35);        // tibia
+      hueso([F(-0.24),ys,lado*L0*(ang+0.014)],[F(-0.45),ys,lado*L0*(ang+0.02)],rb*0.5,d*0.9,d*0.45);              // peroné
+      for(let q=0;q<3;q++) hueso([F(-0.46),ys,lado*L0*ang],[F(-0.5),ys,lado*L0*(ang+(q-1)*0.015)],rb*0.5,d*0.9,d*0.5);
+    }
+    const cic=sp.ciclope==null?(gig&&rnd()<0.4):!!sp.ciclope, sk=L0*(gig?0.14:0.125);
+    let kx=F(0.46), kz=(rnd()-0.5)*0.03*L0, kyaw=(dir<0?3.1416:0)+(rnd()-0.5)*0.5, kroll=0;
+    if(rndD()<d*0.6){ kx+=(rndD()-0.5)*L0*0.4*d; kz+=(rndD()-0.5)*L0*0.4*d; kyaw=rndD()*6.28; kroll=rndD()<0.5?1.5708:0; }
+    if(!falta(d*0.2)) P.push(craneo(kx,0.40*sk/1.1,kz,sk/1.1,kyaw,kroll,rnd()-0.5,false,1,cic));
+  } else if(tipo==='dragon'){
+    const rb=Math.max(0.04,0.017*L0), ys=rb*1.1, F=n=>dir*n*L0, ladoC=rnd()<0.5?1:-1, ph=rnd()*6.28;
+    const zN=f=>Math.sin(f*9+ph)*0.05*L0*(1+d), zT=f=>Math.sin(f*8+ph)*0.09*L0*(0.4+(-f-0.2)*3);
+    const nb=Math.max(10,Math.round(L0*1.6));
+    for(let i=0;i<nb;i++){ const f0=lerpA(-0.20,0.16,i/nb), f1=lerpA(-0.20,0.16,(i+1)/nb); hueso([F(f0),ys,0],[F(f1),ys,0],rb*1.15,d*0.8,d*0.25);
+      if(!falta(d*0.4)) P.push(hl(F(f0),ys,0,F(f0),ys+rb*lerp(2.2,3.4,rnd()),0,rb*0.55,rnd()-0.5)); }
+    const nn=Math.max(8,Math.round(L0*1.0)); for(let i=0;i<nn;i++){ const f0=lerpA(0.16,0.31,i/nn), f1=lerpA(0.16,0.31,(i+1)/nn); hueso([F(f0),ys,zN(f0)],[F(f1),ys,zN(f1)],rb*lerp(1.0,0.75,i/nn),d*0.8,d*0.28); }
+    const nt=Math.max(14,Math.round(L0*2.2)); for(let i=0;i<nt;i++){ const f0=lerpA(-0.20,-0.52,i/nt), f1=lerpA(-0.20,-0.52,(i+1)/nt), w=lerp(1.0,0.32,i/nt);
+      hueso([F(f0),ys,zT(f0)],[F(f1),ys,zT(f1)],rb*w,d*0.85,d*0.3); if(i%2===0&&!falta(d*0.5)) P.push(hl(F(f0),ys,zT(f0),F(f0),ys+rb*3.0*w,zT(f0),rb*0.45*w,rnd()-0.5)); }
+    costillas(P,11,F(-0.14),F(0.10),ys,L0*0.10,rb*0.72,d,rnd,rndD,Math.min(1,d*0.85+edad*0.25),d*0.55,[ladoC]);
+    hueso([F(-0.21),ys,-L0*0.07],[F(-0.21),ys,L0*0.07],rb*1.8,d*0.7,d*0.15);
+    for(const [fr,sg] of [[0.10,1],[-0.20,-1]]) for(const lado of [1,-1]){
+      let x=F(fr), z=lado*L0*0.06, phi=lerp(0.85,1.35,rnd()); const lens=[0.13,0.12,0.09], rs=[1.05,0.9,0.7];
+      for(let q=0;q<3;q++){ const ln=lens[q]*L0, nx=x+dir*sg*Math.cos(phi)*ln, nz=z+lado*Math.sin(phi)*ln; hueso([x,ys,z],[nx,ys,nz],rb*rs[q],d*0.85,d*0.4); x=nx; z=nz; phi+=(rnd()-0.5)*1.0; } }
+    for(const lado of [1,-1]){                     // alas: brazo, antebrazo y cuatro dedos largos
+      const sx=F(0.08), sz=lado*L0*0.07, ex=sx-dir*L0*0.05, ez=lado*L0*0.24, wx=ex+dir*L0*0.02, wz=lado*L0*0.44;
+      hueso([sx,ys,sz],[ex,ys,ez],rb*0.95,d*0.85,d*0.3); hueso([ex,ys,ez],[wx,ys,wz],rb*0.8,d*0.85,d*0.3);
+      for(let q=0;q<4;q++){ const a=lerp(0.15,1.15,q/3)+(rnd()-0.5)*0.12, ln=L0*lerp(0.32,0.20,q/3); hueso([wx,ys,wz],[wx-dir*Math.sin(a)*ln,ys,wz+lado*Math.cos(a)*ln*0.9],rb*lerp(0.6,0.4,q/3),d*0.9,d*0.35); }
+      hueso([wx,ys,wz],[wx+dir*L0*0.05,ys,wz+lado*L0*0.04],rb*0.55,d*0.85,d*0.4);
+    }
+    const sk=L0*0.17; let kx=F(0.37), kz=zN(0.31), kyaw=(dir<0?3.1416:0)+(rnd()-0.5)*0.6, kroll=0;
+    if(rndD()<d*0.55){ kx+=(rndD()-0.5)*L0*0.3*d; kz+=(rndD()-0.5)*L0*0.3*d; kyaw=rndD()*6.28; kroll=rndD()<0.5?1.5708:0; }
+    if(!falta(d*0.15)){ const K=craneo(kx,0.22*sk/1.5,kz,sk/1.5,kyaw,kroll,rnd()-0.5,false,2); P.push(K); if(sp.cuernos!==false) cuernosDe(K,P,1,rnd,Math.max(0.05,K.s*0.09)); }
+  } else if(tipo==='serpiente'){
+    const rb=Math.max(0.05,0.011*L0), nv=clamp(Math.round(L0*3),20,52), A=0.11*L0, ph=rnd()*6.28, k=lerp(1.4,2.1,rnd());
+    const pt=t=>({x:dir*L0*(t-0.5)*0.95, z:A*Math.sin(t*6.2832*k+ph)*(0.25+0.75*Math.sin(Math.PI*Math.min(1,t*1.05)))});
+    const wd=t=>rb*(0.35+1.0*Math.pow(Math.sin(Math.PI*(0.08+0.84*t)),0.7));
+    for(let i=0;i<nv;i++){ const t0=i/nv, t1=(i+1)/nv, a=pt(t0), b=pt(t1), w=wd(t0), ys=w*1.05;
+      hueso([a.x,ys,a.z],[b.x,ys,b.z],w*1.0,d*0.8,d*0.25);
+      if(i%2===0){ const dx=b.x-a.x, dz=b.z-a.z, nn=Math.hypot(dx,dz)||1, nx=-dz/nn, nz=dx/nn, rl=w*3.4;
+        for(const sg of [1,-1]) hueso([a.x,ys,a.z],[a.x+nx*sg*rl,ys*0.9,a.z+nz*sg*rl],w*0.42,d*0.85,d*0.3); } }
+    const hd=pt(1), hb=pt(0.98), kyaw=Math.atan2(hd.z-hb.z,hd.x-hb.x), sk=L0*0.07; let kx=hd.x+Math.cos(kyaw)*sk*0.3, kz=hd.z+Math.sin(kyaw)*sk*0.3, ky=kyaw, kr=0;
+    if(rndD()<d*0.5){ kx+=(rndD()-0.5)*L0*0.3*d; kz+=(rndD()-0.5)*L0*0.3*d; ky=rndD()*6.28; kr=rndD()<0.5?1.5708:0; }
+    if(!falta(d*0.12)){ const K=craneo(kx,0.12*sk/1.1,kz,sk/1.1,ky,kr,rnd()-0.5,false,3); P.push(K); colmillosDe(K,P,rnd,Math.max(0.03,K.s*0.06)); }
+  } else if(tipo==='batalla'){
+    const nb=2+Math.round(rnd()), pos=()=>{ const c=rnd()<0.5?-1:1; return [(rnd()-0.5)*L0*0.7+c*L0*0.12,(rnd()-0.5)*L0*0.5]; }, br=Math.max(0.026,L0*0.005);
+    for(let i=0;i<nb;i++){ const [x,z]=pos(); P.push(craneo(x,0.40*0.16/1.1,z,0.16/1.1,rnd()*6.28,rnd()<0.4?1.5708:0,rnd()-0.5,false,1,false)); }
+    const nh=6+Math.round(rnd()*4); for(let i=0;i<nh;i++){ const [x,z]=pos(), a=rnd()*3.14, ln=lerp(0.28,0.5,rnd()); P.push(hl(x-Math.cos(a)*ln/2,br,z-Math.sin(a)*ln/2,x+Math.cos(a)*ln/2,br+rnd()*br,z+Math.sin(a)*ln/2,br,rnd()-0.5)); }
+    { const [x,z]=pos(); costillas(P,7,x-0.2,x+0.2,br,0.11,0.022,Math.max(d,0.5),rnd,rndD,0.8,0.25,[rnd()<0.5?1:-1],true); }
+    const ns=2+Math.round(rnd()); for(let i=0;i<ns;i++){ const [x,z]=pos(), R=lerp(0.28,0.42,rnd()), y=0.035+rnd()*0.03, yaw=rnd()*6.28, roll=(rnd()-0.5)*0.4, cut=rndD()<d*0.7?lerp(-0.12,0.18,rndD()):9;
+      P.push(disco(x,y,z,R,0.03,yaw,roll,rnd()-0.5,2,cut)); P.push(hl(x,y+0.04,z,x,y+0.11,z,0.07,rnd()-0.5,1)); }
+    const nl=3+Math.round(rnd()*2); for(let i=0;i<nl;i++){ const [x,z]=pos(), a=rnd()*6.28, ln=lerp(1.5,2.2,rnd()), rot=rndD()<0.3+d*0.65, cut=rot?lerp(0.35,0.65,rndD()):1, ca=Math.cos(a), sa=Math.sin(a);
+      const x1=x+ca*ln*cut, z1=z+sa*ln*cut, hx=x-ca*ln*0.5, hz=z-sa*ln*0.5;
+      P.push(hl(hx,0.03,hz,x1,0.03+rnd()*0.03,z1,0.022,rnd()-0.5,2));
+      if(rot){ const o=lerp(0.12,0.4,rndD()), b=a+(rndD()-0.5)*0.9; P.push(hl(x1+Math.cos(b)*o,0.03,z1+Math.sin(b)*o,x1+Math.cos(b)*(o+ln*(1-cut)*0.95),0.03,z1+Math.sin(b)*(o+ln*(1-cut)*0.95),0.022,rnd()-0.5,2)); }
+      else { const tx=x+ca*ln*0.5, tz=z+sa*ln*0.5; P.push(hl(tx,0.03,tz,tx+ca*0.09,0.035,tz+sa*0.09,0.034,rnd()-0.5,1)); P.push(bx(tx+ca*0.2,0.04,tz+sa*0.2,0.11,0.012,0.032,-a,0,rnd()-0.5,1)); } }
+    const na=8+Math.round(d*5+rnd()*4); for(let i=0;i<na;i++){ const [x,z]=pos(), a=rnd()*6.28, ca=Math.cos(a), sa=Math.sin(a), ln=lerp(0.55,0.8,rnd());
+      if(rnd()<0.5){ const dx=ca*ln*0.18, dz=sa*ln*0.18; P.push(hl(x,0,z,x+dx,0.34,z+dz,0.014,rnd()-0.5,2)); P.push(bx(x+dx,0.32,z+dz,0.01,0.05,0.035,-a,0,0.1,2)); }
+      else { P.push(hl(x,0.02,z,x+ca*ln,0.025,z+sa*ln,0.014,rnd()-0.5,2)); P.push(bx(x+ca*ln*0.96,0.025,z+sa*ln*0.96,0.05,0.012,0.012,-a,0,0.1,1)); } }
+    const nh2=1+Math.round(rnd()); for(let i=0;i<nh2;i++){ const [x,z]=pos(); P.push(cascaron(x,0.09,z,0.12,0.14,0.12,0.018,rnd()*6.28,(rnd()-0.5)*0.9,0,1,0,-0.03,rnd()-0.5,1)); }
+    { const [x,z]=pos(); P.push(cascaron(x,0.14,z,0.18,0.26,0.13,0.016,rnd()*6.28,(rnd()<0.5?1:-1)*1.45,0,0,1,0.02,rnd()-0.5,1)); }
+    for(let i=0;i<2;i++){ const [x,z]=pos(), a=rnd()*3.14; P.push(hl(x-Math.cos(a)*0.19,0.05,z-Math.sin(a)*0.19,x+Math.cos(a)*0.19,0.05,z+Math.sin(a)*0.19,0.05,rnd()-0.5,1)); }
+    { const [x,z]=pos(), a=rnd()*6.28, ca=Math.cos(a), sa=Math.sin(a), rot=rndD()<0.3+d*0.6, bl=rot?0.3:0.7;
+      P.push(bx(x+ca*bl*0.5,0.02,z+sa*bl*0.5,bl*0.5,0.010,0.03,-a,0,rnd()-0.5,1)); P.push(bx(x,0.03,z,0.018,0.02,0.1,-a,0,0.1,1)); P.push(hl(x-ca*0.04,0.03,z-sa*0.04,x-ca*0.2,0.03,z-sa*0.2,0.02,0.1,2)); }
+  } else if(tipo==='totem'){
+    const H=sp.alto*esc, W=sp.largo*esc, pw=0.12*esc, lean=(rndD()-0.5)*0.3*d;
+    P.push(bx(0,H/2,0,pw,H/2,pw,0,lean,0.1,0));
+    const n=clamp(Math.round(H/0.62),3,6);
+    for(let i=0;i<n;i++){ const h=H*(0.26+0.58*i/(n-1)), side=(i%2?1:-1), s=(0.15+0.05*rnd())*esc, kind=rnd()<0.5?1:0;
+      if(rndD()<d*0.55){ const x=(rndD()-0.5)*W*1.4, z=pw+0.2+rndD()*0.9; P.push(craneo(x,0.35*s,z,s,rndD()*6.28,rndD()<0.5?1.5708:0,rnd()-0.5,false,kind)); continue; }
+      const K=craneo(side*0.10*esc,h,pw+0.10*esc,s,1.5708+(rnd()-0.5)*0.9,0,rnd()-0.5,false,kind); P.push(Object.assign(K,{m:1})); }
+    for(const frac of [0.40,0.70]){ const h=H*frac, bz=pw+0.05*esc;
+      if(!falta(d*0.35)) P.push(hl(-W/2,h,bz,W/2,h+0.03*esc,bz,0.035*esc,rnd()-0.5,1));
+      for(const sg of [1,-1]) if(!falta(d*0.4)) { P.push(hl(sg*W/2*0.92,h,bz,sg*W/2*0.92,h-0.20*esc,bz,0.025*esc,rnd()-0.5,1)); P.push(hl(sg*W/2*0.92,h-0.20*esc,bz,sg*W/2*0.92,h-0.34*esc,bz,0.025*esc,rnd()-0.5,1)); } }
+    if(!falta(d*0.4)){ const s=0.30*esc, K=craneo(0,H+0.12*esc,pw*0.4,s,1.5708,0,rnd()-0.5,false,0); P.push(Object.assign(K,{m:1})); cuernosDe(K,P,1,rnd,Math.max(0.03,s*0.085)); }
+  } else {            // círculo ritual
+    const R=L0/2, ln=0.42*esc, rb=Math.max(0.03,0.028*esc), nB=clamp(Math.round(6.2832*R/ln),10,40), nk=sp.radios!=null?Math.max(3,sp.radios|0):4+Math.round(rnd()*4), a0=rnd()*6.28;
+    for(let i=0;i<nB;i++){ const a=a0+i/nB*6.2832, cx=Math.cos(a)*R, cz=Math.sin(a)*R, tx=-Math.sin(a)*ln*0.46, tz=Math.cos(a)*ln*0.46; hueso([cx-tx,rb,cz-tz],[cx+tx,rb,cz+tz],rb,d*0.7,d*0.28,1); }
+    for(let i=0;i<nk;i++){ const a=a0+(i+0.5)/nk*6.2832, rr=R*0.80, x=Math.cos(a)*rr, z=Math.sin(a)*rr, yaw=Math.atan2(-Math.sin(a),-Math.cos(a));
+      if(falta(d*0.35)) continue; const K=craneo(x,0.36*0.2/1.1,z,0.2/1.1,yaw+(rndD()-0.5)*d*2,0,rnd()-0.5,false,i%2?1:0); P.push(Object.assign(K,{m:1}));
+      const b=a0+i/nk*6.2832; hueso([Math.cos(b)*R*0.2,rb,Math.sin(b)*R*0.2],[Math.cos(b)*R*0.64,rb,Math.sin(b)*R*0.64],rb,d*0.7,d*0.3,1); }
+    const sx=Math.cos(a0)*0.25, sz=Math.sin(a0)*0.25; hueso([-0.30,rb,-0.12],[0.30,rb,0.12],rb*1.1,d*0.5,d*0.2,1); hueso([-0.30,rb*2.2,0.12],[0.30,rb*2.2,-0.12],rb*1.1,d*0.5,d*0.2,1);
+    if(!falta(d*0.3)){ const K=craneo(sx*0,0.36*0.24/1.1+rb*3.4,0,0.24/1.1,a0,0,rnd()-0.5,false,0); P.push(Object.assign(K,{m:1})); cuernosDe(K,P,1,rnd,0.04); }
+  }
+  /* material por pieza: m (0 base, 1 secundario, 2 terciario); los cráneos del tótem y del círculo son siempre el secundario/el base */
+  let xm=0,zm=0,ym=0.1; for(const b of P){ xm=Math.max(xm,Math.abs(b.cx)+b.br); zm=Math.max(zm,Math.abs(b.cz)+b.br); ym=Math.max(ym,b.cy+b.br); }
+  const Hh=Math.max(ym,Hmin);
+  function ev(x,y,z,wi){
+    const yy=Math.max(0,y); let f=9, tt=0, mm=0;
+    for(let q=0;q<P.length;q++){ const b=P[q], lb=Math.max(Math.abs(x-b.cx),Math.abs(yy-b.cy),Math.abs(z-b.cz))-b.br;
+      if(lb>0.12){ if(lb<f) f=lb; continue; }
+      const dd=sdPieza(b,x,yy,z); if(dd<f){ f=dd; if(wi){ tt=b.t; mm=b.m||0; } } }
+    if(wi){ _I.mat=mm; _I.t=tt; _I.e=9; _I.core=0; _I.hz=0; _I.hx=0; _I.vac=0; }
+    return Math.max(f,-y);
+  }
+  const sombra=[{x:0,y:Hh*0.35,z:0,rx:Math.max(0.2,xm*0.85),ry:Hh*0.35,rz:Math.max(0.15,zm*0.7)}];
+  if(tipo==='totem') sombra.push({x:0,y:Hh*0.5,z:0,rx:0.2,ry:Hh*0.5,rz:0.2});
+  return {ev,hx:xm+0.15,hz:zm+0.15,hy:Hh+0.1,car:Math.max(0.4,Hh*1.2),hmax:Hh,sombra,rubble:P.length,meta:{piezas:P.length},huesos:true};
+}
 
 /* ------------------------------------------------------------------ NIDO Y MADRIGUERA ----
    Nido: un cuenco de ramitas entrecruzadas (cada una es una pieza) con cáscaras de huevo adentro. Madriguera y guarida: un
@@ -633,7 +799,7 @@ function bMadriguera(sp,M,rnd,rndD,tipo){
     if(wi&&tn<0.05&&f<0.09&&z<zl+rt*0.2) vac=1;
     for(let q=0;q<ESC.length;q++){ const it=ESC[q]; if(Math.abs(x-it.x)>it.br||Math.abs(z-it.z)>it.br) continue; const s=sdEsc(it,x,yy,z); if(s<ff){ ff=s; if(wi){ mm=0; tt=it.t; vac=0; } } }
     for(let q=0;q<P.length;q++){ const b=P[q], lb=Math.max(Math.abs(x-b.cx),Math.abs(yy-b.cy),Math.abs(z-b.cz))-b.br;
-      if(lb>0.10){ if(lb<ff) ff=lb; continue; } const dd=b.k==='h'?sdH(x,yy,z,b):sdK(x,yy,z,b); if(dd<ff){ ff=dd; if(wi){ mm=b.m||1; tt=b.t; vac=0; } } }
+      if(lb>0.10){ if(lb<ff) ff=lb; continue; } const dd=sdPieza(b,x,yy,z); if(dd<ff){ ff=dd; if(wi){ mm=b.m||1; tt=b.t; vac=0; } } }
     if(wi){ _I.mat=mm; _I.t=tt+(n3(x*4,yy*4,z*4,sem+3)-0.5)*0.6; _I.e=9; _I.core=0; _I.hz=0; _I.hx=0; _I.vac=vac; }
     return Math.max(ff,-y);
   }
@@ -652,12 +818,13 @@ function limpiar(s){
     tono:clamp(+(s.tono||0),-1,1),lum:clamp(+(s.lum||0),-0.6,0.6),sat:clamp(s.sat==null?1:+s.sat,0,2),
     estado:Object.assign({},ESTADO0,s.estado||T.est)};
   for(const k of Object.keys(o.estado)) o.estado[k]=clamp(+o.estado[k]||0,0,1);
-  for(const k of ['huecos','afilado','hoja','flautas','marco','techo','polea','cubeta','matB','rieles','boca','cuernos','colmillos']) if(s[k]!==undefined) o[k]=s[k];
+  for(const k of ['huecos','afilado','hoja','flautas','marco','techo','polea','cubeta','matB','matC','rieles','boca','cuernos','colmillos','ciclope','radios']) if(s[k]!==undefined) o[k]=s[k];
   if(o.matB===undefined&&T.matB) o.matB=T.matB;
+  if(o.matC===undefined&&T.matC) o.matC=T.matC;
   return o;
 }
 /* qué campos cambian el SÓLIDO (y por lo tanto rehacen los rayos) y cuáles sólo el pintado */
-const CLAVE_FORMA=['tipo','mat','sem','semD','escala','yaw','inclinacion','largo','alto','grosor','edad','deterioro','huecos','afilado','hoja','flautas','marco','techo','polea','cubeta','matB','rieles','boca','cuernos','colmillos'];
+const CLAVE_FORMA=['tipo','mat','sem','semD','escala','yaw','inclinacion','largo','alto','grosor','edad','deterioro','huecos','afilado','hoja','flautas','marco','techo','polea','cubeta','matB','matC','rieles','boca','cuernos','colmillos','ciclope','radios'];
 const claveForma=sp=>{ let k=''; for(const c of CLAVE_FORMA) k+=(sp[c]===undefined?'':JSON.stringify(sp[c]))+'|'; return k+(sp.estado.enterrada||0); };
 const CACHE_G=new Map(); const ESTAD={solidos:0,aciertos:0,rasters:0,pintados:0};
 function construirG(sp){
@@ -678,6 +845,7 @@ function construirG(sp){
   else if(b==='nido') C=bNido(sp,M,rnd,rndD);
   else if(b==='madriguera') C=bMadriguera(sp,M,rnd,rndD,sp.tipo);
   else if(['craneo','costillar','cuernos','colmillos','huesosSueltos','esqueleto'].indexOf(b)>=0) C=bHuesos(sp,M,rnd,rndD,b);
+  else if(['humano','dragon','serpiente','batalla','totem','circulo'].indexOf(b)>=0) C=bHuesos2(sp,M,rnd,rndD,b);
   else C=bMadera(sp,M,rnd,rndD,b);
   const esc=sp.escala, yaw=sp.yaw, cy=Math.cos(yaw), sy=Math.sin(yaw), lean=sp.inclinacion, sink=(sp.estado.enterrada*0.34+sp.edad*0.03)*Math.min(1,C.hmax)*(b==='pozo'||b==='muro'?1:C.huesos?2.3:0.8);
   const ev=C.ev, radial=!!C.radial;
@@ -767,13 +935,13 @@ function geometria(S,CPM,HPM,RPM,det){
   if(Object.keys(g.r).length>6) for(const k of Object.keys(g.r)) delete g.r[k];
   g.r[key]=out; ESTAD.rasters++; return out;
 }
-function claveAspecto(sp){ const e=sp.estado; return [sp.tono,sp.lum,sp.sat,sp.semV,sp.edad,sp.deterioro,e.musgo,e.liquen,e.humedad,e.vegetacion,e.tierra,e.hojas,e.quemadura,e.enterrada,sp.mat].join(','); }
+function claveAspecto(sp){ const e=sp.estado; return [sp.tono,sp.lum,sp.sat,sp.semV,sp.edad,sp.deterioro,e.musgo,e.liquen,e.humedad,e.vegetacion,e.tierra,e.hojas,e.quemadura,e.enterrada,sp.mat,sp.matB,sp.matC].join(','); }
 function sombrear(S,R,luz,det){
   const g=S.g, sp=S.spec, M=S.M, st=sp.estado, n=R.cols*R.rows, cols=R.cols, rows=R.rows, sdf=g.sdf, info=g.info, sem=sp.semV|0, semF=sp.sem|0;
   const Ls=luz.L, ly=Ls.y*0.35+0.50, ln=Math.hypot(Ls.x,ly,Ls.z)||1, Lr=[Ls.x/ln,Ls.z/ln,ly/ln], Lt=[Ls.x,Ls.z,Ls.y];
   const G=new Uint8Array(n), C=new Int32Array(n), TY=new Uint8Array(n), NU=new Float32Array(n), NV_=new Float32Array(n), NZ=new Float32Array(n), LU=new Float32Array(n);
   const eps=0.5/R.CPM, car=g.car, hAO=clamp(car*0.10,0.05,0.30), hmax=g.hmax, ambF=clamp(luz.amb==null?1:luz.amb,0.45,1.3);
-  const Md=MATERIALES[sp.matB&&MATERIALES[sp.matB]?sp.matB:'madera'], ft=(luz.r||1)*ambF, fg=(luz.g||1)*ambF, fb=(luz.b||1)*ambF, edad=sp.edad;
+  const Md=MATERIALES[sp.matB&&MATERIALES[sp.matB]?sp.matB:'madera'], Mc=MATERIALES[sp.matC&&MATERIALES[sp.matC]?sp.matC:'madera'], MT=[M,Md,Mc], ft=(luz.r||1)*ambF, fg=(luz.g||1)*ambF, fb=(luz.b||1)*ambF, edad=sp.edad;
   const cphi=R.cphi, sphi=R.sphi;
   for(let i=0;i<n;i++){
     if(!R.hit[i]) continue;
@@ -790,7 +958,7 @@ function sombrear(S,R,luz,det){
     } else LU[i]=lam;
     lum*=0.66+0.34*sm(v/(0.18*Math.min(Math.max(0.5,hmax),3)+0.06));
     const I=info(u,v,z), hh=H4(cc,rr,semF,2), hq=H4((u*60)|0,(v*60)|0,(z*60)|0,semF);
-    const Mt=I.mat===1?Md:M;
+    const Mt=MT[I.mat]||M;
     let t0=clamp(0.10+lum*0.72,0,1)+(I.t)*Mt.tono*0.30+(hh-0.5)*Mt.grano*0.30, glyph, r, gg, bb, ty=1;
     if(I.vac){ glyph=hh<0.5?'.':':'; r=10; gg=12; bb=14; ty=6; }
     else if(I.core){ const cc2=pal(PAL_NUCLEO,clamp(lum*0.9+(hh-0.5)*0.4,0,1)); r=cc2[0]; gg=cc2[1]; bb=cc2[2]; glyph=NUC_G[((hh*4)|0)%4]; ty=7; }
@@ -799,7 +967,7 @@ function sombrear(S,R,luz,det){
       glyph=ramp[clamp(Math.floor(t0*nR),0,nR-1)];
       const cc2=pal(Mt.pal,clamp(t0,0,1)); r=cc2[0]; gg=cc2[1]; bb=cc2[2];
       /* madera: la veta corre a lo largo de la pieza */
-      if(I.mat===1?Md.veta:(M.veta&&g.huesos)){ const vt=frac((u*9+z*7)*0.7+H4((u*3)|0,(z*3)|0,semF,9)); if(vt<0.22&&lum>0.2){ glyph='|'; r*=0.62; gg*=0.60; bb*=0.58; } }
+      if(I.mat>0?Mt.veta:(M.veta&&g.huesos)){ const vt=frac((u*9+z*7)*0.7+H4((u*3)|0,(z*3)|0,semF,9)); if(vt<0.22&&lum>0.2){ glyph='|'; r*=0.62; gg*=0.60; bb*=0.58; } }
       /* juntas de los bloques */
       else if(I.e<Mt.bev*0.62*sp.escala&&I.e>-1&&I.e<9){
         const horiz=I.hz?1:0; glyph=horiz?'-':'|'; const jc=Mt.junta, k=clamp(0.5+lum*0.5,0.3,1.1);
@@ -809,6 +977,8 @@ function sombrear(S,R,luz,det){
     }
     /* hueso viejo: fisuras oscuras y calcinado */
     if(Mt.fisura&&edad>0.15&&!I.vac&&hq<edad*0.20&&hh<0.5){ glyph=hh<0.25?':':'.'; r*=0.50; gg*=0.46; bb*=0.42; }
+    /* hierro viejo: óxido que sube con la edad y la humedad */
+    if(Mt.oxido&&(edad>0.1||st.humedad>0.1)){ const ox=clamp(edad*0.7+st.humedad*0.4,0,1)*(0.35+0.65*hh); r=lerp(r,r*1.45+34,ox*0.7); gg=lerp(gg,gg*0.85+10,ox*0.6); bb=lerp(bb,bb*0.55,ox*0.7); }
     /* edad: lavado y oscurecimiento parejo */
     if(edad>0){ const gr=(r+gg+bb)/3; const k=0.34*edad; r=lerp(r,gr*0.92,k); gg=lerp(gg,gr*0.92,k); bb=lerp(bb,gr*0.9,k); const m=1-0.14*edad; r*=m; gg*=m; bb*=m; }
     if(sp.tono){ r*=1+0.18*sp.tono; bb*=1-0.18*sp.tono; }
@@ -820,14 +990,14 @@ function sombrear(S,R,luz,det){
     if(st.humedad>0&&!I.vac){ const wl=0.10+0.9*st.humedad, sc=(wl*Math.max(0.6,hmax)-v)/(0.15*Math.max(0.6,hmax)+0.02)+(fbm(u*1.8,v*0.6,z*1.8,sem+61,2)-0.5)*1.4, w=clamp(sc,0,1); if(w>0&&hh<w+0.1){ r*=lerp(1,0.55,w); gg*=lerp(1,0.62,w); bb*=lerp(1,0.72,w); } }
     /* musgo: donde el lugar ya es húmedo y protegido */
     let esVerde=0;
-    if(st.musgo>0&&!I.vac&&I.mat!==1){
+    if(st.musgo>0&&!I.vac&&(I.mat===0||Mt.fisura)){
       const mo=fbm(u*1.6,v*1.2,z*1.6,sem+71,3), baseW=1-clamp(v/(0.55*Math.min(Math.max(hmax,0.8),3)+0.05),0,1), sombra=1-clamp(LU[i]*1.4,0,1), junta=(I.e<Mt.bev*1.4*sp.escala?0.30:0);
       let score=mo*0.55+baseW*0.35+sombra*0.22+junta+(nv>0.4?0.20:0)+(I.core?0.15:0)-0.30; score*=0.35+st.musgo*1.3;
       const pr=sm((score-0.16)/0.30);
       if(hq<pr||H4(cc,rr,sem,9)<pr*0.9){ glyph=MUSGO_G[((hh*4)|0)%4]; const mc=pal(PAL_MUSGO,clamp(lum*0.8+(hh-0.5)*0.3,0,1)); r=mc[0]; gg=mc[1]; bb=mc[2]; esVerde=1; ty=3; }
     }
     /* líquen: manchas redondas en lo asoleado */
-    if(st.liquen>0&&!esVerde&&!I.vac&&LU[i]>0.18&&I.mat!==1){
+    if(st.liquen>0&&!esVerde&&!I.vac&&LU[i]>0.18&&(I.mat===0||Mt.fisura)){
       const gs=0.16, su=(u+z*0.6)/gs, sv=v/gs, iu=Math.floor(su), iv=Math.floor(sv); let best=9, bi=0;
       for(let a=-1;a<=1;a++) for(let b=-1;b<=1;b++){ const cu=iu+a+H4(iu+a,iv+b,sem,3), cvv=iv+b+H4(iu+a,iv+b,sem,4), dd=Math.hypot(su-cu,sv-cvv)/(0.28+0.22*H4(iu+a,iv+b,sem,5)); if(dd<best&&H4(iu+a,iv+b,sem,6)<st.liquen*0.75){ best=dd; bi=H4(iu+a,iv+b,sem,7); } }
       if(best<1&&(best<0.7||hq<0.5)){ const lc=LIQ_COL[(bi*3)|0]; glyph=LIQ_G[((hh*3)|0)%3]; const k=clamp(lum,0.35,1.15); r=lc[0]*k; gg=lc[1]*k; bb=lc[2]*k; ty=4; esVerde=1; }

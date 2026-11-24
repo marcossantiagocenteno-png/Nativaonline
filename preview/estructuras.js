@@ -137,7 +137,7 @@ function una(spec,extra){
 }
 function guardarFav(spec){ const l=favs(); l.push(JSON.parse(JSON.stringify(spec))); guardarFavs(l); barra(); }
 const botFav=spec=>{ const b=el('button',{textContent:'★ Conservar',title:'Guarda esta estructura (la receta, no la imagen)'}); b.onclick=()=>{ guardarFav(spec); b.textContent='★ Guardada'; }; return b; };
-const ZM={muro:1,muroLadrillo:1,paredCaida:1,cercaPiedra:1,cercaMadera:1,puente:1,arco:0.9,escalera:1.2,chimenea:1.2,columna:1.5,pilar:1.4,pozo:1.5,puerta:1.9,ventana:2,craneo:3.2,cuernos:2.8,colmillos:2,costillar:2,huesosSueltos:1.6,esqueletoPequeno:2.4,esqueletoMediano:1.3,esqueletoGrande:0.9,nido:3,madriguera:1.8,guarida:1};
+const ZM={muro:1,muroLadrillo:1,paredCaida:1,cercaPiedra:1,cercaMadera:1,puente:1,arco:0.9,escalera:1.2,chimenea:1.2,columna:1.5,pilar:1.4,pozo:1.5,puerta:1.9,ventana:2,craneo:3.2,cuernos:2.8,colmillos:2,costillar:2,huesosSueltos:1.6,esqueletoPequeno:2.4,esqueletoMediano:1.3,esqueletoGrande:0.9,nido:3,madriguera:1.8,guarida:1,esqueletoHumano:2.2,esqueletoGigante:1,esqueletoDragon:0.8,esqueletoSerpiente:0.8,restosBatalla:1.2,totemHuesos:1.6,circuloRitual:1.3};
 const zmDe=t=>ZM[t]||1;
 
 /* ---- Muestrario: las categorías pedidas para esta tanda, tres variantes de cada una ---- */
@@ -159,7 +159,14 @@ const MUESTRAS=[
   ['Esqueletos pequeños y medianos',{tipo:['esqueletoPequeno','esqueletoMediano','esqueletoMediano'],mat:'hueso',det:[0.1,0.3,0.85],edad:[0.4,0.6,0.85],est:{tierra:0.2,vegetacion:0.2,musgo:0.15}}],
   ['Esqueletos grandes: completo, incompleto, desordenado',{tipo:'esqueletoGrande',mat:'hueso',det:[0,0.55,0.95],edad:[0.4,0.65,0.9],est:{tierra:0.25,vegetacion:0.3,musgo:0.2}}],
   ['Nidos abandonados',{tipo:'nido',mat:'madera',det:[0.1,0.45,0.85],edad:[0.3,0.6,0.9],est:{musgo:0.2,hojas:0.3}}],
-  ['Madrigueras y guaridas',{tipo:['madriguera','madriguera','guarida'],mat:'tierra',det:[0.1,0.65,0.3],edad:[0.4,0.7,0.6],est:{vegetacion:0.3,hojas:0.3}}]
+  ['Madrigueras y guaridas',{tipo:['madriguera','madriguera','guarida'],mat:'tierra',det:[0.1,0.65,0.3],edad:[0.4,0.7,0.6],est:{vegetacion:0.3,hojas:0.3}}],
+  ['Esqueletos humanos',{tipo:'esqueletoHumano',mat:'hueso',det:[0,0.4,0.9],edad:[0.5,0.7,0.9],est:{tierra:0.2,vegetacion:0.15}}],
+  ['Esqueletos de gigantes',{tipo:'esqueletoGigante',mat:'hueso',det:[0.05,0.45,0.9],edad:[0.6,0.75,0.9],est:{tierra:0.25,vegetacion:0.25,musgo:0.2}}],
+  ['Esqueletos de dragón',{tipo:'esqueletoDragon',mat:'hueso',det:[0.05,0.5,0.9],edad:[0.6,0.8,0.95],est:{tierra:0.25,vegetacion:0.3,musgo:0.25}}],
+  ['Serpientes gigantes',{tipo:'esqueletoSerpiente',mat:'hueso',det:[0.05,0.45,0.9],edad:[0.5,0.7,0.9],est:{tierra:0.25,vegetacion:0.25}}],
+  ['Restos de batalla',{tipo:'restosBatalla',mat:'hueso',det:[0.15,0.5,0.9],edad:[0.4,0.7,0.9],est:{tierra:0.3,humedad:0.35,vegetacion:0.2}}],
+  ['Tótems de huesos sobre un pilar',{tipo:'totemHuesos',mat:['madera','sillar','madera'],det:[0.1,0.4,0.8],edad:[0.4,0.7,0.9],est:{musgo:0.2,liquen:0.15}}],
+  ['Círculos rituales de huesos',{tipo:'circuloRitual',mat:'hueso',det:[0.05,0.4,0.85],edad:[0.4,0.65,0.9],est:{tierra:0.2,hojas:0.2}}]
 ];
 const pick=(v,k)=>Array.isArray(v)?v[k%v.length]:v;
 function muestrario(c){
@@ -319,7 +326,7 @@ if(q.get('vista')) ESTADO.vista=q.get('vista');
 if(q.get('escala')) ESTADO.cw=+q.get('escala');
 if(q.get('pasto')!=null) ESTADO.pasto=+q.get('pasto');
 if(q.get('det')!=null) ESTADO.banco.spec=ES.limpiar(Object.assign({},ESTADO.banco.spec,{deterioro:+q.get('det')}));
-if(q.get('tipo')){ ESTADO.banco.spec=ES.limpiar(Object.assign({},ESTADO.banco.spec,{tipo:q.get('tipo'),mat:ES.TIPOS[q.get('tipo')]?ES.TIPOS[q.get('tipo')].mat:undefined})); ESTADO.env.tipo=q.get('tipo'); ESTADO.env.mat=ES.TIPOS[q.get('tipo')].mat; ESTADO.oc.tipo=q.get('tipo'); }
+if(q.get('tipo')&&ES.TIPOS[q.get('tipo')]){ ESTADO.banco.spec=ES.nuevo(q.get('tipo'),ESTADO.banco.spec.sem); ESTADO.env.tipo=q.get('tipo'); ESTADO.env.mat=ES.TIPOS[q.get('tipo')].mat; ESTADO.oc.tipo=q.get('tipo'); }
 if(q.get('semilla')) ESTADO.banco.spec=ES.limpiar(Object.assign({},ESTADO.banco.spec,{sem:+q.get('semilla')}));
 if(q.get('grupo')) ESTADO.grupo.tipo=q.get('grupo');
 window.EstructurasLab={ESTADO,SIM,escena,dibujar,ES,EN};
