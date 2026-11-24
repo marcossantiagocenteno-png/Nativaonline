@@ -8,7 +8,7 @@ const NVi = window.NV;
 
 /* Sello de versión, puesto por sellar.sh al publicar. Se ve en el pie: así
    Marcos y yo sabemos al instante si está mirando la última versión. */
-NVi.VERSION='23/11 20:30';
+NVi.VERSION='23/11 20:38';
 
 NVi.MARCADO = `<div id="stage">
   <canvas id="cv"></canvas>
@@ -35,7 +35,7 @@ NVi.MARCADO = `<div id="stage">
   <div id="dios">
     <div id="diosTit">Modo Dios</div>
     <div class="pestanas"><button id="diosModoObj" class="on">Objetos</button><button id="diosModoCam">Caminos</button><button id="diosModoTer">Terreno</button><button id="diosModoAgu">Aguas</button><button id="diosModoFlu">Fluidez</button></div>
-    <div id="diosParcela"><span>Parcela</span><button id="parAdd" class="on">Añadir</button><button id="parQuit">Remover</button></div>
+    <div id="diosParcela"><span>Parcela</span><button id="parAdd" class="on">Añadir</button><button id="parQuit">Remover</button><button id="parSel" title="Arrastrá un rectángulo: lo que queda dentro se selecciona (Mayús suma)">Seleccionar objetos</button><button id="parBorrar" disabled title="Supr o Retroceso">Borrar</button></div>
     <div class="cuerpo">
     <div id="diosPaleta"></div>
     <div id="diosCaminos">

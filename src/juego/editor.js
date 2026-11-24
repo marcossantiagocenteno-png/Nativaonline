@@ -216,10 +216,48 @@
   E.parcelaModo='anadir';
   function parcelaModo(m){
     E.parcelaModo=m; cerrarExpansion();
-    const a=$e('parAdd'), q=$e('parQuit'); if(a) a.classList.toggle('on',m==='anadir'); if(q) q.classList.toggle('on',m==='quitar');
-    decir(m==='quitar'?'Remover: clic sobre la parcela que quieres quitar.':'Añadir: clic en el vacío junto al mapa.'); programarCuadro();
+    const a=$e('parAdd'), q=$e('parQuit'), sl=$e('parSel'); if(a) a.classList.toggle('on',m==='anadir'); if(q) q.classList.toggle('on',m==='quitar'); if(sl) sl.classList.toggle('on',m==='seleccionar');
+    if(m!=='seleccionar') limpiarSel();
+    decir(m==='quitar'?'Remover: clic sobre la parcela que quieres quitar.':m==='seleccionar'?'Seleccionar objetos: arrastrá un rectángulo sobre el terreno (Mayús suma). Supr o "Borrar" elimina lo seleccionado; Esc suelta.':'Añadir: clic en el vacío junto al mapa.'); programarCuadro();
   }
   E.parcelaModoSet=parcelaModo;
+  /* ---------- Seleccionar objetos: un rectángulo; lo que queda adentro se selecciona y se puede borrar de una vez ---------- */
+  E.selCaja=null; E.selObjs=[];
+  const claveO=o=>o.x+','+o.y;
+  function actualizarBorrar(){ const b=$e('parBorrar'); if(b) b.disabled=!E.selObjs.length; }
+  function limpiarSel(){ E.selCaja=null; E.selObjs=[]; actualizarBorrar(); refrescar(); programarCuadro(); }
+  function recalcularSel(){
+    const c=E.selCaja; if(!c) return;
+    const x0=Math.min(c.x0,c.x1), x1=Math.max(c.x0,c.x1), y0=Math.min(c.y0,c.y1), y1=Math.max(c.y0,c.y1);
+    const dentro=NV.objetosEn(x0,y0,x1,y1).filter(o=>o.x>=x0&&o.x<=x1&&o.y>=y0&&o.y<=y1);
+    if(c.suma){ const m=new Map(c.base.map(o=>[claveO(o),o])); for(const o of dentro) m.set(claveO(o),o); E.selObjs=Array.from(m.values()); }
+    else E.selObjs=dentro;
+    actualizarBorrar();
+  }
+  function iniciarSel(e){
+    apuntar(e); const h=E.hover; if(!h) return;
+    E.selCaja={x0:h.x,y0:h.y,x1:h.x,y1:h.y,arr:true,suma:!!e.shiftKey,base:e.shiftKey?E.selObjs.slice():[]};
+    recalcularSel(); refrescar(); programarCuadro();
+  }
+  function moverSel(e){
+    apuntar(e); const h=E.hover; if(!h||!E.selCaja) return;
+    if(h.x===E.selCaja.x1&&h.y===E.selCaja.y1) return;
+    E.selCaja.x1=h.x; E.selCaja.y1=h.y; recalcularSel(); refrescar(); programarCuadro();
+  }
+  function finSel(){
+    const c=E.selCaja; if(!c||!c.arr) return; c.arr=false;
+    const n=E.selObjs.length;
+    decir(n?n+' objeto'+(n>1?'s':'')+' seleccionado'+(n>1?'s':'')+'. Supr o "Borrar" los elimina; Esc suelta.':'No hay objetos dentro del rectángulo.');
+    if(!n) E.selCaja=null;
+    refrescar(); programarCuadro();
+  }
+  function borrarSel(){
+    const L=E.selObjs; if(!L.length){ decir('No hay nada seleccionado.'); return false; }
+    const n=L.length;
+    if(hacer({t:'lote',ops:L.map(o=>({t:'objeto-',x:o.x,y:o.y}))},n+' objeto'+(n>1?'s':'')+' eliminado'+(n>1?'s':'')+'. Deshacer los trae de vuelta.')){ E.selCaja=null; E.selObjs=[]; actualizarBorrar(); return true; }
+    return false;
+  }
+  E.borrarSeleccion=borrarSel; E.limpiarSeleccion=limpiarSel;
   function intentarQuitar(e){
     apuntar(e); const h=E.hover; if(!h) return true;
     if(NV.sueloEn(h.x,h.y)===null){ cerrarExpansion(); decir('Ahí no hay parcela.'); return true; }
@@ -245,6 +283,7 @@
     if(!E.activo) return;
     e.preventDefault();
     if(E.espacio&&e.button===0){ iniciarPaneo(e); return; }
+    if(E.parcelaModo==='seleccionar'&&E.modo==='objetos'&&e.button===0){ iniciarSel(e); return; }
     if(e.button===0&&!e.ctrlKey&&intentarAmpliar(e)) return;
     if(E.modo!=='objetos'){ E.modos[E.modo].bajar(e); return; }
     apuntar(e);
@@ -270,6 +309,7 @@
   function alMover(e){
     if(!E.activo) return;
     if(E.paneo){ moverPaneo(e); return; }
+    if(E.selCaja&&E.selCaja.arr){ moverSel(e); return; }
     if(E.modo!=='objetos'){ E.modos[E.modo].mover(e); return; }
     const antes=E.hover?E.hover.x+','+E.hover.y+','+E.hover.id:'', ctrl0=E.ctrl;
     apuntar(e);
@@ -295,7 +335,7 @@
     const Mx=E.modos[E.modo]; if(Mx&&Mx.cerrar) Mx.cerrar();
     if(NV.creador) NV.creador.cerrar();
     clearTimeout(tGuardar); NV.mundo.guardarBorrador();   // lo editado ya está en el mundo; además queda guardado
-    cerrarExpansion(); E.parcelaModo='anadir'; { const a=$e('parAdd'), q=$e('parQuit'); if(a) a.classList.add('on'); if(q) q.classList.remove('on'); } NV.camLibre=null; NV.camDirecta=false; E.espacio=false; E.paneo=null;
+    cerrarExpansion(); E.parcelaModo='anadir'; E.selCaja=null; E.selObjs=[]; { const a=$e('parAdd'), q=$e('parQuit'), sl=$e('parSel'); if(a) a.classList.add('on'); if(q) q.classList.remove('on'); if(sl) sl.classList.remove('on'); actualizarBorrar(); } NV.camLibre=null; NV.camDirecta=false; E.espacio=false; E.paneo=null;
     NV.zoomLibre(false); E.activo=false; E.sel=null; E.fantasma=null; E.hover=null; NV.pick(false);
     const p=$e('dios'); if(p) p.classList.remove('show');
     $e('cv').style.cursor='';
@@ -346,6 +386,24 @@
     }
     if(E.modo!=='objetos'){ const M=E.modos[E.modo]; if(M&&M.pintar) M.pintar(); return; }
     const h=E.hover, n=cols*rowsN;
+    if(E.selCaja||E.selObjs.length){
+      /* los objetos seleccionados, teñidos de oro, y el rectángulo, de trazos */
+      if(E.selObjs.length&&NV.objetosVista){
+        const ks=new Set(E.selObjs.map(claveO)), ids=new Set();
+        NV.objetosVista.forEach((o,k)=>{ if(o&&ks.has(claveO(o))) ids.add(k+1); });
+        if(ids.size) for(let i=0;i<n;i++) if(ids.has(fbP[i])&&fbG[i]) fbC[i]=mezcla(fbC[i],ORO_VIVO,0.6);
+      }
+      const c=E.selCaja;
+      if(c){
+        const x0=Math.min(c.x0,c.x1), x1=Math.max(c.x0,c.x1)+1, y0=Math.min(c.y0,c.y1), y1=Math.max(c.y0,c.y1)+1, color=packc(ORO_VIVO[0],ORO_VIVO[1],ORO_VIVO[2]);
+        const ca=Math.round((x0-camX)*CPM), cb=Math.round((x1-camX)*CPM), ra=Math.floor((y0-camY)*RPM), rb=Math.floor((y1-camY)*RPM);
+        ordR=65535; layer=3; alzaR=0; pickId=0;
+        for(let q=ca;q<=cb;q++){ const g=(q-ca)%2===0?45:32; if(g!==32){ put(q,ra,g,color); put(q,rb,g,color); } }
+        for(let r2=ra;r2<=rb;r2++){ put(ca,r2,124,color); put(cb,r2,124,color); }
+        for(const [qq,rr] of [[ca,ra],[cb,ra],[ca,rb],[cb,rb]]) put(qq,rr,43,color);
+        layer=0;
+      }
+    }
     if(h&&h.obj){
       const col=E.ctrl?ORO_VIVO:ORO, a=E.ctrl?0.75:0.55;
       for(let i=0;i<n;i++) if(fbP[i]===h.id&&fbG[i]) fbC[i]=mezcla(fbC[i],col,a);
@@ -384,6 +442,8 @@
       if((e.code==='Space'||k===' ')&&!campo){ e.preventDefault(); if(!E.espacio){ E.espacio=true; cursorMapa(); } return; }
       if(k==='home'&&!campo){ e.preventDefault(); E.volverAlPersonaje(); return; }
       if(E.modo!=='objetos'){ const M=E.modos[E.modo]; if(M.tecla&&M.tecla(e,k)){ e.preventDefault(); return; } }
+      if((k==='delete'||k==='backspace')&&!campo&&E.selObjs.length){ e.preventDefault(); borrarSel(); return; }
+      if(k==='escape'&&!campo&&E.selObjs.length){ limpiarSel(); return; }
       if(k==='control'){ E.ctrl=true; refrescar(); programarCuadro(); return; }
       if(k==='escape'&&E.sel){ elegir(null); return; }
       if((e.ctrlKey||e.metaKey)&&k==='z'){ e.preventDefault(); e.shiftKey?rehacerUno():deshacer(); return; }
@@ -398,6 +458,9 @@
     const b=id=>$e(id);
     if(b('parAdd')) b('parAdd').addEventListener('click',()=>parcelaModo('anadir'));
     if(b('parQuit')) b('parQuit').addEventListener('click',()=>parcelaModo('quitar'));
+    if(b('parSel')) b('parSel').addEventListener('click',()=>parcelaModo('seleccionar'));
+    if(b('parBorrar')) b('parBorrar').addEventListener('click',()=>borrarSel());
+    addEventListener('pointerup',finSel);
     if(b('expSi')) b('expSi').addEventListener('click',()=>confirmarExpansion(true));
     if(b('expNo')) b('expNo').addEventListener('click',()=>confirmarExpansion(false));
     b('diosModoObj').addEventListener('click',()=>E.cambiarModo('objetos'));

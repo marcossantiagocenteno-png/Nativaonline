@@ -1714,3 +1714,7 @@ Chrome sin GPU.
 - **Piedras y rocas dentro del agua** también llevan fondo (el color promedio del cuerpo), para que no queden huecos negros alrededor de sus glifos.
 - Un glifo nunca es más oscuro que su propio fondo (se sube hasta que se lea).
 - Costo: el fondo es un rectángulo por celda de agua en pantalla (`fArte`); un lago que llena la pantalla son decenas de miles. Medir antes de agrandar.
+
+## Seleccionar objetos (Modo Dios, 23/11)
+
+En la fila **Parcela** hay un tercer modo, junto a Añadir y Remover: **Seleccionar objetos**. Se arrastra un rectángulo sobre el terreno (en la pestaña Objetos) y todo objeto cuya casilla cae adentro queda seleccionado (teñido de oro; el rectángulo se ve de trazos). Mayús suma a lo ya seleccionado. **Supr / Retroceso o el botón "Borrar"** elimina todo de una vez, en **un solo paso de deshacer**; Esc suelta la selección. Clic derecho sigue borrando un solo objeto. Se selecciona por la casilla del objeto (`x,y`), no por su pie: una formación ancha cuyo centro queda fuera no entra. No incluye cuerpos de agua (esos se eligen en la pestaña Aguas). Código: `src/juego/editor.js` (`iniciarSel`, `moverSel`, `finSel`, `borrarSel`).

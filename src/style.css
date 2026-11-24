@@ -220,3 +220,5 @@ button.on{border-color:var(--oro);color:var(--oro)}
 #dios #diosParcela span{flex:0 0 auto;font-size:11px;color:var(--dim);margin-right:4px}
 #dios #diosParcela button{flex:1;font-size:11px;padding:3px 6px;background:#0b0d10;color:var(--dim);border:1px solid var(--oroflojo)}
 #dios #diosParcela button.on{color:var(--ink);border-color:var(--oro);background:#17140b}
+#dios #diosParcela button:disabled{opacity:.35;cursor:default}
+#dios #diosParcela #parBorrar:not(:disabled){color:var(--ink);border-color:var(--oro)}
