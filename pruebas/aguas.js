@@ -176,6 +176,20 @@ VI=0;
   const i0=A.crear('lago',{poligono:P,sem:7,irreg:0}), i1=A.crear('lago',{poligono:P,sem:7,irreg:2.5}); const c0=A.prepararCampo(i0), c1=A.prepararCampo(i1); let dif=0; for(let i=0;i<Math.min(c0.d.length,c1.d.length);i++) dif+=Math.abs(c0.d[i]-c1.d[i]); ok(dif>50,'la irregularidad de bordes mueve la orilla');
   const e0=A.crear('lago',{poligono:P,sem:7,entierro:0}), e1=A.crear('lago',{poligono:P,sem:7,entierro:1.2}); const s0=escena(4), s1=escena(4); A.pintar(s0,[e0]); A.pintar(s1,[e1]); ok(hash(s0)!==hash(s1),'el entierro dibuja la barranca'); }
 
+/* orilla: rocas del motor de rocas, plantas y lirios */
+{ VI=0; const Lg=lago(); const d1=A.decorar(Lg,5), d2=A.decorar(Lg,5), d3=A.decorar(Lg,6);
+  ok(d1.length>0,'un lago se decora con rocas ('+d1.length+')'); ok(JSON.stringify(d1)===JSON.stringify(d2),'misma semilla, mismas rocas'); ok(JSON.stringify(d1)!==JSON.stringify(d3),'otra semilla, otras rocas');
+  ok(d1.some(e=>e.dentro)&&d1.some(e=>!e.dentro),'hay rocas en la orilla y dentro del agua');
+  const F=A.prepararCampo(Lg), m={}; let bien=true; for(const e of d1){ A.muestra(F,e.x+0.5,e.y+0.5,m); if(e.dentro?!(m.d>0.2):!(m.d<0)) bien=false; } ok(bien,'las de adentro caen en el agua y las de orilla en tierra');
+  ok(d1.every(e=>NV.rocoso.crearRoca(e.spec)&&Number.isInteger(e.x)&&Number.isInteger(e.y)),'cada una es una receta válida del motor de rocas, en una casilla');
+  ok(d1.some(e=>e.spec.estado.musgo>0),'algunas llevan musgo');
+  const sin=A.crear('lago',{poligono:lago().poligono,sem:7,orillaRocas:0,orillaDentro:0}); ok(A.decorar(sin,5).length===0,'con las perillas en cero no hay rocas');
+  ok(A.decorar(A.crear('cascada',{x:1,y:1,ancho:2,alto:3,intensidad:1}),1).length===0,'la cascada no se decora');
+  A.sincronizar([Lg]); const dentro=d1.find(e=>e.dentro); ok(A.nivelEn(dentro.x,dentro.y)>0,'una roca dentro del agua tiene nivel de agua'); ok(A.nivelEn(-500,-500)===null,'en seco no hay nivel');
+  A.sincronizar([Lg]);
+  const pl=A.crear('lago',{poligono:lago().poligono,sem:7,pasto:0,lirios:0}), pl2=A.crear('lago',{poligono:lago().poligono,sem:7,pasto:2,lirios:2});
+  const sa=escena(4), sb=escena(4); A.pintar(sa,[pl]); A.pintar(sb,[pl2]); ok(hash(sa)!==hash(sb),'pastos y lirios cambian lo que se dibuja');
+}
 /* registro */
 const reg=NV.motores&&NV.motores.lista?NV.motores.lista().find(m=>m.id==='aguas'):null;
 ok(!reg||reg.estado==='integrado','registrado como integrado');

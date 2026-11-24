@@ -44,6 +44,8 @@
     const ancho=(S.box.umax-S.box.umin)*CPM;
     if(bc+ancho<-8||bc-ancho>cols+8) return;
     const ctx=ctxBase(tr,t,haze,bc,br,tr.x,tr.y);
+    /* una roca metida en el agua se moja hasta donde llega el agua */
+    if(NV.aguas&&NV.aguas.cuerpos().length){ const nv=NV.aguas.nivelEn(tr.x,tr.y); if(nv!=null) ctx.nivelAgua=nv; }
     R.pintarSombra(S,ctx); R.pintar(S,ctx);
   };
   /* los árboles diseñados: mismo camino, con viento (el entorno lo trae del viento real del juego) */

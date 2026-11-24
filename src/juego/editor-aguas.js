@@ -13,6 +13,8 @@
      · clic derecho en un cuerpo (o Supr): lo borra · Esc: suelta lo que se está haciendo
      · con un cuerpo elegido, los controles lo editan (profundidad, color, transparencia, corriente, viento, reflejo, orilla…);
        sin elegir, editan lo que traerá el próximo
+     · al crear un cuerpo se le ponen, al azar, rocas del motor de rocas (con musgo) en la orilla y dentro del agua; son objetos reales:
+       se editan, se regeneran y se borran como cualquier roca. "regenerar orilla" las vuelve a sortear; pastos, juncos y lirios los dibuja el agua
      · "regenerar sector" cambia la semilla: sólo cambia la orilla, el fondo y el oleaje de ese cuerpo
    Mientras se mueve un control o un punto se ve en vivo (vista previa del motor); al soltarlo se guarda y queda en el deshacer.
    Todo se mide en metros. Al cargar el mundo, el agua vuelve a moverse sola: sólo se guardan los datos estáticos. */
@@ -97,6 +99,36 @@
 
   /* ---------- trazar un cuerpo nuevo ---------- */
   function paramsNuevos(){ return Object.assign({},pincel); }
+  /* ---------- la orilla: rocas reales alrededor y dentro del agua ---------- */
+  const hayObjeto=(x,y)=>NV.objetosEn(x,y,x,y).some(o=>o.x===x&&o.y===y);
+  function opsQuitarOrilla(d){
+    return (d.marcas||[]).filter(m=>{ const o=NV.objetosEn(m[0],m[1],m[0],m[1]).find(q=>q.x===m[0]&&q.y===m[1]); return o&&o.k==='rocoso'; }).map(m=>({t:'objeto-',x:m[0],y:m[1]}));
+  }
+  /* las rocas nuevas: salta las casillas donde ya hay otra cosa (un árbol, una roca puesta a mano) */
+  function opsOrilla(d,semO,libres){
+    const R=NV.rocoso; if(!R||!A().decorar) return {ops:[],marcas:[]};
+    let lst; try{ lst=A().decorar(A().deDatos(d),semO); }catch(err){ return {ops:[],marcas:[]}; }
+    const ops=[], marcas=[], usados=new Set((libres||[]).map(m=>m[0]+','+m[1]));
+    for(const e of lst){
+      const k=e.x+','+e.y; if(hayObjeto(e.x,e.y)&&!usados.has(k)) continue;
+      let ob; try{ ob=R.aObjeto(e.spec); }catch(err){ continue; }
+      usados.add(k); ops.push({t:'objeto+',x:e.x,y:e.y,objeto:ob}); marcas.push([e.x,e.y]);
+    }
+    return {ops,marcas};
+  }
+  function regenerarOrilla(){
+    const d=sel&&datosDe(sel); if(!d||d.tipo==='cascada'){ E.decir('Elegí un cuerpo de agua.'); return; }
+    const quitar=opsQuitarOrilla(d), nuevo=opsOrilla(d,(Date.now()&0xffff)+1,d.marcas);
+    const n=copia(d); n.marcas=nuevo.marcas;
+    if(E.hacer({t:'lote',ops:quitar.concat([{t:'agua',id:d.id,datos:n}],nuevo.ops)},'Orilla regenerada.')) cargarUI();
+    refrescar();
+  }
+  function quitarOrilla(){
+    const d=sel&&datosDe(sel); if(!d) return;
+    const quitar=opsQuitarOrilla(d), n=copia(d); n.marcas=[];
+    if(!quitar.length){ E.decir('Este cuerpo no tiene rocas de orilla puestas.'); return; }
+    E.hacer({t:'lote',ops:quitar.concat([{t:'agua',id:d.id,datos:n}])},'Rocas de la orilla quitadas.'); refrescar();
+  }
   function crearDesdeTrazo(){
     const P=trazo.map(p=>[Math.round(p[0]*4)/4,Math.round(p[1]*4)/4]), t=tipo; trazo=null; limpiar();
     const id=libre(t); let c;
@@ -104,7 +136,8 @@
       if(esEst(t)){ if(P.length<3){ E.decir('Un contorno necesita al menos tres puntos.'); return; } c=A().crear(t,Object.assign(paramsNuevos(),{id,poligono:P,sem:(Date.now()&0xffff)})); }
       else { if(P.length<2){ E.decir('Un recorrido necesita al menos dos puntos.'); return; } c=A().crear(t,Object.assign(paramsNuevos(),{id,curso:{puntos:P,anchos:null},sem:(Date.now()&0xffff)})); }
     }catch(err){ E.decir('No se pudo crear: '+err.message); return; }
-    if(escribir(id,A().aDatos(c),A().NOMBRES[t]+' creado.')){ sel=id; cargarUI(); }
+    const dat=A().aDatos(c), or=t==='cascada'?{ops:[],marcas:[]}:opsOrilla(dat,dat.sem,null); dat.marcas=or.marcas;
+    if(E.hacer({t:'lote',ops:[{t:'agua',id,datos:dat}].concat(or.ops)},A().NOMBRES[t]+' creado'+(or.ops.length?' con '+or.ops.length+' rocas en la orilla.':'.'))){ sel=id; cargarUI(); }
     refrescar();
   }
   function vistaTrazo(){
@@ -229,6 +262,12 @@
     ['irreg','Irregularidad de bordes',0,3,0.01,'a'],
     ['entierro','Entierro en el terreno (m)',0,3,0.05,'a'],
     ['humedad','Humedad de la orilla (m)',0.1,2,0.05,'a'],
+    ['Orilla: plantas y rocas (* se aplica con "regenerar orilla")',null,'a'],
+    ['pasto','Pastos y juncos',0,2,0.05,'a'],
+    ['lirios','Lirios en el agua',0,2,0.05,'e'],
+    ['orillaRocas','Rocas en la orilla*',0,2,0.05,'a'],
+    ['orillaDentro','Rocas dentro del agua*',0,2,0.05,'a'],
+    ['musgoRocas','Musgo en las rocas*',0,1,0.05,'a'],
     ['talud','Pendiente de la orilla (m)',0.1,8,0.05,'e'],
     ['Corriente',null,'c'],
     ['vel','Velocidad (m/s; 0 = reposo)',0,3,0.01,'c'],
@@ -247,10 +286,11 @@
     izq+='<div class="fila"><button id="aguPuntos" class="on" title="Clic para cada punto">puntos</button><button id="aguLapiz" title="Dibujar a mano alzada, arrastrando">lápiz</button></div>';
     izq+='<div class="tnota" id="aguAyuda"></div>';
     izq+='<div class="fila"><button id="aguRegen" title="Otra semilla: sólo cambia este cuerpo">regenerar sector</button><button id="aguInvertir" title="Invierte el sentido de la corriente">invertir corriente</button></div>';
+    izq+='<div class="fila"><button id="aguOrilla" title="Vuelve a sortear las rocas de la orilla y de adentro con las perillas marcadas con *">regenerar orilla</button><button id="aguOrillaQuita" title="Quita las rocas que se pusieron al crear este cuerpo">quitar rocas</button></div>';
     izq+='<div class="fila"><button id="aguBorrar" title="Supr o clic derecho">borrar</button><button id="aguSoltar" title="Esc">soltar</button></div>';
     const out=[[],[]];
     PARAMS.forEach((q,i)=>{
-      const dest=i<9?0:1;
+      const dest=i<(PARAMS.findIndex(x=>x[0]==='Forma y orilla')>=0?PARAMS.findIndex(x=>x[0]==='Forma y orilla'):9)?0:1;
       if(q[1]===null){ out[dest].push(cab(q[0],q[2])); return; }
       out[dest].push(fila(q[1],'<input type="range" data-k="'+q[0]+'" min="'+q[2]+'" max="'+q[3]+'" step="'+q[4]+'"><span class="tval" data-v="'+q[0]+'"></span>',q[5]));
     });
@@ -263,6 +303,7 @@
     if(d.tipo==='cascada'){ if(k==='anchoK') return d.ancho; if(k==='alto'||k==='intensidad'||k==='espuma') return d[k]; return null; }
     if(k==='ancho'){ if(!d.curso) return null; const a=d.curso.anchos; return a&&a.length?a.reduce((x,y)=>x+y,0)/a.length:d.ancho; }
     if(k==='alto'||k==='anchoK'||k==='intensidad'||k==='espuma') return null;
+    if(d[k]==null&&A().TIPOS[d.tipo]) return A().TIPOS[d.tipo][k];
     return d[k];
   }
   const nuevoBase=t=>t==='cascada'?A().CASCADA0:A().TIPOS[t];
@@ -290,7 +331,7 @@
   /* un cambio {campo:valor} sobre los datos de un cuerpo */
   function parchar(d,k,v){
     const n=copia(d);
-    const propio=k==='ancho'?!!n.curso:(k==='alto'||k==='anchoK'||k==='intensidad'||k==='espuma')?n.tipo==='cascada':(k==='vel'||k==='sinuosidad')?!!n.curso:(k==='talud')?!!n.poligono:n.tipo!=='cascada';
+    const propio=k==='ancho'?!!n.curso:(k==='alto'||k==='anchoK'||k==='intensidad'||k==='espuma')?n.tipo==='cascada':(k==='vel'||k==='sinuosidad')?!!n.curso:(k==='talud'||k==='lirios')?!!n.poligono:n.tipo!=='cascada';
     if(!propio) return null;               // un control que no es de este tipo de agua no hace nada
     if(n.tipo==='cascada'){ if(k==='anchoK') n.ancho=v; else n[k]=v; return recrear(n); }
     if(k==='ancho'){
@@ -374,6 +415,7 @@
       const st=q('aguTipo'); if(st) st.addEventListener('change',()=>cambiarTipo(st.value));
       const ponerModo=m=>{ modoTrazo=m; trazo=null; lapiz=null; limpiar(); const a=q('aguPuntos'), l=q('aguLapiz'); if(a) a.classList.toggle('on',m==='puntos'); if(l) l.classList.toggle('on',m==='lapiz'); ayuda(); refrescar(); };
       bind('aguPuntos',()=>ponerModo('puntos')); bind('aguLapiz',()=>ponerModo('lapiz'));
+      bind('aguOrilla',regenerarOrilla); bind('aguOrillaQuita',quitarOrilla);
       bind('aguRegen',()=>{ const d=sel&&datosDe(sel); if(!d){ E.decir('Elegí un cuerpo de agua.'); return; } const n=copia(d); n.sem=((n.sem||0)+1+(Date.now()&0x3ff))|0; escribir(d.id,recrear(n),'Sector regenerado: sólo cambió este cuerpo.'); refrescar(); });
       bind('aguInvertir',()=>{ const d=sel&&datosDe(sel); if(!d||!d.curso){ E.decir('Elegí un río o un arroyo.'); return; } const n=copia(d); n.curso.puntos.reverse(); if(n.curso.anchos) n.curso.anchos.reverse(); escribir(d.id,recrear(n),'Corriente invertida.'); refrescar(); });
       bind('aguBorrar',()=>{ if(sel) borrar(sel); else E.decir('Elegí un cuerpo de agua.'); });
