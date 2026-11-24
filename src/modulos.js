@@ -10,7 +10,7 @@ window.NV_MODULOS=[
   'mundo/mundo-datos',       // el archivo del mundo editado (vacío mientras no haya ediciones)
   'mundo/generar',
   'mundo/paneles',
-  'mundo/ediciones','mundo/objetos',         // aplica las ediciones del mundo sobre cada panel generado
+  'mundo/ediciones','mundo/huella','mundo/objetos',         // aplica las ediciones del mundo sobre cada panel generado
   'luz-de-lunas/luz',
   'mundo/viento',
   'motor/entorno',           // lo que comparten árboles, rocas y los que vengan: viento, luz, sombras, contorno
@@ -51,7 +51,7 @@ window.NV_MODULOS=[
    si un motor nuevo decide algo del estado del mundo, va en NV_MODULOS_SERVIDOR; si sólo dibuja, en NV_MODULOS_SOLO_CLIENTE.
    index.html y pruebas/cargar.js no leen estas dos listas: el modo solitario no cambia. */
 window.NV_MODULOS_SERVIDOR=[
-  'motor/base','motor/registro','mundo/diccionario','mundo/mundo-datos','mundo/generar','mundo/paneles','mundo/ediciones','mundo/objetos',
+  'motor/base','motor/registro','mundo/diccionario','mundo/mundo-datos','mundo/generar','mundo/paneles','mundo/ediciones','mundo/huella','mundo/objetos',
   'luz-de-lunas/luz','mundo/viento','motor/entorno','juego/terreno','juego/caminos','juego/arbolado','juego/rocoso','juego/estructuras',
   'juego/cuevas','juego/umbrales','juego/aguas','juego/puente-motores','juego/topes','juego/bocacueva'
 ];
