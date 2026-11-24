@@ -131,6 +131,12 @@ const gB=new Int32Array(GMAX*4);
 let gn=0, gr=false;
 NV.grabar=on=>{ gr=!!on; if(on) gn=0; };
 NV.grabados={B:gB, n:()=>gn};
+/* Segunda grabadora, para el motor de aguas: guarda cada casilla ESCRITA (ya con la vista y el alza) y la fila de base del objeto
+   (fila de sus pies, en el mismo espacio), que es lo que hace falta para espejarlo. Apagada cuesta una comparación por casilla. */
+let ga=false, gaBase=0, gan=0;
+const gA=new Int32Array(GMAX*5);
+NV.grabarAgua=(on,base)=>{ ga=!!on; gaBase=base|0; };
+NV.grabadosAgua={B:gA, n:()=>gan, vaciar:()=>{ gan=0; }};
 function put(c,r,code,col){
   const r0=r;                       // sin alza ni vista: es lo que anota la grabadora
   if(c>=0&&c<cols) r+=liftR-alzaR-(usaCol?colAlza[c]:0);
@@ -144,6 +150,7 @@ function put(c,r,code,col){
       col=packc(((col>>16)&255)+168*w, ((col>>8)&255)+84*w, (col&255)+22*w);
     }
   }
+  if(ga&&gan<GMAX){ const q=gan*5; gA[q]=c; gA[q+1]=r; gA[q+2]=code; gA[q+3]=col; gA[q+4]=gaBase+liftR-alzaR; gan++; }
   if(gr&&gn<GMAX){ const q=gn*4; gB[q]=c; gB[q+1]=r0; gB[q+2]=code; gB[q+3]=col; gn++; }
   fbG[i]=code; fbC[i]=col; fbL[i]=layer; fbO[i]=ordR;
   if(pickOn) fbP[i]=pickId;

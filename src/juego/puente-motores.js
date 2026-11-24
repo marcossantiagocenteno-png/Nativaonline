@@ -16,6 +16,7 @@
     r+=liftR-alzaR-(usaCol?colAlza[c]:0);
     if(r<0||r>=rowsN) return;
     const i=r*cols+c; if(!fbG[i]||fbL[i]>0) return;
+    if(NV.aguaSombra){ const a=NV.aguaSombra; if(a.length>=cols*rowsN&&k>a[i]) a[i]=k; }
     const f=1-k, v=fbC[i]; fbC[i]=packc(((v>>16)&255)*f,((v>>8)&255)*(f+0.02),(v&255)*(f+0.05));
   }
   function ctxBase(tr,t,haze,bc,br,x,y){

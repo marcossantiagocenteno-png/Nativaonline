@@ -26,6 +26,7 @@ window.NV_MODULOS=[
   'juego/caminos',
   'juego/arbolado',          // motor de árboles (lo coloca y lo diseña el Modo Dios)
   'juego/rocoso',            // motor de rocas y formaciones (lo coloca y lo diseña el Modo Dios)
+  'juego/aguas',             // motor de aguas continentales: charcos, lagos, ríos, cascadas (los coloca el Modo Dios)
   'juego/puente-motores',    // puente: dibuja en el juego los objetos {k:'rocoso'} y {k:'arbolnv'}
   'juego/topes',             // topes: casillas por las que nadie pasa (invisibles fuera del Modo Dios)
   'juego/dibujar',
@@ -33,6 +34,7 @@ window.NV_MODULOS=[
   'juego/editor',
   'juego/editor-caminos',
   'juego/editor-fluidez',   // la pestaña "fluidez" del Modo Dios
+  'juego/editor-aguas',      // la pestaña "aguas" del Modo Dios: lagos, ríos, cascadas
   'juego/editor-terreno',    // la pestaña "terreno" del Modo Dios
   'juego/creador',           // la ventana de diseño del Modo Dios: las perillas de los motores
   'juego/jugar'

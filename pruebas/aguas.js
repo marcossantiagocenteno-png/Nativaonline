@@ -1,6 +1,6 @@
 /* Pruebas del motor de aguas continentales (laboratorio: el motor no está en el juego). */
 const fs=require('fs');
-const NV=require('./cargar.js')(fs.readFileSync(__dirname+'/../src/juego/aguas.js','utf8')+';module.exports=window.NV;');
+const NV=require('./cargar.js')();
 let bien=0,mal=0; const ok=(c,m)=>{ if(c) bien++; else { mal++; console.log('MAL:',m); } };
 const A=NV.aguas, E=NV.entorno;
 let VI=0;
@@ -50,7 +50,7 @@ R.curso.puntos[1][1]=30; A.tocar(R); ok(A.enAgua([R],20,30)&&!A.enAgua([R],20,38
 
 /* viento: sólo se lee del entorno; las ondas viajan hacia el oeste; calma casi lisa */
 const Lg=lago(); const m0={}; A.muestra(A.prepararCampo(Lg),25,14,m0);
-const amp=(I,t0)=>{ VI=I; let mx=0; const S=A.actualizar(Lg,t0,[Lg]); const so={h:0,sx:0,sy:0,turb:0}; for(let k=0;k<60;k++){ A.superficie(Lg,S,m0,20+k*0.25,14,t0,so); mx=Math.max(mx,Math.abs(so.h)); } return mx; };
+const amp=(I,t0)=>{ VI=I; let mx=0; const Lx=lago(); const S=A.actualizar(Lx,t0,[Lx]); const so={h:0,sx:0,sy:0,turb:0}; for(let k=0;k<60;k++){ A.superficie(Lg,S,m0,20+k*0.25,14,t0,so); mx=Math.max(mx,Math.abs(so.h)); } return mx; };
 const calma=amp(0,50), fuerte=amp(1,50); ok(fuerte>calma*3,'con viento fuerte la superficie se levanta mucho más ('+calma.toExponential(1)+' → '+fuerte.toExponential(1)+')');
 ok(A.VIENTO_DIR.x<0&&A.VIENTO_DIR.y===0,'dirección del viento: este→oeste, la del viento global');
 { VI=0.6; const S=A.actualizar(Lg,60,[Lg]); const s1={h:0,sx:0,sy:0,turb:0}, s2={h:0,sx:0,sy:0,turb:0};
@@ -58,11 +58,15 @@ ok(A.VIENTO_DIR.x<0&&A.VIENTO_DIR.y===0,'dirección del viento: este→oeste, la
   const w=S.ondas[0]; ok(w.kx<0||Math.abs(w.kx)>=0,'onda principal definida'); ok(w.kx*w.w>=0||true,'ok');
   ok(Math.cos(S.dirA)<-0.5,'las ondas apuntan al oeste'); }
 VI=0;
-/* cuando cesa el viento, el agua se calma sola (memoria exponencial) pero no de golpe */
-VI=(x,t)=>t<100?1:0; const aA=(()=>{ const S=A.actualizar(Lg,100.2,[Lg]); const so={h:0,sx:0,sy:0,turb:0}; let mx=0; for(let k=0;k<60;k++){ A.superficie(Lg,S,m0,20+k*0.25,14,100.2,so); mx=Math.max(mx,Math.abs(so.h)); } return mx; })();
-const aB=(()=>{ const S=A.actualizar(Lg,130,[Lg]); const so={h:0,sx:0,sy:0,turb:0}; let mx=0; for(let k=0;k<60;k++){ A.superficie(Lg,S,m0,20+k*0.25,14,130,so); mx=Math.max(mx,Math.abs(so.h)); } return mx; })();
-VI=1; const aC=amp(1,100.2); VI=(x,t)=>t<100?1:0;
-ok(aA>aB*3,'tras cesar el viento la superficie se calma ('+aA.toExponential(1)+' → '+aB.toExponential(1)+')');
+/* cuando cesa el viento, el agua se calma sola (memoria) pero no de golpe */
+{ const Lw=lago(); const mw={}; A.muestra(A.prepararCampo(Lw),25,14,mw); VI=(x,t)=>t<100?1:0;
+  const altura=t=>{ const S=A.actualizar(Lw,t,[Lw]); const so={h:0,sx:0,sy:0,turb:0}; let mx=0; for(let k=0;k<60;k++){ A.superficie(Lw,S,mw,20+k*0.25,14,t,so); mx=Math.max(mx,Math.abs(so.h)); } return mx; };
+  let aA=0,aB=0,aC=0; for(let t=90;t<=140;t+=0.1){ const v=altura(t); if(Math.abs(t-99.9)<0.05) aA=v; if(Math.abs(t-101)<0.05) aB=v; if(Math.abs(t-130)<0.05) aC=v; }
+  ok(aB>aA*0.35,'al cesar el viento el agua no se aplana de golpe ('+aA.toExponential(1)+' → '+aB.toExponential(1)+' un segundo después)');
+  ok(aA>aC*3,'y se calma del todo con el tiempo ('+aA.toExponential(1)+' → '+aC.toExponential(1)+')');
+  /* sube con el viento */
+  const Ls=lago(); VI=(x,t)=>t<10?0:1; let a0=0,a1=0,a2=0; for(let t=5;t<=20;t+=0.1){ const S=A.actualizar(Ls,t,[Ls]); const so={h:0,sx:0,sy:0,turb:0}; let mx=0; for(let k=0;k<60;k++){ A.superficie(Ls,S,mw,20+k*0.25,14,t,so); mx=Math.max(mx,Math.abs(so.h)); } if(Math.abs(t-9.9)<0.05) a0=mx; if(Math.abs(t-10.5)<0.05) a1=mx; if(Math.abs(t-19)<0.05) a2=mx; }
+  ok(a1<a2*0.7&&a2>a0*3,'con viento nuevo el agua se levanta de a poco ('+a0.toExponential(1)+' → '+a1.toExponential(1)+' → '+a2.toExponential(1)+')'); }
 VI=0;
 
 /* la corriente NO la frena ni la invierte el viento */
@@ -161,8 +165,8 @@ VI=0;
 
 /* registro */
 const reg=NV.motores&&NV.motores.lista?NV.motores.lista().find(m=>m.id==='aguas'):null;
-ok(!reg||reg.estado==='pendiente','registrado como pendiente (no está en el juego)');
-ok(!fs.readFileSync(__dirname+'/../src/modulos.js','utf8').includes('aguas'),'el motor de aguas NO está en modulos.js (se integra al aprobar las muestras)');
+ok(!reg||reg.estado==='integrado','registrado como integrado');
+ok(fs.readFileSync(__dirname+'/../src/modulos.js','utf8').includes("'juego/aguas'"),'el motor de aguas está en modulos.js');
 /* rendimiento: un cuadro de un tablero grande con lago y río */
 { VI=0.3; const s=escena(5); const cs=[lago(),rio()]; A.pintar(s,cs); const t0=Date.now(); for(let k=0;k<4;k++){ s.t=6+k*0.1; A.pintar(s,cs); } const ms=(Date.now()-t0)/4; ok(ms<400,'un cuadro de 156 000 celdas con lago y río cuesta '+ms.toFixed(0)+' ms (límite de la prueba 400)'); }
 

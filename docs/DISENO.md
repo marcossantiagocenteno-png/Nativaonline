@@ -1633,12 +1633,11 @@ dibujo lo tratan como fuera del mundo) y `limites()` lo ignora. Lo que dice el a
 (`defDe(k)||BIOMAS[k]`), por eso también se puede quitar el 0:0 y deshacerlo (`def:null` lo devuelve). Lo editado dentro de una parcela
 quitada no se borra: vuelve si la parcela se vuelve a añadir. Prueba: `pruebas/quitar.js`.
 
-## Aguas continentales (motor en laboratorio, no integrado)
+## Aguas continentales (integradas al juego y al Modo Dios)
 
 `src/juego/aguas.js` (`NV.aguas`), laboratorio `preview/aguas.html` + `preview/aguas.js`, pruebas `pruebas/aguas.js`.
 Charcos, lagos, lagunas, arroyos, riachuelos, ríos, ríos profundos y cascadas. **El mar no entra**: tendrá motor propio; este
-no asume que el agua es plana ni que el borde es una costa. **No está en `src/modulos.js` ni en el Modo Dios** hasta que Marcos
-apruebe las muestras del laboratorio. Registrado como `aguas`, estado `pendiente`.
+no asume que el agua es plana ni que el borde es una costa. Marcos aprobó las muestras del laboratorio y el motor quedó integrado. Registrado como `aguas`, estado `integrado`.
 
 **Cómo es un cuerpo.** Datos puros (`NV.aguas.crear(tipo, spec)`): `poligono` (lagos, lagunas, charcos) o `curso:{puntos,anchos}`
 (arroyos y ríos), `prof`, `claridad`, `opacidad`, `tono`, `ondas`, `viento`, `reflejo`, `irreg`, `humedad`, `vel`, `piedras`, `sem`.
@@ -1669,5 +1668,25 @@ recalculan al cargar. Lo que falta para el Modo Dios (pestaña "Editor de aguas 
 arrastrar puntos, parámetros, regenerar sector, eliminar. El laboratorio (Banco) ya hace todo eso sobre estos mismos datos, así
 que el editor del juego es una piel sobre una API probada.
 
-**Pendiente de aprobación:** calidad visual de las 20 muestras, costo en el juego real (hoy ~20–60 ms por muestra en un Chrome sin
-GPU), y la integración (dibujar.js, Modo Dios, paneles).
+**En el juego.** `src/modulos.js` carga `juego/aguas` (antes de `puente-motores`) y `juego/editor-aguas`. `dibujar.js` (`pintarAguas`) pinta el
+agua DESPUÉS de las filas de suelo y objetos, sólo sobre celdas de suelo (`fbL===0`: un objeto o un personaje nunca se pisa) y al
+nivel del terreno bajo el centro del cuerpo (una masa de agua es plana). Los objetos y personajes cercanos al agua se graban con la
+segunda grabadora de `lienzo.js` (`NV.grabarAgua(on,filaBase)`), que anota cada casilla escrita con la fila de los pies; con esos datos el motor
+espeja. Las sombras de árboles y rocas del puente (`sombrear`) llenan `NV.aguaSombra`, y el agua las toma. El tiempo es `NV.tViento`.
+Sin agua en el mundo el cuadro es idéntico al de antes (`dorado`). El jugador y los demás personajes pasan por `A.actor`: ondas sólo al pisar agua.
+
+**En el mundo.** Op `{t:'agua',id,datos}` (datos:null borra; la inversa es lo que había: sirve para crear, editar, mover y deshacer). Se guarda
+en la lista `aguas` del archivo del mundo (aditiva: los mundos viejos no la traen). Cargar un mundo llama a `NV.aguas.sincronizar`, que
+conserva los cuerpos que no cambiaron. El agua vuelve a moverse sola al cargar.
+
+**Modo Dios, pestaña "Aguas".** Elegir tipo; contorno por clics (cierra con Intro, doble clic o clic en el primer punto); recorrido por clics
+(Intro termina); cascada de un clic. Clic en un cuerpo lo elige; arrastrar un punto lo mueve, arrastrar el cuerpo lo desplaza, Mayús+clic
+en el borde agrega un punto, clic derecho en un punto lo quita, clic derecho en el cuerpo o Supr lo borra. Controles en vivo: profundidad,
+claridad, opacidad, tono, ondas, respuesta al viento, reflejo, velocidad de corriente (0 = reposo), ancho, irregularidad, humedad y
+pendiente de la orilla, altura/ancho/intensidad/espuma de la cascada; "regenerar sector", "invertir corriente". Un lago puede pasar
+a laguna o charco (y un arroyo a río), pero no a un río: eso se traza nuevo. Pruebas: `pruebas/aguas.js`, `pruebas/aguas-juego.js`.
+
+**Límites conocidos.** El agua es plana al nivel de su centro: en una ladera el suelo seguirá su pendiente y el agua no. Una lámina de
+cascada se pinta sobre lo que haya detrás (incluido un personaje parado detrás). Un lago o charco no tiene corriente propia (sólo
+arroyos y ríos). Si hay varios cuerpos con alturas de terreno distintas se pintan en grupos por altura. El costo se midió sólo en un
+Chrome sin GPU.

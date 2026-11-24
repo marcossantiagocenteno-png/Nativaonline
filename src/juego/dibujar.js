@@ -17,6 +17,7 @@ function relojAmbiente(){
 }
 const CAM_TAU=0.07, ALZ_TAU=0.26;     // segundos: lo que tarda la cámara en cerrar el 63 % de la distancia
 
+let _aguaOn=false;          // este cuadro hay cuerpos de agua continentales (motor NV.aguas): los objetos cercanos se graban para el reflejo
 /* metros de más que se dibujan hacia el norte este cuadro (ver draw_) */
 let _extN=0;
 function extNorte(){ return _extN; }
@@ -94,6 +95,8 @@ function draw_(){
   NV.objetosVista=objetos;                                                    // el editor apunta por índice en esta lista
   let ti=0; while(ti<objetos.length&&objetos[ti].oy<camY-extN) ti++;
   liftR=liftF; NV.liftFila=liftF;
+  const AG=NV.aguas; _aguaOn=!!(AG&&AG.cuerpos().length);
+  if(_aguaOn){ NV.grabadosAgua.vaciar(); const nn=cols*rowsN; if(!NV.aguaSombra||NV.aguaSombra.length!==nn) NV.aguaSombra=new Float32Array(nn); else NV.aguaSombra.fill(0); } else NV.aguaSombra=null;
 
   for(let my=camY-extN;my<=lastRow;my++){
     const rBase=(my-camY)*RPM+RPM-1;                       // fila del suelo
@@ -112,7 +115,13 @@ function draw_(){
        personaje queda medio metro al sur de su fila, y el pasto y los árboles
        de las filas siguientes —que se pintan después— le pasan por encima. Eso
        se ve como glifos sueltos encima de la figura mientras camina. */
-    if(my===Math.round(pp.y)){ alzaR=Math.round(alzaJ); drawPlayer(haze); alzaR=0; }
+    if(my===Math.round(pp.y)){
+      alzaR=Math.round(alzaJ);
+      const ag=_aguaOn&&AG.cerca(pp.x+0.5,pp.y+0.5,12);
+      if(ag) NV.grabarAgua(true,Math.round((pp.y-camY)*RPM+RPM-1));
+      try{ drawPlayer(haze); } finally{ if(ag) NV.grabarAgua(false); }
+      alzaR=0;
+    }
     const otros=NV.personajes;
     if(otros&&otros.length){
       const Wc=Math.max(3,Math.round(0.55*CPM));
@@ -122,7 +131,9 @@ function draw_(){
         layer=3;
         const po=NV.posPersonaje(o,Date.now());
         alzaR=Math.round(NV.alturaEn(po.x+0.5,po.y+0.5)*HPM);
-        if(!NV.dibujarPersonaje(o,haze,t,lienzoDe(Wc))) figuraRespaldo(o,haze);
+        const ag=_aguaOn&&AG.cerca(po.x+0.5,po.y+0.5,12);
+        if(ag) NV.grabarAgua(true,Math.round((po.y-camY)*RPM+RPM-1));
+        try{ if(!NV.dibujarPersonaje(o,haze,t,lienzoDe(Wc))) figuraRespaldo(o,haze); } finally{ if(ag) NV.grabarAgua(false); }
         alzaR=0;
       }
     }
@@ -130,6 +141,7 @@ function draw_(){
   /* los muros de norte a sur cuya punta sur quedó más allá de la última fila pero cuyo cuerpo todavía se ve */
   layer=2; ordR=lastRow-camY+extN+2;
   while(ti<objetos.length&&objetos[ti].oy<=lastRow+mAy){ const o=objetos[ti]; if(o.dy){ pickId=o.fantasma?65535:ti+1; drawTree(o,0.98,t); pickId=0; } ti++; }
+  if(_aguaOn) pintarAguas(pp);
   dibujarParticulas(Date.now()/1000,objetos,colsM,rowsM);
   if(NV.destino){                       // adónde se va, mientras se va
     const d=NV.destino;
@@ -1359,9 +1371,11 @@ function drawTree(tr,haze,t){
   const br=(tr.y-camY)*RPM+RPM-1;
   alzaR=Math.round(NV.alturaEn(tr.x+0.5,tr.y+0.5)*HPM);
   if(tinte) NV.tinteFuego(tinte,br-alzaR+liftR);
+  const ag=_aguaOn&&NV.aguas.cerca(tr.x+0.5,tr.y+0.5,Math.ceil((tr.h||8)*1.7)+1);
+  if(ag) NV.grabarAgua(true,br);
   if(refl) NV.grabar(true);
   try{ drawObjeto(tr,haze,t); }
-  finally{ if(tinte) NV.tinteFuego(0,0); if(refl) NV.grabar(false); alzaR=0; }
+  finally{ if(tinte) NV.tinteFuego(0,0); if(refl) NV.grabar(false); if(ag) NV.grabarAgua(false); alzaR=0; }
   if(refl) dibujarReflejo(tr,br,t);
 }
 function drawObjeto(tr,haze,t){
@@ -1563,6 +1577,29 @@ function lienzoDe(ancho){
           halo:haloDe};
 }
 
+/* AGUAS CONTINENTALES (NV.aguas): se pintan DESPUÉS del suelo y los objetos de todas las filas, sólo sobre celdas de suelo
+   (fbL===0: lo que ya es un objeto o un personaje no se toca) y con los objetos grabados para espejarlos. El agua queda al
+   nivel del terreno bajo su centro: una masa de agua es plana. El tiempo es el del viento (tViento, en segundos reales). */
+function pintarAguas(pp){
+  const AG=NV.aguas, lista=AG.cuerpos(), tt=NV.tViento||0;
+  /* el personaje y los demás: ondas sólo si pisan agua */
+  NV.aguasActor=AG.actor(NV.aguasActor,lista,pp.x+0.5,pp.y+0.5,tt,null);
+  const otros=NV.personajes;
+  if(otros&&otros.length){ for(let q=0;q<otros.length;q++){ const o=otros[q], po=NV.posPersonaje(o,Date.now()); o._aguaActor=AG.actor(o._aguaActor,lista,po.x+0.5,po.y+0.5,tt,null); } }
+  const grupos=new Map();
+  for(const c of lista){
+    let cx=c.x, cy=c.y;
+    if(c.tipo!=='cascada'){ const F=AG.prepararCampo(c); cx=(F.caja.x0+F.caja.x1)/2; cy=(F.caja.y0+F.caja.y1)/2; }
+    const alza=Math.round(NV.alturaEn(cx,cy)*HPM); let g=grupos.get(alza); if(!g) grupos.set(alza,g=[]); g.push(c);
+  }
+  const rf={n:NV.grabadosAgua.n(),B:NV.grabadosAgua.B};
+  for(const [alza,g] of grupos){
+    const sc={G:fbG,C:fbC,cols,rows:rowsN,CPM,RPM,HPM,x0:camX,y0:camY-(liftR-alza)/RPM,t:tt,reflejables:rf,
+      sombras:[{c0:0,r0:0,w:cols,h:rowsN,k:NV.aguaSombra}],mascara:fbL,opciones:NV.aguasOpciones||null};
+    AG.pintar(sc,g);
+    for(const c of g) if(c.tipo==='cascada'){ AG.pintarEspumaCascada(sc,c); AG.pintarCascada(sc,c); }
+  }
+}
 function drawPlayer(haze){
   if(!_jugador) _jugador=NV.nuevoPersonaje({arte:null,nombre:'Myrella',alto:1.75});   // sin arte: monito de palitos, hasta reconstruirla
   const p=_jugador;

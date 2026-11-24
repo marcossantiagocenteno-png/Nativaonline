@@ -43,8 +43,19 @@ function ruido(s,x,y){
   return a+(b-a)*ux+((c-a)+(a-b-c+d)*ux)*uy;
 }
 const NS=4096, TS=new Float32Array(NS+1); for(let i=0;i<=NS;i++) TS[i]=Math.sin(i/NS*TAU);
-function sen(x){ const u=x*(NS/TAU), i=Math.floor(u), f=u-i, k=((i%NS)+NS)%NS; return TS[k]+(TS[k+1]-TS[k])*f; }
+function sen(x){ const u=x*(NS/TAU), i=Math.floor(u), f=u-i, k=i&(NS-1); return TS[k]+(TS[k+1]-TS[k])*f; }
 const cos=x=>sen(x+1.5707963267948966);
+/* seno y coseno de una vez (misma tabla): el resultado queda en _SN y _CS */
+let _SN=0, _CS=0; const CUARTO=NS>>2;
+function senCos(x){ const u=x*(NS/TAU), i=Math.floor(u), f=u-i, k=i&(NS-1), k2=(k+CUARTO)&(NS-1); _SN=TS[k]+(TS[k+1]-TS[k])*f; _CS=TS[k2]+(TS[k2+1]-TS[k2])*f; }
+/* ruido con memoria de la última casilla de la rejilla: celdas vecinas caen casi siempre en la misma */
+function ruidoMem(M,s,x,y){
+  const i=Math.floor(x), j=Math.floor(y);
+  if(M.i!==i||M.j!==j||M.s!==s){ M.i=i; M.j=j; M.s=s; M.a=r01(s,i,j); M.b=r01(s,i+1,j); M.c=r01(s,i,j+1); M.d=r01(s,i+1,j+1); }
+  const fx=x-i, fy=y-j, ux=fx*fx*(3-2*fx), uy=fy*fy*(3-2*fy);
+  return M.a+(M.b-M.a)*ux+((M.c-M.a)+(M.a-M.b-M.c+M.d)*ux)*uy;
+}
+const MEMR=[{},{},{},{},{},{}];
 
 /* ------------------------------------------------------------------ tipos ----
    lam: largos de onda del viento en metros; amp: altura de la ola de viento a tope (m); ramp: glifos de menos a más cresta */
@@ -231,18 +242,22 @@ function enAgua(cuerpos,x,y){
 /* ------------------------------------------------------------------ estado por cuadro de cada cuerpo ----
    El viento se consulta en algunos puntos a lo ancho del cuerpo (la ráfaga entra por el este y cruza el agua) y con
    memoria: el agua tarda en levantarse y en calmarse. Nada de esto guarda estado entre cuadros: se deduce del tiempo. */
-const MEM=[0,0.8,1.7,2.8,4.2,6.0], MEMW=MEM.map(s=>Math.exp(-s/2.6)), MEMS=MEMW.reduce((a,b)=>a+b,0);
 const VIENTO_DIR=Object.freeze({x:-1,y:0});          // el viento global siempre va de este a oeste
 function registrarViento(){ const V=NV.viento; if(V&&V.registrar&&V.tipos&&!V.tipos.agua) V.registrar('agua',{amp:1,lag:0.20,inercia:0.45,expo:0.85}); }
+/* El viento se consulta en tres puntos a lo ancho del cuerpo (la ráfaga entra por el este y cruza el agua). El agua tarda en
+   levantarse (~1,2 s) y en calmarse (~3,5 s): esa memoria es del agua, no del viento, y se lleva acá, por cuerpo. Sólo es
+   estado de dibujo: se rehace sola si el cuadro salta (más de 1,5 s de diferencia). */
+const TAU_SUBE=1.2, TAU_BAJA=3.5;
 function intensidadViento(c,F,t){
-  const E=NV.entorno; if(!E||!E.viento) return {est:[0,0,0],x0:0,x1:1,dir:VIENTO_DIR};
-  const cx=F.caja, x0=cx.x0, x1=cx.x1, ys=(cx.y0+cx.y1)/2, K=3, est=[];
-  for(let k=0;k<K;k++){
-    const x=mix(x0,x1,k/(K-1)); let acc=0;
-    for(let m=0;m<MEM.length;m++){ const r=E.viento('agua',x,ys,t-MEM[m]); acc+=(r&&r.I||0)*MEMW[m]; }
-    est.push(acc/MEMS);
-  }
-  return {est,x0,x1,dir:VIENTO_DIR};
+  const E=NV.entorno, cx=F.caja, x0=cx.x0, x1=cx.x1, ys=(cx.y0+cx.y1)/2, K=3;
+  if(!E||!E.viento) return {est:[0,0,0],x0:0,x1:1,dir:VIENTO_DIR};
+  const W=c._w||(c._w={est:null,t:null});
+  const dt=W.t==null?1e9:t-W.t;
+  const cruda=[]; for(let k=0;k<K;k++){ const r=E.viento('agua',mix(x0,x1,k/(K-1)),ys,t); cruda.push(r&&r.I||0); }
+  if(!W.est||dt>1.5||dt<-1e-9){ W.est=cruda.slice(); }
+  else if(dt>0) for(let k=0;k<K;k++){ const tau=cruda[k]>W.est[k]?TAU_SUBE:TAU_BAJA; W.est[k]+=(cruda[k]-W.est[k])*(1-Math.exp(-dt/tau)); }
+  W.t=t;
+  return {est:W.est.slice(),x0,x1,dir:VIENTO_DIR};
 }
 const GRAV=9.8;
 function actualizar(c,t,cuerpos){
@@ -298,8 +313,14 @@ function actualizar(c,t,cuerpos){
     S.gotas={gx0,gy0,gw,gh,buck};
   }
   S.t=t;
+  /* lo que no depende de la celda se calcula una vez por cuadro: fase del ciclo y el desfase de cada raya */
+  const Tp=2.6; S.Tp=Tp; S.ph0=((t/Tp)%1+1)%1; S.sh=[[0,0,0],[0,0,0]];
+  if(!T.estancada) for(let f=0;f<2;f++){ const q=(Math.floor(t/Tp+(f?0.5:0)))|0; for(let i=0;i<3;i++) S.sh[f][i]=r01(c.sem|0,i*13+f,q&1023)*TAU; }
+  /* la potencia del viento se tabula: pow por celda era de lo más caro */
+  S.aw=S.aw||AWT;
   return S;
 }
+const AWT=new Float32Array(1025); for(let i=0;i<=1024;i++) AWT[i]=Math.pow(i/512,0.85);   // 0 a 2
 
 /* ------------------------------------------------------------------ la superficie ----
    h: altura en metros; sx, sy: pendiente (m/m, y al sur); turb: 0..1.4 de agitación local (espuma, rompe el reflejo) */
@@ -309,8 +330,8 @@ function ring(g,t,x,y,o){
   if(del>g.len*1.1||del<-g.len*5) return;
   const env=Math.exp(-((del+0.6*g.len)*(del+0.6*g.len))/(1.4*g.len*g.len));
   const A=g.amp*Math.exp(-age/g.dec)/Math.sqrt(1+rho/0.35)*env, ph=TAU*del/g.len;
-  o.h+=A*sen(ph);
-  const dd=A*TAU/g.len*cos(ph), inv=rho>1e-4?1/rho:0;
+  senCos(ph); o.h+=A*_SN;
+  const dd=A*TAU/g.len*_CS, inv=rho>1e-4?1/rho:0;
   o.sx+=dd*dx*inv; o.sy+=dd*dy*inv; o.turb+=Math.abs(A)*8;
 }
 function superficie(c,S,m,x,y,t,o){
@@ -319,12 +340,13 @@ function superficie(c,S,m,x,y,t,o){
   /* intensidad del viento aquí: se interpola entre las estaciones de este a oeste */
   const W=S.W, u=clamp((x-W.x0)/Math.max(1e-6,W.x1-W.x0),0,1), fk=u*(W.est.length-1), ik=Math.min(W.est.length-2,Math.floor(fk)), fr=fk-ik;
   let I=mix(W.est[ik],W.est[ik+1],fr);
-  const calma=0.10, Aw=calma+Math.pow(Math.max(0,I+S.extra),0.85);
+  const xa=Math.max(0,I+S.extra), ia=Math.min(1023,xa*512|0), Aw=0.10+(xa>=2?Math.pow(xa,0.85):AWT[ia]+(AWT[ia+1]-AWT[ia])*(xa*512-ia));
   /* ondas de viento: viajan en la dirección del viento y se achican hacia la orilla (poco fondo, poco oleaje) */
   const prof=m.prof, orilla=sm(m.d/0.5)*sm(prof/(0.06+0.1*T.amp*20));
-  for(const w of S.ondas){
-    const ph=w.kx*x+w.ky*y-w.w*t+w.ph, a=w.a*Aw*orilla;
-    o.h+=a*sen(ph); const d=a*cos(ph); o.sx+=d*w.kx; o.sy+=d*w.ky;
+  for(let q=0;q<S.ondas.length;q++){
+    const w=S.ondas[q], a=w.a*Aw*orilla;
+    senCos(w.kx*x+w.ky*y-w.w*t+w.ph);
+    o.h+=a*_SN; const d=a*_CS; o.sx+=d*w.kx; o.sy+=d*w.ky;
   }
   if(cl.tormenta>0.02){ /* chapoteo caótico encima, en tormenta */
     const a=0.012*cl.tormenta*orilla, p1=x*9.3+y*7.1-t*7.4, p2=x*-6.2+y*11.6-t*9.1;
@@ -335,18 +357,17 @@ function superficie(c,S,m,x,y,t,o){
   if(!T.estancada){
     const v=Math.hypot(m.fx,m.fy);
     if(v>0.01){
-      const tx=m.fx/v, ty=m.fy/v, nx=-ty, ny=tx, Tp=2.6;
+      const tx=m.fx/v, ty=m.fy/v, nx=-ty, ny=tx, Tp=S.Tp;
       const aF=T.amp*0.9*c.ondas*clamp(v/0.8,0.3,1.7)*(1.3-0.6*clamp(prof/Math.max(0.2,c.prof),0,1));
-      const ph0=((t/Tp)%1+1)%1;
+      const ph0=S.ph0;
       for(let f=0;f<2;f++){
         const p=(ph0+f*0.5)%1, wt=1-Math.abs(2*p-1), sOff=v*p*Tp, s=m.s-sOff, n=m.n;
-        const q=(Math.floor(t/Tp+ (f?0.5:0)))|0;
         /* tres rayas alargadas a lo largo del flujo; cada vuelta de fase cambia el desfase para no repetir */
         for(let i=0;i<3;i++){
-          const Ls=c.lam[i]*1.9, Ln=c.lam[i]*0.9, sh=r01(c.sem|0,i*13+f,q&1023)*TAU;
-          const warp=1.4*(ruido(c.sem|0,s/(Ls*2)+i*5,n/(Ln*2))-0.5);
+          const Ls=c.lam[i]*1.9, Ln=c.lam[i]*0.9, sh=S.sh[f][i];
+          const warp=1.4*(ruidoMem(MEMR[f*3+i],c.sem|0,s/(Ls*2)+i*5,n/(Ln*2))-0.5);
           const phs=TAU*(s/Ls+n/Ln*0.35)+sh+warp, a=aF*wt*(i===0?0.5:i===1?0.32:0.18);
-          o.h+=a*sen(phs); const d=a*cos(phs), ds=TAU/Ls, dn=TAU/Ln*0.35;
+          senCos(phs); o.h+=a*_SN; const d=a*_CS, ds=TAU/Ls, dn=TAU/Ln*0.35;
           o.sx+=d*(ds*tx+dn*nx); o.sy+=d*(ds*ty+dn*ny);
         }
       }
@@ -451,6 +472,7 @@ function cielo(x,y,t,luz,cl,out){
 const VISTA={x:0,y:0.862,z:0.508};                   // de la superficie hacia la cámara: 30,5° de elevación (HPM/RPM = 1,7)
 
 /* ------------------------------------------------------------------ pintar ---- */
+let skyT=null, skyCob=null, skyR=null, skyG=null, skyB=null;     // el cielo reflejado, por bloques de 4×2 celdas (cambia muy despacio)
 const scr={n:0,body:null,H:null,SX:null,SY:null,TU:null,PR:null,D:null,RG:null,RC:null,RA:null};
 function asegurar(n){
   if(scr.n>=n) return;
@@ -468,9 +490,16 @@ function pintar(sc,cuerpos){
   const body=scr.body, H=scr.H, SX=scr.SX, SY=scr.SY, TU=scr.TU, PR=scr.PR, D=scr.D;
   body.fill(0); D.fill(-99);
   const op=sc.opciones||{}, gR=op.reflejo==null?1:op.reflejo, gDef=op.deformacion==null?1:op.deformacion;
+  const mascara=sc.mascara||null;                      // celdas que ya tienen un objeto o un personaje: no se tocan
   const lista=cuerpos.filter(c=>c.tipo!=='cascada');
+  /* sólo los cuerpos que tocan lo que se ve: si ninguno, no se gasta nada */
+  const vx0=x0-1, vx1=x0+cols/CPM+1, vy0=y0-1, vy1=y0+rows/RPM+1, vis=[];
+  for(const c of lista){ const F=prepararCampo(c); if(F.x0+F.w/PPM<vx0||F.x0>vx1||F.y0+F.h/PPM<vy0||F.y0>vy1) continue; vis.push(c); }
+  if(!vis.length){ pintar.ult=0; return 0; }
+  lista.length=0; for(const c of vis) lista.push(c);
   const estados=lista.map(c=>actualizar(c,t,cuerpos));
   const m={};
+  let bc0=cols, bc1=-1, br0=rows, br1=-1;
   /* ---- pasada 1: superficie de cada celda de agua y la banda húmeda de la orilla ---- */
   for(let bi=0;bi<lista.length;bi++){
     const c=lista[bi], F=c._f, S=estados[bi], T=TIPOS[c.tipo];
@@ -483,11 +512,14 @@ function pintar(sc,cuerpos){
         const wx=x0+(cc+0.5)/CPM;
         if(!muestra(F,wx,wy,m)) continue;
         const i=r*cols+cc;
+        if(mascara&&mascara[i]) continue;
         if(m.d>0&&m.prof>0.004){
           superficie(c,S,m,wx,wy,t,_o);
           body[i]=bi+1; H[i]=_o.h; SX[i]=_o.sx; SY[i]=_o.sy; TU[i]=_o.turb; PR[i]=m.prof; D[i]=m.d; scr.FX[i]=m.fx; scr.FY[i]=m.fy;
+          if(cc<bc0) bc0=cc; if(cc>bc1) bc1=cc; if(r<br0) br0=r; if(r>br1) br1=r;
         } else if(m.d>-hum&&body[i]===0){
           D[i]=m.d;                      // tierra mojada
+          if(cc<bc0) bc0=cc; if(cc>bc1) bc1=cc; if(r<br0) br0=r; if(r>br1) br1=r;
         }
       }
     }
@@ -520,9 +552,13 @@ function pintar(sc,cuerpos){
   /* ---- pasada 3: color y glifo de cada celda ---- */
   const dc=[0,0,0], bed=_lec, cs=[0,0,0];
   const sombras=sc.sombras||null;
-  for(let r=0;r<rows;r++){
+  if(bc1<bc0){ pintar.ult=0; return 0; }
+  const nb=(cols>>2)+2; if(!skyT||skyT.length<nb){ skyT=new Int32Array(nb); skyCob=new Float32Array(nb); skyR=new Float32Array(nb); skyG=new Float32Array(nb); skyB=new Float32Array(nb); }
+  skyT.fill(0);
+  let pintadas=0;
+  for(let r=br0;r<=br1;r++){
     const wy=y0+(r+0.5)/RPM;
-    for(let cc=0;cc<cols;cc++){
+    for(let cc=bc0;cc<=bc1;cc++){
       const i=r*cols+cc, bi=body[i];
       if(!bi){
         /* tierra junto al agua: oscurecida por la humedad y con piedritas */
@@ -549,11 +585,13 @@ function pintar(sc,cuerpos){
       const nl=Math.sqrt(sx*sx+sy*sy+1), nx=-sx/nl, ny=-sy/nl, nz=1/nl;
       const nv=nx*VISTA.x+ny*VISTA.y+nz*VISTA.z;
       const rx=2*nv*nx-VISTA.x, ry=2*nv*ny-VISTA.y, rz=2*nv*nz-VISTA.z;
-      const sp=Math.max(0,rx*L.x+ry*L.y+rz*L.z), spec=Math.pow(sp,48)*clamp(luz.amb,0,1.2)*(1-0.7*cl.niebla)*(1-0.6*cl.tormenta);
-      const fres=Math.pow(1-clamp(nv,0,1),3);
+      const sp=Math.max(0,rx*L.x+ry*L.y+rz*L.z), sp2=sp*sp, sp4=sp2*sp2, sp8=sp4*sp4, sp16=sp8*sp8, sp32=sp16*sp16, spec=sp32*sp16*clamp(luz.amb,0,1.2)*(1-0.7*cl.niebla)*(1-0.6*cl.tormenta);
+      const f1=1-clamp(nv,0,1), fres=f1*f1*f1;
       const calma=1/(1+3*tu);
       /* cielo reflejado */
-      const cob=cielo(wx,wy,t,luz,cl,cs);
+      const blk=cc>>2, stm=(r>>1)+1;
+      if(skyT[blk]!==stm){ skyT[blk]=stm; skyCob[blk]=cielo(wx,wy,t,luz,cl,cs); skyR[blk]=cs[0]; skyG[blk]=cs[1]; skyB[blk]=cs[2]; }
+      cs[0]=skyR[blk]; cs[1]=skyG[blk]; cs[2]=skyB[blk];
       const Rs=c.reflejo*gR*(0.10+0.34*fres+0.14*clamp(prof/Math.max(0.3,c.claridad),0,1))*calma*(1-0.7*cl.niebla);
       R0=mix(R0,cs[0],Rs); G0=mix(G0,cs[1],Rs); B0=mix(B0,cs[2],Rs);
       R0*=lr; G0*=lg; B0*=lb;
@@ -582,9 +620,10 @@ function pintar(sc,cuerpos){
       if(espu>0.04&&hh<espu*100+8){ code=hh%3?42:35; const f=0.75+0.5*espu; R0=mix(R0,214*lr,f*0.7); G0=mix(G0,226*lg,f*0.7); B0=mix(B0,232*lb,f*0.7); }
       /* niebla: el agua se funde con la atmósfera */
       if(cl.niebla>0.01){ const f=cl.niebla*0.55, fr=170*luz.amb, fg=178*luz.amb, fb=186*luz.amb; R0=mix(R0,fr,f); G0=mix(G0,fg,f); B0=mix(B0,fb,f); }
-      G[i]=code; C[i]=pack(R0,G0,B0);
+      G[i]=code; C[i]=pack(R0,G0,B0); pintadas++;
     }
   }
+  pintar.ult=pintadas; return pintadas;
 }
 /* la tierra pegada al agua: húmeda, oscura, con piedritas */
 function orillaTierra(sc,i,cc,r,d){
@@ -667,16 +706,55 @@ function pintarEspumaCascada(sc,c){
   }
 }
 
+/* ------------------------------------------------------------------ el mundo: la lista de cuerpos del juego ----
+   Los datos viven en el mundo editado (NV.mundo, op 'agua'); acá se arman los cuerpos. Un cuerpo cuyos datos no cambiaron
+   se conserva tal cual (sus golpes en curso y su campo no se pierden al editar otro). */
+let LISTA=[], FIRMAS=new Map(), VERSION=0;
+function sincronizar(arr){
+  const nuevos=[], firmas=new Map(), previos=new Map(LISTA.map(c=>[c.id,c]));
+  for(const d of (arr||[])){
+    const f=JSON.stringify(d); let c=previos.get(d.id);
+    if(!c||FIRMAS.get(d.id)!==f){ try{ const n=deDatos(d); if(c&&c.golpes) n.golpes=c.golpes; c=n; }catch(e){ if(NV.avisarError) NV.avisarError('✗ agua '+(d&&d.id)+': '+e.message); continue; } }
+    firmas.set(d.id,f); nuevos.push(c);
+  }
+  LISTA=nuevos; FIRMAS=firmas; VERSION++; PREV_LISTA=null; return LISTA;
+}
+/* vista previa del Modo Dios: un cuerpo que todavía no se guardó (o uno guardado con cambios sin soltar) se dibuja ya */
+let PREVIA=null, PREV_LISTA=null;
+function vista(d){
+  if(!d){ PREVIA=null; PREV_LISTA=null; return; }
+  try{ const c=deDatos(d); const q=LISTA.find(x=>x.id===d.id); if(q&&q.golpes) c.golpes=q.golpes; PREVIA=c; PREV_LISTA=null; }catch(e){ PREVIA=null; PREV_LISTA=null; }
+}
+function cuerpos(){
+  if(!PREVIA) return LISTA;
+  if(!PREV_LISTA){ const r=[]; let puesto=false; for(const c of LISTA){ if(c.id===PREVIA.id){ r.push(PREVIA); puesto=true; } else r.push(c); } if(!puesto) r.push(PREVIA); PREV_LISTA=r; }
+  return PREV_LISTA;
+}
+/* ¿hay agua a menos de `reach` metros de (x,y)? (para saber qué objetos grabar para el reflejo) */
+function cerca(x,y,reach){
+  for(const c of cuerpos()){ if(c.tipo==='cascada'){ if(Math.abs(c.x-x)<=3+c.ancho&&y>=c.y-reach&&y<=c.y+4) return true; continue; }
+    const F=prepararCampo(c); const cj=F.caja; if(x>=cj.x0-3&&x<=cj.x1+3&&y>=cj.y0-reach&&y<=cj.y1+2) return true; }
+  return false;
+}
+/* para el editor: ¿qué cuerpo está en (x,y)? devuelve el de arriba (la cascada primero) */
+function cuerpoEn(x,y,tol){
+  tol=tol||0.6;
+  const L=cuerpos(); for(let i=L.length-1;i>=0;i--){ const c=L[i];
+    if(c.tipo==='cascada'){ if(Math.abs(c.x-x)<=c.ancho/2+tol&&y<=c.y+tol&&y>=c.y-c.alto*1.7-tol) return c; continue; }
+    const F=prepararCampo(c), o={}; if(muestra(F,x,y,o)&&o.d>-tol) return c; }
+  return null;
+}
+
 /* ------------------------------------------------------------------ registro ---- */
-const A={TIPOS,TIPOS_ID,NOMBRES,CASCADA0,crear,validar,aDatos,deDatos,tocar,prepararCampo,muestra,enAgua,actualizar,superficie,
+const A={sincronizar,vista,cuerpos,cerca,cuerpoEn,version:()=>VERSION,TIPOS,TIPOS_ID,NOMBRES,CASCADA0,crear,validar,aDatos,deDatos,tocar,prepararCampo,muestra,enAgua,actualizar,superficie,
   golpe,actor,pintar,pintarCascada,pintarEspumaCascada,usarClima,clima,VIENTO_DIR,colorProf,cielo,lecho,sen,
   datosMundo:cuerpos=>({formato:1,cuerpos:cuerpos.map(aDatos)}),
   desdeMundo:o=>{ if(!o||o.formato!==1||!Array.isArray(o.cuerpos)) throw new Error('aguas: formato desconocido'); return o.cuerpos.map(deDatos); }};
 registrarViento();
 NV.aguas=A;
-if(NV.motores) NV.motores.registrar({id:'aguas',nombre:'Aguas continentales',estado:'pendiente',archivo:'src/juego/aguas.js',
+if(NV.motores) NV.motores.registrar({id:'aguas',nombre:'Aguas continentales',estado:'integrado',archivo:'src/juego/aguas.js',
   preview:'preview/aguas.html',prueba:'pruebas/aguas.js',
-  caras:{ambiente:(x,y,t)=>{ const o={}; const cs=A._enEscena||[]; const a=enAgua(cs,x,y); return a?{prof:a.prof,fx:a.fx,fy:a.fy}:null; },
+  caras:{ambiente:(x,y,t)=>{ const a=enAgua(LISTA,x,y); return a?{prof:a.prof,fx:a.fx,fy:a.fy}:null; },
     editor:{parametros:{profundidad:{tipo:'cantidad',min:0.05,max:12,def:null},transparencia:{tipo:'cantidad',min:0,max:1,def:null},ondas:{tipo:'cantidad',min:0,max:2,def:1},
       reflejo:{tipo:'cantidad',min:0,max:1.5,def:1},velocidad:{tipo:'cantidad',min:0,max:3,def:null}}}}});
 })(window.NV);

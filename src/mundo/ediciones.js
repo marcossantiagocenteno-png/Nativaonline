@@ -41,7 +41,7 @@ const oyentes = [];
 let version = 0;                 // sube con cada cambio: el editor y el guardado saben si hay algo nuevo
 
 const nuevoP = ()=>({def:null, suelo:new Map(), agregar:[], quitar:new Set(), alturas:new Map()});
-function datosVacios(){ return {semilla:NVe.CONFIG.seed, pan:new Map(), rasgos:[], caminos:[], terreno:[]}; }
+function datosVacios(){ return {semilla:NVe.CONFIG.seed, pan:new Map(), rasgos:[], caminos:[], terreno:[], aguas:[]}; }
 const pDe = (k,crear)=>{ let P=D.pan.get(k); if(!P&&crear){ P=nuevoP(); D.pan.set(k,P); } return P||null; };
 const panelDeXY = (x,y)=>clavePanel(Math.floor(x/L),Math.floor(y/L));
 
@@ -74,6 +74,7 @@ function validar(o){
   }
   for(const r of (o.caminos||[])) validarCamino(r);
   for(const r of (o.terreno||[])) validarTerreno(r);
+  for(const r of (o.aguas||[])) validarAgua(r);
   return o;
 }
 /* estructura, no familia: este archivo se lee ANTES de que cargue el motor de caminos; la familia se comprueba al armarlo */
@@ -95,8 +96,18 @@ function validarTerreno(r){
   if(!(r.w>0)||!(r.h>0)) throw new Error('sector '+r.id+': sin tamaño');
   if(typeof r.terreno!=='string') throw new Error('sector '+r.id+': sin terreno');
 }
+/* un cuerpo de agua continental: estructura nada más; el motor (src/juego/aguas.js) valida el resto al armarlo */
+function validarAgua(r){
+  if(!r||typeof r.id!=='string'||!r.id||r.id.slice(0,2)==='__') throw new Error('agua sin nombre válido');
+  if(typeof r.tipo!=='string') throw new Error('agua '+r.id+': sin tipo');
+  const pts=a=>Array.isArray(a)&&a.every(p=>Array.isArray(p)&&isFinite(p[0])&&isFinite(p[1]));
+  if(r.tipo==='cascada'){ for(const k of ['x','y','ancho','alto']) if(typeof r[k]!=='number'||!isFinite(r[k])) throw new Error('cascada '+r.id+': '+k+' inválido'); }
+  else if(r.poligono!==undefined){ if(!pts(r.poligono)||r.poligono.length<3) throw new Error('agua '+r.id+': contorno inválido'); }
+  else if(r.curso!==undefined){ if(!r.curso||!pts(r.curso.puntos)||r.curso.puntos.length<2) throw new Error('agua '+r.id+': cauce inválido'); }
+  else throw new Error('agua '+r.id+': sin contorno ni cauce');
+}
 function desdeArchivo(o){
-  o=validar(o); const d={semilla:o.semilla,pan:new Map(),rasgos:[],caminos:(o.caminos||[]).map(r=>JSON.parse(JSON.stringify(r))),terreno:(o.terreno||[]).map(r=>JSON.parse(JSON.stringify(r)))};
+  o=validar(o); const d={semilla:o.semilla,pan:new Map(),rasgos:[],caminos:(o.caminos||[]).map(r=>JSON.parse(JSON.stringify(r))),terreno:(o.terreno||[]).map(r=>JSON.parse(JSON.stringify(r))),aguas:(o.aguas||[]).map(r=>JSON.parse(JSON.stringify(r)))};
   for(const k in (o.paneles||{})){
     const s=o.paneles[k], P=nuevoP();
     P.def=s.def?JSON.parse(JSON.stringify(s.def)):null;
@@ -115,6 +126,7 @@ const partir=k=>k.split(',').map(Number);
 function aArchivo(d){
   const o={formato:FORMATO,semilla:d.semilla,paneles:{},rasgos:d.rasgos.map(r=>({id:r.id,tipo:r.tipo,puntos:r.puntos.map(p=>[p[0],p[1]]),ancho:r.ancho,material:r.material})),
     caminos:d.caminos.map(r=>JSON.parse(JSON.stringify(r))),terreno:d.terreno.map(r=>JSON.parse(JSON.stringify(r)))};
+  if(d.aguas&&d.aguas.length) o.aguas=d.aguas.map(r=>JSON.parse(JSON.stringify(r)));
   for(const k of Array.from(d.pan.keys()).sort()){
     const P=d.pan.get(k), s={};
     if(P.def) s.def=JSON.parse(JSON.stringify(P.def));
@@ -294,6 +306,17 @@ function aplicarUna(op,toca){
       if(!previo&&!op.datos) break;
       inv={t:'terreno',id:op.id,datos:previo?JSON.parse(JSON.stringify(previo)):null};
       toca.terreno=true; break; }
+    case 'agua': {
+      /* poner (datos) o quitar (datos:null) UN cuerpo de agua, entero. La inversa es lo que había. Se pinta por encima del suelo: no toca paneles. */
+      if(typeof op.id!=='string') throw new Error('agua sin nombre');
+      if(op.datos){ validarAgua(op.datos); if(op.datos.id!==op.id) throw new Error('el agua no es la que dice ser'); }
+      if(!D.aguas) D.aguas=[];
+      const i=D.aguas.findIndex(q=>q.id===op.id), previo=i<0?null:D.aguas[i];
+      if(op.datos){ const n=JSON.parse(JSON.stringify(op.datos)); if(i<0) D.aguas.push(n); else D.aguas[i]=n; }
+      else if(i>=0) D.aguas.splice(i,1);
+      if(!previo&&!op.datos) break;
+      inv={t:'agua',id:op.id,datos:previo?JSON.parse(JSON.stringify(previo)):null};
+      toca.aguas=true; break; }
     case 'panel': {
       const k=clavePanel(op.pi,op.pj);
       if(op.def!==null&&(!op.def||typeof op.def.bioma!=='string')) throw new Error('def sin bioma');
@@ -310,23 +333,25 @@ function editar(op){
   if(toca.size) tocar(toca,!toca.soloObjetos);
   if(toca.caminos){ version++; avisarCaminos(); for(const f of oyentes) f([]); }
   if(toca.terreno){ version++; avisarTerreno(); for(const f of oyentes) f([]); }
+  if(toca.aguas){ version++; avisarAguas(); for(const f of oyentes) f([]); }
   return inv;
 }
 /* el motor de caminos guarda su propia red (con índices); acá sólo se le avisa qué datos hay */
 function avisarTerreno(){ if(NVe.terreno&&NVe.terreno.sincronizar) NVe.terreno.sincronizar(D?D.terreno:[]); }
+function avisarAguas(){ if(NVe.aguas&&NVe.aguas.sincronizar) NVe.aguas.sincronizar(D?D.aguas:[]); }
 function avisarCaminos(){ if(NVe.caminos&&NVe.caminos.sincronizar) NVe.caminos.sincronizar(D?D.caminos:[]); }
 
 /* ---------- cargar, exportar, borrador ---------- */
 function cargar(o){
   D=desdeArchivo(o); reindexar();
   const todos=new Set(); for(const k of NVe.cachePaneles.keys()) todos.add(k);
-  tocar(todos); avisarCaminos(); avisarTerreno();
+  tocar(todos); avisarCaminos(); avisarTerreno(); avisarAguas();
 }
 const exportar=()=>aArchivo(D||datosVacios());
 const texto=()=>JSON.stringify(exportar());
 /* el contenido de src/mundo/mundo-datos.js: lo que se sube al repositorio para que todos entren al mismo mundo */
 const comoScript=()=>'/* Nativa Online — EL MUNDO EDITADO (archivo de datos). Lo escribe el Modo Dios; ver docs/DISENO.md. */\nwindow.NV.MUNDO_DATOS='+JSON.stringify(exportar(),null,1)+';\n';
-const vacio=()=>{ const o=exportar(); return !Object.keys(o.paneles).length&&!o.rasgos.length&&!o.caminos.length&&!o.terreno.length; };
+const vacio=()=>{ const o=exportar(); return !Object.keys(o.paneles).length&&!o.rasgos.length&&!o.caminos.length&&!o.terreno.length&&!(o.aguas&&o.aguas.length); };
 function importarTexto(t){
   t=String(t).trim().replace(/^[\s\S]*?NV\.MUNDO_DATOS\s*=\s*/,'').replace(/;\s*$/,'');
   cargar(JSON.parse(t));
@@ -355,7 +380,7 @@ const defDe=k=>{ const P=D&&D.pan.get(k); return P&&P.def||null; };
 const clavesDefinidas=()=>D?Array.from(D.pan.entries()).filter(([,P])=>P.def).map(([k])=>k):[];
 const alCambiar=f=>{ oyentes.push(f); return ()=>{ const i=oyentes.indexOf(f); if(i>=0) oyentes.splice(i,1); }; };
 const estadisticas=()=>{ const d=D||datosVacios(); let suelo=0,agregar=0,quitar=0,alt=0; for(const P of d.pan.values()){ suelo+=P.suelo.size; agregar+=P.agregar.length; quitar+=P.quitar.size; alt+=P.alturas.size; }
-  return {paneles:d.pan.size,suelo,agregar,quitar,alturas:alt,rasgos:d.rasgos.length,caminos:d.caminos.length,version}; };
+  return {paneles:d.pan.size,suelo,agregar,quitar,alturas:alt,rasgos:d.rasgos.length,caminos:d.caminos.length,aguas:(d.aguas||[]).length,version}; };
 
 /* ---------- arranque: el archivo del mundo, si trae algo ---------- */
 D=datosVacios();
@@ -380,4 +405,5 @@ NVe.mundo={FORMATO,aplicar,margenAncho,margenAlto,editar,cargar,exportar,texto,c
   guardarBorrador,cargarBorrador,borrarBorrador,deltaAltura,defDe,clavesDefinidas,alCambiar,estadisticas,
   validar:o=>{ validar(o); return true; },version:()=>version,
   caminosDatos:()=>D?D.caminos:[],
-  terrenoDatos:()=>D?D.terreno:[]};
+  terrenoDatos:()=>D?D.terreno:[],
+  aguasDatos:()=>D?(D.aguas||(D.aguas=[])):[]};
