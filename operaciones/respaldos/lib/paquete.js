@@ -16,11 +16,18 @@ function tarCrear(salida,stage){
   const r=ejecutar('tar',['--sort=name','--owner=0','--group=0','--numeric-owner'].concat(base,['manifiesto.json','datos','codigo']),{tolerar:true});
   if(r.status!==0) ejecutar('tar',base.concat(['manifiesto.json','datos','codigo']));
 }
+/* el nombre de una línea de `tar -tv`. GNU tar (Linux): «permisos dueño/grupo tamaño fecha hora nombre».
+   bsdtar (el tar.exe de Windows): «permisos enlaces dueño grupo tamaño mes día hora|año nombre». Se reconoce el de bsdtar por su forma
+   (enlaces numéricos y mes en letras); cualquier otra cosa se lee como GNU, igual que antes. */
+const PREFIJO_BSD=/^\S+\s+\d+\s+\S+\s+\S+\s+\d+\s+[A-Z][a-z]{2}\s+\d{1,2}\s+(?:\d{1,2}:\d{2}|\d{4})\s+/;
+const PREFIJO_GNU=/^\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+/;
+const nombreDeLinea=l=>l.replace(PREFIJO_BSD.test(l)?PREFIJO_BSD:PREFIJO_GNU,'').replace(/ -> .*$/,'');
+
 /* sólo archivos y carpetas normales, dentro de manifiesto.json / datos/ / codigo/; nada de rutas absolutas, «..» ni enlaces */
 function revisarContenido(tgz){
   const lista=String(ejecutar('tar',['-tvzf',tgz]).stdout).split('\n').filter(Boolean), malos=[];
   for(const l of lista){
-    const tipo=l[0], nombre=l.replace(/^\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+/,'').replace(/ -> .*$/,'');
+    const tipo=l[0], nombre=nombreDeLinea(l);
     if(tipo!=='-'&&tipo!=='d') malos.push('entrada que no es archivo ni carpeta: '+l.slice(0,80));
     else if(nombre.startsWith('/')||nombre.split('/').includes('..')) malos.push('ruta peligrosa: '+nombre);
     else if(!/^(manifiesto\.json|datos(\/.*)?|codigo(\/.*)?)$/.test(nombre.replace(/\/$/,''))) malos.push('fuera de lugar: '+nombre);
@@ -81,13 +88,17 @@ async function construirPaquete(op){
     }
     if(!verif.ok) throw new Error('la copia no superó la auditoría tras '+intentos+' intentos — NO se sube nada. '+fallos.join(' | '));
     const cod=copiarCodigo(codigo,path.join(stage,'codigo'));
+    /* restaurar audita con el código QUE VIAJA en el respaldo. Si hay personajes pero ese código no trae servidor/personajes.js (no está en git: falta el commit),
+       la copia pasaría hoy y no se podría auditar mañana: se aborta ahora, a la vista, y no se sube nada. */
+    if(copia.personajes>0&&fs.existsSync(path.join(codigo,'servidor','personajes.js'))&&!fs.existsSync(path.join(stage,'codigo','servidor','personajes.js')))
+      throw new Error('el código que viaja en el respaldo no incluye servidor/personajes.js (¿falta el commit?): sin él, una restauración no podría auditar a los personajes. NO se sube nada.');
     const meta=JSON.parse(fs.readFileSync(path.join(stage,'datos','meta.json'),'utf8'));
     const man={
       formato:'nativa-respaldo-1',creado:ahora.toISOString(),etiqueta,semilla:meta.semilla,
       seq:verif.seq,huella:verif.huella,versiones:verif.versiones,instantaneas:verif.instantaneas,
       auditoria:{ok:true,ms:verif.ms,intentos:verif.intentos},vivoCoincide:verif.vivoCoincide===true,
       commit:cod.commit,arbolSucio:cod.arbolSucio,codigoDeGit:cod.git,entorno:entorno(codigo),
-      omitidos:copia.omitidos,sinRespaldos:copia.sinRespaldos,archivos:listarArbol(stage)
+      omitidos:copia.omitidos,sinRespaldos:copia.sinRespaldos,personajes:verif.personajes||0,archivos:listarArbol(stage)
     };
     escribirAtomico(path.join(stage,'manifiesto.json'),JSON.stringify(man,null,1));
     const secretos=escanear(stage);
@@ -105,9 +116,9 @@ async function construirPaquete(op){
       formato:'nativa-respaldo-meta-1',etiqueta,creado:man.creado,semilla:man.semilla,seq:man.seq,huella:man.huella,versiones:man.versiones,
       instantaneas:man.instantaneas,auditoria:'ok',auditoriaMs:verif.ms,vivoCoincide:man.vivoCoincide,commit:man.commit,arbolSucio:man.arbolSucio,
       node:man.entorno.node,arquitectura:man.entorno.arquitectura,cifrado:'age',destinatarios:cab.destinatarios,
-      sinRespaldos:man.sinRespaldos,omitidos:man.omitidos,sha256:hashArchivo(age),tamano:fs.statSync(age).size
+      sinRespaldos:man.sinRespaldos,omitidos:man.omitidos,personajes:man.personajes||0,sha256:hashArchivo(age),tamano:fs.statSync(age).size
     };
     return {work,age,nombre,lado,seq:man.seq,huella:man.huella,limpiar(){ fs.rmSync(work,{recursive:true,force:true}); }};
   }catch(e){ fs.rmSync(work,{recursive:true,force:true}); throw e; }
 }
-module.exports={construirPaquete,revisarContenido,revisarEspacio,tamanoCarpeta};
+module.exports={construirPaquete,revisarContenido,revisarEspacio,tamanoCarpeta,nombreDeLinea};

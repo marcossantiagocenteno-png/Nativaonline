@@ -1881,7 +1881,7 @@ Punto de restauración: etiqueta `antes-multijugador` (= `6537e0e`, el último c
 ## Multijugador — Etapa 3: servidor de red (rama multijugador)
 
 `servidor/red.js` (WebSocket + HTTP), `servidor/identidad.js` (identidad y permisos), `servidor/iniciar.js` (arranque). Única dependencia del
-proyecto: `ws` 8.18.0, sólo en `servidor/package.json`. El juego sigue sin dependencias y el cliente todavía no se toca.
+proyecto: `ws` 8.23.0 (subido desde 8.18.0 por CVE-2026-48779, agotamiento de memoria con fragmentos diminutos), sólo en `servidor/package.json`. El juego sigue sin dependencias y el cliente todavía no se toca.
 
 **Protocolo v1** (JSON): `hola{token,desde?,huella?}` → `bienvenida{modo:'completo'|'incremental'}`; `editar{n,op}` → `ok{n,seq,huella}`
 y a los demás `op{seq,op,autor,huella}`; `restaurar{n,version}` → todos reciben `mundo{...}`; errores con código

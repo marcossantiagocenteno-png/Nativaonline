@@ -36,6 +36,7 @@ const {abrirMundoOficial}=require('./mundo-oficial.js');
 const {crearIdentidad,puede}=require('./identidad.js');
 const {crearFreno,bloqueDeRed}=require('./sesiones.js');
 const {crearPresencia}=require('./presencia.js');
+const {crearPersonajes}=require('./personajes.js');
 const VERSION=1;
 
 async function iniciarServidor(op){
@@ -56,6 +57,14 @@ async function iniciarServidor(op){
   const lim={mensaje:op.maxMensaje||256*1024, copia:op.maxCopia||32*1024*1024, clientes:op.maxClientes||200, porSegundo:op.maxPorSegundo||60, lento:8*1024*1024};
   const pres=op.presencia||crearPresencia({NV:mo.NV,aleatorio:op.aleatorio,ahora:op.ahora});
   const log=op.log||(()=>{}), clientes=new Set(), porJugador=new Map();
+  /* personajes permanentes: uno por dispositivo (op.personajes===false los apaga: todos temporales, como antes) */
+  const personajes=op.personajes===false?null:crearPersonajes({dir:mo.alm.dir,ahora:op.ahora,log});
+  const conPersonaje=new Set();          // dispositivos que ya tienen una conexión con su personaje permanente: una segunda pestaña es temporal
+  const guardarPosicion=c=>{
+    if(!personajes||!c.pk||!c.pj) return;
+    const j=pres.get(c.pj); if(!j) return;
+    try{ personajes.actualizar(c.pk,{x:j.x,y:j.y,mirando:j.mirando}); }catch(e){ log('personaje '+c.pk+': '+e.message); }
+  };
   let proximo=1, cerrando=false;
   const origenOk=o=>!op.origenes||(o?op.origenes.includes(o):!!op.permitirSinOrigen);
 
@@ -172,6 +181,7 @@ async function iniciarServidor(op){
     ws.on('pong',()=>{ c.vivo=true; });
     ws.on('close',()=>{
       clearTimeout(reloj); clientes.delete(c);
+      if(c.pk){ guardarPosicion(c); if(personajes){ try{ personajes.guardarPendientes(); }catch(e){} } conPersonaje.delete(c.pk); c.pk=null; }
       if(c.pj){ const j=pres.salir(c.pj); porJugador.delete(c.pj); if(j&&!j.oculto) avisarJugadores({t:'j-',id:j.id},c); }
       if(c.usuarioId) log('se fue '+c.usuarioId+(c.pj?' ('+c.pj+')':''));
     });
@@ -203,7 +213,15 @@ async function iniciarServidor(op){
       let e=null; if(!inc) e=await mo.estado();
       if(c.ws.readyState!==1) return;                                   // se fue mientras se le preparaba el mundo
       /* su personaje temporal: id nuevo, nombre nuevo, casilla libre y desocupada cerca del punto de partida */
-      const j=pres.entrar(); c.pj=j.id; porJugador.set(j.id,c);
+      /* la clave del personaje es el DISPOSITIVO (su token), también para el administrador: su sesión da permisos, no identidad (cambia en cada sesión) */
+      let pk=null;
+      if(personajes){ const d=m.sesion!==undefined?ident.autenticar(m.token):id; if(d&&!conPersonaje.has(d.usuarioId)) pk=d.usuarioId; }
+      const previo=pk?personajes.obtener(pk):null;
+      const j=pres.entrar(previo); c.pj=j.id; porJugador.set(j.id,c);
+      if(pk){
+        try{ if(!previo) personajes.crear(pk,{nombre:j.nombre,x:j.x,y:j.y,mirando:j.mirando}); c.pk=pk; conPersonaje.add(pk); if(previo) guardarPosicion(c); }
+        catch(e){ log('no se pudo guardar el personaje de '+pk+': '+e.message); c.pk=null; }       // un fallo de disco no le impide jugar: queda como temporal
+      }
       base.yo={id:j.id,nombre:j.nombre,x:j.x,y:j.y,mirando:j.mirando,e:j.epoca}; base.jugadores=pres.lista(j.id);
       if(inc){ c.seq=inc.seq; enviar(c,Object.assign(base,{seq:inc.seq,huella:inc.huella,modo:'incremental',ops:inc.ops})); }
       else { c.seq=e.seq; enviar(c,Object.assign(base,{seq:e.seq,huella:e.huella,modo:'completo',mundo:e.mundo})); }
@@ -258,14 +276,16 @@ async function iniciarServidor(op){
     error(c,m.n,'desconocido','mensaje desconocido: '+m.t.slice(0,40));
   }
 
+  const guardado=personajes?setInterval(()=>{ for(const c of clientes) guardarPosicion(c); personajes.guardarPendientes(); },op.guardadoCadaMs||15000):null;
   const latido=setInterval(()=>{ for(const c of clientes){ if(!c.vivo){ c.ws.terminate(); continue; } c.vivo=false; try{ c.ws.ping(); }catch(e){} } },op.latido||20000);
   await new Promise((ok,no)=>{ server.once('error',no); server.listen(op.puerto||0,op.host||'0.0.0.0',ok); });
   const puerto=server.address().port;
   log('servidor del mundo oficial en el puerto '+puerto+' · versión '+mo.seq()+' · semilla '+mo.NV.CONFIG.seed);
 
-  return {puerto,mundo:mo,presencia:pres,clientes:()=>clientes.size,
+  return {puerto,mundo:mo,presencia:pres,personajes,clientes:()=>clientes.size,
     async cerrar(){
-      cerrando=true; clearInterval(latido);
+      cerrando=true; clearInterval(latido); if(guardado) clearInterval(guardado);
+      if(personajes){ for(const c of clientes) guardarPosicion(c); personajes.guardarPendientes(); }
       for(const c of clientes) try{ c.ws.close(1001,'el servidor se apaga'); }catch(e){}
       await new Promise(ok=>{ wss.close(()=>ok()); });
       await new Promise(ok=>{ server.close(()=>ok()); if(server.closeAllConnections) server.closeAllConnections(); });

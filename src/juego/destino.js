@@ -16,7 +16,7 @@
      4. Si nada de eso, el servidor oficial está PENDIENTE: no hay dirección y no se conecta a nada.
    Una página https sólo acepta direcciones wss:// (el navegador bloquearía ws://). */
 (function(NV){
-  if(NV.SERVIDOR_OFICIAL===undefined) NV.SERVIDOR_OFICIAL='';            // ← PENDIENTE (ver arriba)
+  if(NV.SERVIDOR_OFICIAL===undefined) NV.SERVIDOR_OFICIAL='wss://marcos.taild7968f.ts.net';            // servidor oficial: el PC de Marcos, por Tailscale Funnel
   const D=NV.destino={};
 
   /* ¿es una dirección de este equipo o de una red privada? Sólo literales y «localhost»: un nombre cualquiera podría apuntar a Internet. */

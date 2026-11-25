@@ -154,7 +154,7 @@ for(const c of [F1,F2,F3]) c.ws.close();
 await S.cerrar();
 const S2=await iniciarServidor({dir,puerto:0,host:'127.0.0.1',adminTokens:[ADMIN],retrasoLoginMs:0});
 ok(S2.presencia.cantidad()===0,'tras reiniciar, el servidor no recuerda jugadores: son temporales');
-const G=await conectar(S2.puerto,tok(1)); if(process.env.DEPURAR) console.log('inicio',ini,'libre',libre(ini.x,ini.y),'nace',G.yo.x,G.yo.y); ok(libre(G.yo.x,G.yo.y)&&Math.max(Math.abs(G.yo.x-ini.x),Math.abs(G.yo.y-ini.y))<=3&&(libre(ini.x,ini.y)?G.yo.x===ini.x&&G.yo.y===ini.y:true),'y el primero en entrar vuelve a nacer en el punto de partida (o junto a él si lo construido lo tapa)'); G.ws.close();
+/* un dispositivo NUEVO nace en el punto de partida; los que ya tenían personaje reaparecen donde estaban (pruebas/personajes-servidor.js) */ const G=await conectar(S2.puerto,tok(901)); if(process.env.DEPURAR) console.log('inicio',ini,'libre',libre(ini.x,ini.y),'nace',G.yo.x,G.yo.y); ok(libre(G.yo.x,G.yo.y)&&Math.max(Math.abs(G.yo.x-ini.x),Math.abs(G.yo.y-ini.y))<=3&&(libre(ini.x,ini.y)?G.yo.x===ini.x&&G.yo.y===ini.y:true),'y el primero en entrar vuelve a nacer en el punto de partida (o junto a él si lo construido lo tapa)'); G.ws.close();
 await S2.cerrar();
 console.log(bien+' bien, '+mal+' mal'); process.exit(mal?1:0);
 })().catch(e=>{ console.log('ERROR',e.stack); process.exit(1); });

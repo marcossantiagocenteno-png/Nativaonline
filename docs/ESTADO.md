@@ -26,7 +26,7 @@
 
 ## 3. Arquitectura actual
 ```
- Navegador (HTML/CSS/JS puro, sin dependencias)          Servidor (Node ≥ 20, única dependencia: ws 8.18.0)
+ Navegador (HTML/CSS/JS puro, sin dependencias)          Servidor (Node ≥ 20, única dependencia: ws 8.23.0)
  ┌──────────────────────────────────────────┐            ┌─────────────────────────────────────────────┐
  │ index.html (sólo cargador) → src/*.js    │            │ servidor/iniciar.js   arranque y variables  │
  │ juego/portada.js   pantalla de entrada   │  HTTPS     │ servidor/red.js       WebSocket + HTTP      │

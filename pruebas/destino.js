@@ -7,9 +7,9 @@ const E=(pedido,proto,host,oficial)=>{ const v=NV.SERVIDOR_OFICIAL; NV.SERVIDOR_
 const PAGES='marcossantiagocenteno-png.github.io';
 
 /* ---- pendiente ---- */
-ok(NV.SERVIDOR_OFICIAL==='','NV.SERVIDOR_OFICIAL está definido y vacío (pendiente): nada configurado en el código');
+ok(NV.SERVIDOR_OFICIAL==='wss://marcos.taild7968f.ts.net','NV.SERVIDOR_OFICIAL es la dirección del servidor oficial (Tailscale Funnel) y es wss://');
 const fuente=fs.readFileSync(path.join(__dirname,'../src/juego/destino.js'),'utf8');
-ok(/CONFIGURACIÓN PENDIENTE/.test(fuente)&&/NV\.SERVIDOR_OFICIAL===undefined\)\s*NV\.SERVIDOR_OFICIAL=''/.test(fuente),'y el archivo lo marca como configuración pendiente');
+ok(/NV\.SERVIDOR_OFICIAL===undefined\)\s*NV\.SERVIDOR_OFICIAL='wss:\/\/marcos\.taild7968f\.ts\.net'/.test(fuente),'y la dirección está escrita una sola vez, en destino.js');
 { const r=E('','https:',PAGES); ok(r.pendiente&&r.url===''&&!r.valida&&r.origen==='pendiente','página publicada (https), sin configurar: pendiente, sin dirección'); }
 { const r=E('','http:','ejemplo.com'); ok(r.pendiente&&r.url==='','una página pública sin https tampoco inventa una dirección'); }
 { const r=E('','https:','127.0.0.1.evil.example'); ok(r.pendiente,'un nombre que sólo parece local no cuenta como local'); }

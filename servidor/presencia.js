@@ -56,9 +56,17 @@ function crearPresencia(op){
     return n;
   }
 
-  function entrar(){
-    const o=inicio(), c=cercana(o.x,o.y,null)||{x:o.x,y:o.y};
-    const j={id:idNuevo(),nombre:nombreNuevo(),x:c.x,y:c.y,mirando:'sur',epoca:0,oculto:false,fichas:rafaga,tFichas:ahora(),tReaparecer:0};
+  /* `perfil` (opcional) es un personaje permanente (servidor/personajes.js): conserva su nombre y reaparece donde estaba. Sin perfil, nace temporal como siempre.
+     Si su casilla ya no es libre (hubo obras) o está ocupada, se busca la más cercana; si su nombre ya lo lleva alguien conectado, estrena uno al azar. */
+  function entrar(perfil){
+    const o=inicio(); let c=null, mirando='sur', nombre=null;
+    if(perfil&&Number.isInteger(perfil.x)&&Number.isInteger(perfil.y)){
+      c=libre(perfil.x,perfil.y)&&!ocupada(perfil.x,perfil.y,null)?{x:perfil.x,y:perfil.y}:cercana(perfil.x,perfil.y,null);
+      if(DIRS.includes(perfil.mirando)) mirando=perfil.mirando;
+    }
+    if(!c) c=cercana(o.x,o.y,null)||{x:o.x,y:o.y};
+    if(perfil&&typeof perfil.nombre==='string'&&perfil.nombre&&!nombres.has(perfil.nombre)) nombre=perfil.nombre;
+    const j={id:idNuevo(),nombre:nombre||nombreNuevo(),x:c.x,y:c.y,mirando,epoca:0,oculto:false,fichas:rafaga,tFichas:ahora(),tReaparecer:0};
     J.set(j.id,j); nombres.add(j.nombre); return j;
   }
   function salir(id){ const j=J.get(id); if(!j) return null; J.delete(id); nombres.delete(j.nombre); return j; }

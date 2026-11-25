@@ -17,6 +17,7 @@
      NATIVA_ORIGENES      los orígenes de página que pueden conectarse, separados por coma (p. ej. https://marcossantiagocenteno-png.github.io: esquema y
                           dominio, sin ruta). Vacío = cualquiera: SÓLO para desarrollo. Con NODE_ENV=production el servidor se niega a arrancar sin esto.
      NODE_ENV=production  modo publicado: exige NATIVA_ORIGENES y NATIVA_ADMIN_TOKEN, y no acepta conexiones web sin origen.
+     NATIVA_ARCHIVO_PARADA ruta de un archivo: si aparece, el servidor se apaga limpio (para Windows, que no envía SIGTERM). Opcional.
    Se apaga limpio con Ctrl+C o SIGTERM. */
 'use strict';
 const net=require('net');
@@ -44,4 +45,5 @@ const lista=v=>(v||'').split(',').map(s=>s.trim()).filter(Boolean);
   console.log('escuchando en '+(host||'0.0.0.0')+':'+s.puerto+(conProxy?' · confía en el proxy':''));
   const apagar=async()=>{ console.log('apagando…'); try{ await s.cerrar(); }catch(e){ console.log('error al cerrar: '+e.message); } process.exit(0); };
   process.on('SIGINT',apagar); process.on('SIGTERM',apagar);
+  require('./parada.js').vigilarParada(process.env.NATIVA_ARCHIVO_PARADA,apagar,1000);   // Windows: parada por archivo (ver servidor/parada.js)
 })().catch(e=>{ console.error('No se pudo iniciar: '+e.message); process.exit(1); });

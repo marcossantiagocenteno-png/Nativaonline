@@ -12,12 +12,12 @@
 const fs=require('fs'), path=require('path');
 const {listarArbol}=require('./comun.js');
 
-const RE_SNAP=/^\d{9}\.json$/, RE_COLA=/^diario\.cola-\d+\.txt$/, RE_REVOCADAS=/^sesiones-revocadas\.json(\.danado-.+)?$/;
+const RE_SNAP=/^\d{9}\.json$/, RE_COLA=/^diario\.cola-\d+\.txt$/, RE_REVOCADAS=/^sesiones-revocadas\.json(\.danado-.+)?$/, RE_PERSONAJE=/^[0-9a-f]{12}\.json(\.danado-\d+)?$/;
 
 function copiarOrdenado(origen,dest,op){
   op=op||{};
   fs.mkdirSync(path.join(dest,'instantaneas'),{recursive:true});
-  const omitidos=[]; let top;
+  const omitidos=[]; let top, personajes=0;
   try{ top=fs.readdirSync(origen); }catch(e){ throw new Error('no puedo leer la carpeta de datos '+origen+': '+e.message); }
   const cp=(rel)=>fs.copyFileSync(path.join(origen,rel),path.join(dest,rel));
   // 1) meta
@@ -29,6 +29,7 @@ function copiarOrdenado(origen,dest,op){
   for(const n of top){
     if(n==='.lock'||n.includes('.tmp-')||n==='meta.json'||n==='instantaneas'||n==='diario.ndjson') continue;
     if(RE_COLA.test(n)||RE_REVOCADAS.test(n)){ cp(n); continue; }
+    if(n==='personajes'){ personajes=copiarPersonajes(origen,dest); continue; }
     if(n==='respaldos'){
       if(op.respaldos){ try{ fs.cpSync(path.join(origen,n),path.join(dest,n),{recursive:true}); }catch(e){ if(e.code!=='ENOENT') throw e; } }
       continue;
@@ -37,7 +38,19 @@ function copiarOrdenado(origen,dest,op){
   }
   // 4) el diario, al final, cortado en el último salto de línea
   copiarDiarioCortado(path.join(origen,'diario.ndjson'),path.join(dest,'diario.ndjson'));
-  return {omitidos,sinRespaldos:!op.respaldos};
+  return {omitidos,sinRespaldos:!op.respaldos,personajes};
+}
+
+/* Los personajes permanentes (servidor/personajes.js): un archivo por personaje, escrito de forma atómica (temporal + renombrar). Se copian sólo los
+   nombres finales (<12 hex>.json y los <…>.json.danado-<hora> apartados); los temporales no. Cada archivo copiado es una versión entera de ese personaje
+   (la anterior o la nueva, nunca a medias) y lleva su suma de control: la auditoría la comprueba. */
+function copiarPersonajes(origen,dest){
+  const d=path.join(origen,'personajes'); let nombres; try{ nombres=fs.readdirSync(d); }catch(e){ if(e.code==='ENOENT') return 0; throw e; }
+  fs.mkdirSync(path.join(dest,'personajes'),{recursive:true}); let n=0;
+  for(const nom of nombres.sort()) if(RE_PERSONAJE.test(nom)){
+    try{ fs.copyFileSync(path.join(d,nom),path.join(dest,'personajes',nom)); n++; }catch(e){ if(e.code!=='ENOENT') throw e; }     // ENOENT: se apartó justo ahora; la auditoría decide
+  }
+  return n;
 }
 
 /* El diario se copia POR BLOQUES de 1 MiB (la memoria no crece con el diario) y se corta en el último salto de línea.

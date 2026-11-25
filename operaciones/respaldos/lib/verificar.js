@@ -26,7 +26,7 @@ async function revisarContinuidad(alm,ultimoSeq,pagina){
 }
 
 async function verificarCarpeta({dir,codigo,vivo,esperado}){
-  const problemas=[], r={ok:false,problemas,seq:null,huella:null,versiones:null,instantaneas:null,vivoCoincide:null,ms:0};
+  const problemas=[], r={ok:false,problemas,seq:null,huella:null,versiones:null,instantaneas:null,vivoCoincide:null,personajes:null,ms:0};
   const t0=Date.now(), falla=m=>{ problemas.push(m); r.ms=Date.now()-t0; return r; };
   let meta; try{ meta=JSON.parse(fs.readFileSync(path.join(dir,'meta.json'),'utf8')); }catch(e){ return falla('meta.json falta o no se puede leer'); }
   const dsn=path.join(dir,'instantaneas');
@@ -56,6 +56,13 @@ async function verificarCarpeta({dir,codigo,vivo,esperado}){
     }
   }catch(e){ problemas.push('error al auditar: '+e.message); }
   finally{ try{ await M.cerrar(); }catch(e){} }
+  /* los personajes permanentes: se auditan con el código DE LA COPIA (servidor/personajes.js); sólo se lee, nada se modifica */
+  try{
+    let P=null; try{ P=require(path.join(codigo,'servidor','personajes.js')); }catch(e){ if(!/personajes\.js/.test(String(e.message))) throw e; }
+    const hay=fs.existsSync(path.join(dir,'personajes'))&&fs.readdirSync(path.join(dir,'personajes')).some(n=>/\.json$/.test(n));
+    if(P){ const vp=P.verificarCarpeta(dir); r.personajes=vp.cantidad; for(const m of vp.problemas.slice(0,5)) problemas.push('personajes: '+m); if(vp.problemas.length>5) problemas.push('personajes: …y '+(vp.problemas.length-5)+' más'); }
+    else if(hay) problemas.push('la copia trae personajes pero el código que viaja con ella no sabe auditarlos');
+  }catch(e){ problemas.push('error al auditar los personajes: '+e.message); }
   const dif=igualesArboles(antes,listarArbol(dir));
   if(dif.length) problemas.push('abrir la copia la modificó (no era consistente): '+dif.slice(0,3).join(', '));
   r.ok=problemas.length===0; r.ms=Date.now()-t0;
