@@ -68,7 +68,13 @@ function abrirLog(nombre,max){
   return fs.openSync(f,'a');
 }
 const marca=()=>new Date().toISOString();
-function programa(cmd,args){ const r=cp.spawnSync(cmd,args||['--version'],{encoding:'utf8',windowsHide:true,timeout:15000}); return r.error||r.status!==0?null:String(r.stdout||r.stderr).trim().split(/\r?\n/)[0]; }
+/* age y age-keygen se buscan también en <carpeta del proyecto>\..\herramientas\age (así no hay que tocar el PATH de Windows; vale también para la tarea programada) */
+const HERRAMIENTAS=process.env.NATIVA_HERRAMIENTAS_AGE||path.join(RAIZ,'..','herramientas','age');
+function conHerramientas(env){
+  const e=Object.assign({},env||process.env); if(!fs.existsSync(HERRAMIENTAS)) return e;
+  const k=Object.keys(e).find(x=>x.toLowerCase()==='path')||'PATH'; e[k]=HERRAMIENTAS+path.delimiter+(e[k]||''); return e;
+}
+function programa(cmd,args){ const r=cp.spawnSync(cmd,args||['--version'],{encoding:'utf8',windowsHide:true,timeout:15000,env:conHerramientas()}); return r.error||r.status!==0?null:String(r.stdout||r.stderr).trim().split(/\r?\n/)[0]; }
 function salud(puerto){
   return new Promise(ok=>{
     const r=http.get({host:'127.0.0.1',port:puerto,path:'/salud',timeout:3000},res=>{ let b=''; res.on('data',d=>b+=d); res.on('end',()=>{ try{ ok(JSON.parse(b)); }catch(e){ ok(null); } }); });
@@ -151,7 +157,7 @@ async function respaldar(args){
   const datos=datosDe(cfg), destino=path.resolve(cfg.NATIVA_RESPALDO_CARPETA);
   if(destino===datos||destino.startsWith(datos+path.sep)){ console.error('La carpeta de respaldos no puede estar dentro de los datos del mundo.'); return 1; }
   fs.mkdirSync(destino,{recursive:true}); fs.mkdirSync(path.join(PRIVADO,'respaldo-estado'),{recursive:true}); fs.mkdirSync(path.join(PRIVADO,'trabajo'),{recursive:true});
-  const e=Object.assign({},process.env,{NATIVA_DATOS:datos,NATIVA_CODIGO:RAIZ,NATIVA_RESPALDO_ESTADO:path.join(PRIVADO,'respaldo-estado'),NATIVA_RESPALDO_TRABAJO:path.join(PRIVADO,'trabajo'),
+  const e=Object.assign(conHerramientas(),{NATIVA_DATOS:datos,NATIVA_CODIGO:RAIZ,NATIVA_RESPALDO_ESTADO:path.join(PRIVADO,'respaldo-estado'),NATIVA_RESPALDO_TRABAJO:path.join(PRIVADO,'trabajo'),
     NATIVA_RESPALDO_DESTINO:'carpeta:'+destino,NATIVA_RESPALDO_DESTINATARIOS:cfg.NATIVA_RESPALDO_DESTINATARIOS,
     NATIVA_RESPALDO_VERIFICADOR:cfg.NATIVA_RESPALDO_VERIFICADOR||'',NATIVA_ALERTA_URL:cfg.NATIVA_ALERTA_URL||'',NATIVA_LATIDO_URL:cfg.NATIVA_LATIDO_URL||''});
   const fd=abrirLog('respaldo.log'); fs.writeSync(fd,'\n=== '+marca()+' · respaldo ===\n');
