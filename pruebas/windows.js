@@ -91,5 +91,22 @@ else { require(${JSON.stringify(path.join(raiz,'servidor/parada.js'))}).vigilarP
   ok(nombreDeLinea(bsd[3])==='datos/x'&&bsd[3][0]==='l','nombreDeLinea: un enlace sigue distinguiéndose (primera letra «l») y se le quita el destino');
   ok(nombreDeLinea('-rw-r--r-- 0/0 5 2026-11-25 08:41 datos/Nov 25 08:41 raro')==='datos/Nov 25 08:41 raro','un nombre que parece fecha no confunde al lector GNU');
 
+  /* ---- revisarContenido con la salida REAL del tar.exe de Windows: fecha en español («nov. 25 10:23») y líneas terminadas en \r\n ---- */
+  {
+    const {revisarContenido}=require(path.join(raiz,'operaciones/respaldos/lib/paquete.js'));
+    const falso=(detallado,simple)=>{ const d=fs.mkdtempSync(path.join(os.tmpdir(),'nv-tarfalso-')); fs.writeFileSync(path.join(d,'tar'),'#!/bin/sh\nfor a in "$@"; do case "$a" in -tvzf) cat \''+path.join(d,'det')+'\'; exit 0;; -tzf) cat \''+path.join(d,'sim')+'\'; exit 0;; esac; done\nexit 1\n',{mode:0o755});
+      fs.writeFileSync(path.join(d,'det'),detallado.join('\r\n')+'\r\n'); fs.writeFileSync(path.join(d,'sim'),simple.join('\r\n')+'\r\n'); return d; };
+    const conTar=(d,f)=>{ const antes=process.env.PATH; process.env.PATH=d+path.delimiter+antes; try{ return f(); } finally{ process.env.PATH=antes; } };
+    const bien1=['manifiesto.json','datos/','datos/personajes/','datos/personajes/0123456789ab.json','codigo/src/a b.js'];
+    const det=['-rw-rw-rw-  0 0      0          1234 nov. 25 10:23 manifiesto.json','drwxrwxrwx  0 0      0             0 nov. 25 10:23 datos/','drwxrwxrwx  0 0      0             0 nov. 25 10:23 datos/personajes/',
+      '-rw-rw-rw-  0 0      0           300 nov. 25 10:23 datos/personajes/0123456789ab.json','-rw-rw-rw-  0 0      0            12 nov. 25 10:23 codigo/src/a b.js'];
+    let d=falso(det,bien1); ok(conTar(d,()=>revisarContenido('x.tgz')).length===0,'tar de Windows en español con \\r\\n: el contenido correcto se acepta');
+    const det2=det.slice(); det2[4]='lrwxrwxrwx  0 0      0             0 nov. 25 10:23 codigo/src/a b.js -> /etc/passwd';
+    d=falso(det2,bien1); ok(conTar(d,()=>revisarContenido('x.tgz')).length===1,'un enlace simbólico se rechaza con ese mismo formato');
+    d=falso(det.concat(det[4]),bien1.concat('../fuera.js')); ok(conTar(d,()=>revisarContenido('x.tgz')).some(m=>/peligrosa/.test(m)),'una ruta con «..» se rechaza');
+    d=falso(det.concat(det[4]),bien1.concat('otro/archivo.txt')); ok(conTar(d,()=>revisarContenido('x.tgz')).some(m=>/fuera de lugar/.test(m)),'una entrada fuera de manifiesto, datos y codigo se rechaza');
+    d=falso(det,bien1.concat('sobra')); ok(conTar(d,()=>revisarContenido('x.tgz')).some(m=>/no es consistente/.test(m)),'si los dos listados no coinciden en número, se rechaza (ante la duda, no)');
+  }
+
   console.log('windows: '+bien+' bien, '+mal+' mal'); global.__fin=1; process.exit(mal?1:0);
 })();

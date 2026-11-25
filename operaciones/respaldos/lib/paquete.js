@@ -23,12 +23,18 @@ const PREFIJO_BSD=/^\S+\s+\d+\s+\S+\s+\S+\s+\d+\s+[A-Z][a-z]{2}\s+\d{1,2}\s+(?:\
 const PREFIJO_GNU=/^\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+/;
 const nombreDeLinea=l=>l.replace(PREFIJO_BSD.test(l)?PREFIJO_BSD:PREFIJO_GNU,'').replace(/ -> .*$/,'');
 
-/* sólo archivos y carpetas normales, dentro de manifiesto.json / datos/ / codigo/; nada de rutas absolutas, «..» ni enlaces */
+/* sólo archivos y carpetas normales, dentro de manifiesto.json / datos/ / codigo/; nada de rutas absolutas, «..» ni enlaces.
+   Se leen DOS listados del mismo paquete, en el mismo orden: el detallado (`-tv`) sólo para la primera letra de cada línea (el tipo: «-» archivo,
+   «d» carpeta, «l»/«h» enlace…) y el simple (`-t`) para los nombres. Así no importa cómo escriba la fecha cada tar (el tar.exe de Windows la escribe
+   según el idioma: «nov. 25 10:23») ni si termina las líneas con \r\n. Si los dos listados no tienen el mismo número de entradas (un nombre con
+   salto de línea, por ejemplo), se rechaza el paquete: ante la duda, no. */
+const lineas=t=>String(t).split('\n').map(x=>x.replace(/\r$/,'')).filter(Boolean);
 function revisarContenido(tgz){
-  const lista=String(ejecutar('tar',['-tvzf',tgz]).stdout).split('\n').filter(Boolean), malos=[];
-  for(const l of lista){
-    const tipo=l[0], nombre=nombreDeLinea(l);
-    if(tipo!=='-'&&tipo!=='d') malos.push('entrada que no es archivo ni carpeta: '+l.slice(0,80));
+  const tipos=lineas(ejecutar('tar',['-tvzf',tgz]).stdout), nombres=lineas(ejecutar('tar',['-tzf',tgz]).stdout), malos=[];
+  if(tipos.length!==nombres.length) return ['el listado del paquete no es consistente ('+tipos.length+' entradas detalladas, '+nombres.length+' nombres)'];
+  for(let i=0;i<nombres.length;i++){
+    const tipo=tipos[i][0], nombre=nombres[i];
+    if(tipo!=='-'&&tipo!=='d') malos.push('entrada que no es archivo ni carpeta: '+nombre.slice(0,80));
     else if(nombre.startsWith('/')||nombre.split('/').includes('..')) malos.push('ruta peligrosa: '+nombre);
     else if(!/^(manifiesto\.json|datos(\/.*)?|codigo(\/.*)?)$/.test(nombre.replace(/\/$/,''))) malos.push('fuera de lugar: '+nombre);
   }
