@@ -10,7 +10,7 @@
    entra. Aun así NO se confía en el orden: toda copia se abre con el mismo código del servidor y se audita antes de valer. */
 'use strict';
 const fs=require('fs'), path=require('path');
-const {listarArbol}=require('./comun.js');
+const {listarArbol,copiarArbol}=require('./comun.js');
 
 const RE_SNAP=/^\d{9}\.json$/, RE_COLA=/^diario\.cola-\d+\.txt$/, RE_REVOCADAS=/^sesiones-revocadas\.json(\.danado-.+)?$/, RE_PERSONAJE=/^[0-9a-f]{12}\.json(\.danado-\d+)?$/;
 
@@ -31,7 +31,7 @@ function copiarOrdenado(origen,dest,op){
     if(RE_COLA.test(n)||RE_REVOCADAS.test(n)){ cp(n); continue; }
     if(n==='personajes'){ personajes=copiarPersonajes(origen,dest); continue; }
     if(n==='respaldos'){
-      if(op.respaldos){ try{ fs.cpSync(path.join(origen,n),path.join(dest,n),{recursive:true}); }catch(e){ if(e.code!=='ENOENT') throw e; } }
+      if(op.respaldos){ try{ copiarArbol(path.join(origen,n),path.join(dest,n)); }catch(e){ if(e.code!=='ENOENT') throw e; } }
       continue;
     }
     omitidos.push(n);                                    // sólo se anota el NOMBRE; el contenido jamás se lee

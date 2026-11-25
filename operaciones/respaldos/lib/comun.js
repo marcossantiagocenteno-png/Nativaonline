@@ -75,4 +75,12 @@ function igualesArboles(a,b){
   for(const k of kb) if(!(k in a)) dif.push('sobra '+k);
   return dif;
 }
-module.exports={sha256,hashArchivo,escribirAtomico,ejecutar,log,vivo,espera,tomarCandado,dia,seisHoras,semanaISO,marca,listarArbol,igualesArboles};
+/* copia una carpeta entera, archivo por archivo (sin fs.cpSync, que en algunas versiones de Node para Windows se cae sin dejar mensaje). Sólo archivos y carpetas normales. */
+function copiarArbol(origen,destino){
+  fs.mkdirSync(destino,{recursive:true});
+  for(const e of fs.readdirSync(origen,{withFileTypes:true})){
+    const a=path.join(origen,e.name), b=path.join(destino,e.name);
+    if(e.isDirectory()) copiarArbol(a,b); else if(e.isFile()) fs.copyFileSync(a,b);
+  }
+}
+module.exports={copiarArbol,sha256,hashArchivo,escribirAtomico,ejecutar,log,vivo,espera,tomarCandado,dia,seisHoras,semanaISO,marca,listarArbol,igualesArboles};

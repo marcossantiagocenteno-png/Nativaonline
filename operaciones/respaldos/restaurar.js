@@ -9,7 +9,7 @@
    → audita todo y compara la versión y la huella con las del manifiesto. Sale con código 0 sólo si todo coincide. */
 'use strict';
 const fs=require('fs'), path=require('path'), os=require('os');
-const {ejecutar,hashArchivo,listarArbol,igualesArboles,vivo}=require('./lib/comun.js');
+const {ejecutar,hashArchivo,listarArbol,igualesArboles,vivo,copiarArbol}=require('./lib/comun.js');
 const {descifrar}=require('./lib/cifrado.js');
 const {revisarContenido}=require('./lib/paquete.js');
 const {verificarEnHijo}=require('./lib/verificar-hijo.js');
@@ -27,7 +27,7 @@ function carpetaLibre(d){
 
 async function restaurarPaquete(op){
   const work=fs.mkdtempSync(path.join(op.trabajo||os.tmpdir(),'nv-restaurar-')), informe={ok:false,pasos:[],problemas:[]};
-  const paso=m=>informe.pasos.push(m);
+  const paso=m=>{ informe.pasos.push(m); if(process.env.NATIVA_DEPURAR) console.error('  · '+m); };
   try{
     let datosDestino=null, codigoDestino=null;
     if(!op.soloVerificar){
@@ -51,8 +51,8 @@ async function restaurarPaquete(op){
     paso('cada archivo coincide con el manifiesto'); informe.manifiesto={seq:man.seq,huella:man.huella,commit:man.commit,node:man.entorno.node,arquitectura:man.entorno.arquitectura,creado:man.creado,etiqueta:man.etiqueta};
     let dirDatos=path.join(x,'datos'), codigoRaiz=path.join(x,'codigo');
     if(!op.soloVerificar){
-      fs.mkdirSync(datosDestino,{recursive:true}); fs.cpSync(dirDatos,datosDestino,{recursive:true}); dirDatos=datosDestino;
-      if(codigoDestino){ fs.mkdirSync(codigoDestino,{recursive:true}); fs.cpSync(codigoRaiz,codigoDestino,{recursive:true}); codigoRaiz=codigoDestino; }
+      fs.mkdirSync(datosDestino,{recursive:true}); copiarArbol(dirDatos,datosDestino); dirDatos=datosDestino;
+      if(codigoDestino){ fs.mkdirSync(codigoDestino,{recursive:true}); copiarArbol(codigoRaiz,codigoDestino); codigoRaiz=codigoDestino; }
       paso('datos dejados en '+datosDestino);
     }
     const v=verificarEnHijo({dir:dirDatos,codigo:codigoRaiz,esperado:{seq:man.seq,huella:man.huella},memoriaMB:op.memoriaMB});
