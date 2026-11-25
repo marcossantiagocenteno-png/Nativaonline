@@ -28,8 +28,45 @@ function revisarContenido(tgz){
   return malos;
 }
 
+/* ---- espacio en disco: el respaldo NO empieza si no cabe ----
+   Una carpeta de trabajo en el mismo disco que los datos puede llenarlo: sin sitio, el servidor en marcha no podría escribir su diario ni
+   sus instantáneas. Por eso se comprueba ANTES de crear nada. Lo que se necesita es, como mucho, la copia (1×) + el .tar.gz (1×, aunque no
+   comprimiera) + el paquete reabierto para compararlo (1×) + el .age (1×) = 4× el tamaño de los datos, más el código y una reserva que se
+   deja intacta (más grande si es el mismo disco que los datos: ahí vive el mundo en vivo). */
+const ESPACIO_FACTOR=4, ESPACIO_CODIGO=16*1048576, RESERVA_MISMO_DISCO_MB=512, RESERVA_OTRO_DISCO_MB=64;
+function tamanoCarpeta(dir,conRespaldos){
+  let t=0;
+  (function rec(d,esRaiz){
+    let es; try{ es=fs.readdirSync(d,{withFileTypes:true}); }catch(e){ return; }
+    for(const e of es){
+      if(e.name==='.lock'||e.name.includes('.tmp-')) continue;
+      if(esRaiz&&e.name==='respaldos'&&!conRespaldos) continue;
+      const r=path.join(d,e.name);
+      if(e.isDirectory()) rec(r,false); else if(e.isFile()){ try{ t+=fs.statSync(r).size; }catch(x){} }
+    }
+  })(dir,true);
+  return t;
+}
+function ancestroExistente(p){ while(!fs.existsSync(p)){ const u=path.dirname(p); if(u===p) break; p=u; } return p; }
+function mb(n){ return Math.ceil(n/1048576); }
+/* Devuelve {ok,libre,necesario,...}. Si no se puede medir el disco no se bloquea el respaldo (sería peor perder todas las copias). */
+function revisarEspacio(op){
+  const base=ancestroExistente(op.trabajo);
+  let libre;
+  try{ if(op.libre) libre=op.libre(base); else { const s=fs.statfsSync(base); libre=s.bavail*s.bsize; } }
+  catch(e){ log('aviso','no pude medir el espacio libre en '+base+'; se sigue sin esa comprobación',{error:e.message}); return {ok:true,medido:false}; }
+  let mismoDisco=false; try{ mismoDisco=fs.statSync(op.origen).dev===fs.statSync(base).dev; }catch(e){}
+  const reserva=(op.reservaMB!=null?op.reservaMB:(mismoDisco?RESERVA_MISMO_DISCO_MB:RESERVA_OTRO_DISCO_MB))*1048576;
+  const datos=tamanoCarpeta(op.origen,!!op.respaldos), necesario=ESPACIO_FACTOR*datos+ESPACIO_CODIGO+reserva;
+  return {ok:libre>=necesario,medido:true,libre,necesario,datos,reserva,mismoDisco,base};
+}
+
 async function construirPaquete(op){
   const {origen,vivo,codigo,destinatarios,etiqueta,respaldos,ahora,memoriaMB}=op, intentos=op.intentos||3;
+  const esp=revisarEspacio(op);
+  if(!esp.ok) throw new Error('no hay espacio para respaldar: en '+esp.base+' quedan '+mb(esp.libre)+' MB libres y hacen falta '+mb(esp.necesario)
+    +' MB ('+ESPACIO_FACTOR+'× los '+mb(esp.datos)+' MB de datos + código + una reserva de '+mb(esp.reserva)+' MB'+(esp.mismoDisco?', porque es el mismo disco que el mundo en vivo':'')
+    +'). NO se empieza: un disco lleno pondría en riesgo el mundo en marcha. No se creó nada.');
   fs.mkdirSync(op.trabajo,{recursive:true});
   const work=fs.mkdtempSync(path.join(op.trabajo,'respaldo-')), stage=path.join(work,'stage'); fs.mkdirSync(stage);
   try{
@@ -73,4 +110,4 @@ async function construirPaquete(op){
     return {work,age,nombre,lado,seq:man.seq,huella:man.huella,limpiar(){ fs.rmSync(work,{recursive:true,force:true}); }};
   }catch(e){ fs.rmSync(work,{recursive:true,force:true}); throw e; }
 }
-module.exports={construirPaquete,revisarContenido};
+module.exports={construirPaquete,revisarContenido,revisarEspacio,tamanoCarpeta};

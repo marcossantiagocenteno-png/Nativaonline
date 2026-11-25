@@ -8,6 +8,23 @@ const fs=require('fs'), path=require('path');
 const {listarArbol,igualesArboles}=require('./comun.js');
 const {huellaVivaEn}=require('./copia.js');
 
+/* ¿el diario empieza en la versión 1 y llega sin huecos? Antes se pedía TODO el diario de una vez (el almacén lo clona entero con JSON:
+   una segunda copia completa en memoria). Ahora se pide por tramos de PAGINA versiones: se mira lo mismo, con la misma redacción de los
+   problemas, pero sólo hay un tramo clonado a la vez. El último tramo va hasta Infinity para no dejar ninguna entrada fuera. */
+const PAGINA=5000;
+async function revisarContinuidad(alm,ultimoSeq,pagina){
+  const pag=pagina||PAGINA, problemas=[]; let total=0, primero=null, ultimo=null;
+  const tope=Number.isFinite(ultimoSeq)&&ultimoSeq>0?ultimoSeq:0;
+  for(let desde=0;;desde+=pag){
+    const ultimaPagina=desde+pag>=tope, ent=await alm.diario(desde,ultimaPagina?Infinity:desde+pag);
+    if(ent.length){ if(primero===null) primero=ent[0].seq; ultimo=ent[ent.length-1].seq; total+=ent.length; }
+    if(ultimaPagina) break;
+  }
+  if(total&&primero!==1) problemas.push('el diario no empieza en la versión 1 (empieza en '+primero+')');
+  if(total&&ultimo!==total) problemas.push('el diario tiene huecos: '+total+' renglones y llega a la versión '+ultimo);
+  return problemas;
+}
+
 async function verificarCarpeta({dir,codigo,vivo,esperado}){
   const problemas=[], r={ok:false,problemas,seq:null,huella:null,versiones:null,instantaneas:null,vivoCoincide:null,ms:0};
   const t0=Date.now(), falla=m=>{ problemas.push(m); r.ms=Date.now()-t0; return r; };
@@ -26,9 +43,7 @@ async function verificarCarpeta({dir,codigo,vivo,esperado}){
     r.versiones=au.versiones; r.instantaneas=au.instantaneas;
     if(M.reparado()) problemas.push('el diario de la copia terminaba en un renglón cortado');
     r.seq=M.seq(); r.huella=M.huella();
-    const ent=await M.alm.diario(0,Infinity);
-    if(ent.length&&ent[0].seq!==1) problemas.push('el diario no empieza en la versión 1 (empieza en '+ent[0].seq+')');
-    if(ent.length&&ent[ent.length-1].seq!==ent.length) problemas.push('el diario tiene huecos: '+ent.length+' renglones y llega a la versión '+ent[ent.length-1].seq);
+    for(const m of await revisarContinuidad(M.alm,r.seq)) problemas.push(m);
     if(esperado){
       if(esperado.seq!=null&&esperado.seq!==r.seq) problemas.push('versión '+r.seq+' en vez de la '+esperado.seq+' que dice el manifiesto');
       if(esperado.huella&&esperado.huella!==r.huella) problemas.push('la huella no coincide con la del manifiesto');
@@ -46,4 +61,4 @@ async function verificarCarpeta({dir,codigo,vivo,esperado}){
   r.ok=problemas.length===0; r.ms=Date.now()-t0;
   return r;
 }
-module.exports={verificarCarpeta};
+module.exports={verificarCarpeta,revisarContinuidad};

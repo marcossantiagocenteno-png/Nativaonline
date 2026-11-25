@@ -58,7 +58,7 @@ async function principal(argv){
     const reales=pendientes.filter(n=>n!=='canario'), hecho=[]; let seq=null, huella=null;
     if(reales.length){
       const p=await construirPaquete({origen:cfg.datos,vivo:cfg.datos,codigo:cfg.codigo,trabajo:cfg.trabajo,destinatarios:cfg.destinatarios,etiqueta:'real',
-        respaldos:reales.includes('diario')||reales.includes('semanal'),ahora,memoriaMB:cfg.memoriaMB});
+        respaldos:reales.includes('diario')||reales.includes('semanal'),ahora,memoriaMB:cfg.memoriaMB,reservaMB:cfg.reservaMB});
       try{
         for(const n of reales){
           await subirNivel(destino,n,PREFIJO[n],p,PREFIJO[n],slotDe(n,ahora));
@@ -71,7 +71,7 @@ async function principal(argv){
       const work=fs.mkdtempSync(path.join(cfg.trabajo,'respaldo-canario-')), dir=path.join(work,'mundo');
       try{
         ejecutar(process.execPath,[path.join(__dirname,'lib','hacer-canario.js'),cfg.codigo,dir]);
-        const p=await construirPaquete({origen:dir,vivo:dir,codigo:cfg.codigo,trabajo:cfg.trabajo,destinatarios:cfg.verificador,etiqueta:'canario',respaldos:false,ahora,memoriaMB:cfg.memoriaMB});
+        const p=await construirPaquete({origen:dir,vivo:dir,codigo:cfg.codigo,trabajo:cfg.trabajo,destinatarios:cfg.verificador,etiqueta:'canario',respaldos:false,ahora,memoriaMB:cfg.memoriaMB,reservaMB:cfg.reservaMB});
         try{ await subirNivel(destino,'seisHoras','canario',p,'canario',slotDe('canario',ahora)); estado.slots.canario=slotDe('canario',ahora); guardarEstado(cfg,estado); hecho.push('canario'); }
         finally{ p.limpiar(); }
       }finally{ fs.rmSync(work,{recursive:true,force:true}); }

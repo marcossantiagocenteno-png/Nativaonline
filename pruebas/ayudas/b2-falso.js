@@ -19,7 +19,7 @@ function crear({claves,cubos,fallosSubida}){
       const c=tokens.get(req.headers.authorization), tiene=x=>c&&c.cap.includes(x);
       if(u.pathname.startsWith('/upload/')){
         const t=req.headers.authorization, bid=u.pathname.split('/')[2]; const cc=tokens.get(t);
-        intentosSubida++; if(fallosSubida&&fallosSubida(intentosSubida)) return err(res,503,'service_unavailable','ocupado');
+        intentosSubida++; lg.ultimaSubida={contentLength:req.headers['content-length']===undefined?null:+req.headers['content-length'],transferEncoding:req.headers['transfer-encoding']||null,bytes:buf.length}; if(fallosSubida&&fallosSubida(intentosSubida)) return err(res,503,'service_unavailable','ocupado');
         if(!cc||!cc.cap.includes('writeFiles')) return err(res,401,'unauthorized','sin writeFiles');
         const nombre=decodeURIComponent(req.headers['x-bz-file-name']), sha=crypto.createHash('sha1').update(buf).digest('hex');
         if(req.headers['x-bz-content-sha1']!==sha) return err(res,400,'bad_request','sha1 no coincide');

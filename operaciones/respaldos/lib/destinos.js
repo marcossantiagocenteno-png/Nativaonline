@@ -44,11 +44,11 @@ function destinoB2({id,clave,cubos}){
   const b=new B2({id,clave}), cubo=nivel=>{ const c=(cubos||CUBOS_POR_DEFECTO)[nivel]; if(!c) throw new Error('nivel desconocido: '+nivel); return c; };
   return {
     tipo:'b2', cliente:b, cubos:cubos||CUBOS_POR_DEFECTO,
-    async subir(nivel,nombre,local){ return b.subir(cubo(nivel),nombre,fs.readFileSync(local),'application/octet-stream'); },
+    async subir(nivel,nombre,local){ return b.subirArchivo(cubo(nivel),nombre,local,'application/octet-stream'); },
     async subirTexto(nivel,nombre,texto){ return b.subir(cubo(nivel),nombre,Buffer.from(texto),'application/json'); },
     async listar(nivel,prefijo){ return (await b.listar(cubo(nivel),prefijo)).sort((x,y)=>x.nombre<y.nombre?-1:1); },
     async leer(nivel,nombre){ return b.descargar(cubo(nivel),nombre); },
-    async bajar(nivel,nombre,local){ fs.writeFileSync(local,await b.descargar(cubo(nivel),nombre)); }
+    async bajar(nivel,nombre,local){ return b.descargarA(cubo(nivel),nombre,local); }
   };
 }
 

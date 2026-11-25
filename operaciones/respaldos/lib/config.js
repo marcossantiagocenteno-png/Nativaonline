@@ -10,7 +10,9 @@
      B2_ID_ESCRITURA / B2_CLAVE_ESCRITURA   clave de aplicación de B2 de SÓLO escritura
      B2_CUBO_SEIS_HORAS / B2_CUBO_DIARIO / B2_CUBO_SEMANAL
      NATIVA_ALERTA_URL / NATIVA_LATIDO_URL  opcionales
-     NATIVA_RESPALDO_MEMORIA_MB      tope de memoria del proceso que audita (por defecto 384) */
+     NATIVA_RESPALDO_MEMORIA_MB      tope de memoria del proceso que audita (por defecto 384)
+     NATIVA_RESPALDO_RESERVA_MB      espacio que el respaldo deja SIEMPRE libre en el disco de trabajo (por defecto 512 si es el mismo disco que
+                                     los datos, 64 si es otro); si no cabe 4× los datos + esa reserva, el respaldo no empieza */
 'use strict';
 const path=require('path');
 
@@ -27,7 +29,8 @@ function cargarConfig(env){
     destinatarios:lista(env.NATIVA_RESPALDO_DESTINATARIOS),
     verificador:lista(env.NATIVA_RESPALDO_VERIFICADOR),
     alertaUrl:env.NATIVA_ALERTA_URL||'', latidoUrl:env.NATIVA_LATIDO_URL||'',
-    memoriaMB:+env.NATIVA_RESPALDO_MEMORIA_MB||384
+    memoriaMB:+env.NATIVA_RESPALDO_MEMORIA_MB||384,
+    reservaMB:env.NATIVA_RESPALDO_RESERVA_MB!==undefined&&env.NATIVA_RESPALDO_RESERVA_MB!==''&&Number.isFinite(+env.NATIVA_RESPALDO_RESERVA_MB)?+env.NATIVA_RESPALDO_RESERVA_MB:undefined
   };
 }
 module.exports={cargarConfig};

@@ -36,26 +36,69 @@ function copiarOrdenado(origen,dest,op){
     omitidos.push(n);                                    // sólo se anota el NOMBRE; el contenido jamás se lee
   }
   // 4) el diario, al final, cortado en el último salto de línea
-  const fd=path.join(origen,'diario.ndjson');
-  if(fs.existsSync(fd)){
-    const buf=fs.readFileSync(fd), fin=buf.lastIndexOf(10);
-    fs.writeFileSync(path.join(dest,'diario.ndjson'),fin>=0?buf.subarray(0,fin+1):Buffer.alloc(0));
-  }
+  copiarDiarioCortado(path.join(origen,'diario.ndjson'),path.join(dest,'diario.ndjson'));
   return {omitidos,sinRespaldos:!op.respaldos};
+}
+
+/* El diario se copia POR BLOQUES de 1 MiB (la memoria no crece con el diario) y se corta en el último salto de línea.
+   Se fija el tamaño S al empezar: se copian como mucho esos S bytes, aunque el servidor siga añadiendo renglones. Es el mismo resultado de siempre:
+   los primeros S bytes del diario, hasta el último «\n» que haya entre ellos (si no hay ninguno, un archivo vacío). Un renglón a medias no entra. */
+const BLOQUE=1<<20;
+function copiarDiarioCortado(origen,destino){
+  let fi; try{ fi=fs.openSync(origen,'r'); }catch(e){ if(e.code==='ENOENT') return false; throw e; }
+  let fo=null;
+  try{
+    const S=fs.fstatSync(fi).size, buf=Buffer.allocUnsafe(Math.min(BLOQUE,Math.max(S,1)));
+    fo=fs.openSync(destino,'w');
+    let pos=0, ultimo=-1;                                // ultimo: posición del último salto de línea ya copiado
+    while(pos<S){
+      const n=fs.readSync(fi,buf,0,Math.min(buf.length,S-pos),pos); if(n<=0) break;
+      const i=buf.lastIndexOf(10,n-1); if(i>=0&&i<n) ultimo=pos+i;
+      let w=0; while(w<n) w+=fs.writeSync(fo,buf,w,n-w);
+      pos+=n;
+    }
+    fs.ftruncateSync(fo,ultimo+1);                       // ultimo=-1 → 0 bytes
+  } finally{ if(fo!==null) fs.closeSync(fo); fs.closeSync(fi); }
+  return true;
+}
+
+/* Recorre un archivo por renglones sin cargarlo entero: llama a cada(renglón) con el texto de cada línea (sin el «\n») y se detiene si devuelve true.
+   Un renglón se decodifica ya completo: el salto de línea nunca aparece dentro de un carácter UTF-8 de varios bytes, así que cortar por bloques
+   no parte caracteres. El último renglón cuenta aunque no termine en salto de línea. */
+function recorrerRenglones(ruta,cada){
+  let fd; try{ fd=fs.openSync(ruta,'r'); }catch(e){ if(e.code==='ENOENT') return; throw e; }
+  try{
+    const buf=Buffer.allocUnsafe(BLOQUE); let resto=[], restoLen=0;
+    for(;;){
+      const n=fs.readSync(fd,buf,0,buf.length,null); if(n<=0) break;
+      let ini=0;
+      for(;;){
+        const i=buf.indexOf(10,ini); if(i<0||i>=n) break;
+        const trozo=buf.subarray(ini,i), linea=restoLen?Buffer.concat(resto.concat([trozo])):trozo;
+        resto=[]; restoLen=0; ini=i+1;
+        if(cada(linea.toString('utf8'))) return;
+      }
+      if(ini<n){ resto.push(Buffer.from(buf.subarray(ini,n))); restoLen+=n-ini; }   // se copia: el bloque se reutiliza
+    }
+    if(restoLen&&cada(Buffer.concat(resto).toString('utf8'))) return;
+  } finally{ fs.closeSync(fd); }
 }
 
 /* La huella que el mundo «de verdad» tenía en la versión seq, leída de sus propios archivos (no de la memoria del servidor). */
 function huellaVivaEn(vivo,seq){
   const fd=path.join(vivo,'diario.ndjson');
-  if(seq>0&&fs.existsSync(fd)){
-    for(const l of fs.readFileSync(fd,'utf8').split('\n')){
-      if(!l) continue;
-      let e; try{ e=JSON.parse(l); }catch(x){ continue; }          // el último renglón puede estar a medias
-      if(e&&e.seq===seq&&typeof e.h==='string') return e.h;
-    }
+  if(seq>0){
+    let h=null;
+    recorrerRenglones(fd,l=>{                                      // por renglones, sin cargar el diario: se queda con el PRIMero que coincide, como siempre
+      if(!l) return false;
+      let e; try{ e=JSON.parse(l); }catch(x){ return false; }       // el último renglón puede estar a medias
+      if(e&&e.seq===seq&&typeof e.h==='string'){ h=e.h; return true; }
+      return false;
+    });
+    if(h!==null) return h;
   }
   const fs0=path.join(vivo,'instantaneas',String(seq).padStart(9,'0')+'.json');
   if(fs.existsSync(fs0)){ try{ return JSON.parse(fs.readFileSync(fs0,'utf8')).huella||null; }catch(e){} }
   return null;
 }
-module.exports={copiarOrdenado,huellaVivaEn,listarArbol};
+module.exports={copiarOrdenado,huellaVivaEn,listarArbol,copiarDiarioCortado,recorrerRenglones};
